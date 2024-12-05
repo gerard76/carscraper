@@ -1,5 +1,9 @@
 # Pin npm packages by running ./bin/importmap
 
+
+# pin "Chart.bundle", to: "Chart.bundle.js"
+pin "chartkick", to: "chartkick.js"
+
 pin "application"
 pin "@hotwired/turbo-rails", to: "turbo.min.js"
 pin "@hotwired/stimulus", to: "stimulus.min.js"

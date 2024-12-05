@@ -1,0 +1,11 @@
+<%= search_form_for @q do |f| %>
+
+  <%= f.label :eur_max %>
+  <%= f.search_field :eur_lteq %>
+
+  <%= f.label :km_max %>
+  <%= f.search_field :km_lteq %>
+
+  <%= f.submit %>
+
+<% end %>

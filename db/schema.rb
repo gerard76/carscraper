@@ -10,27 +10,35 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2024_08_30_134143) do
+ActiveRecord::Schema[7.1].define(version: 2024_08_30_135804) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_trgm"
   enable_extension "plpgsql"
 
   create_table "cars", force: :cascade do |t|
-    t.string "make"
+    t.bigint "model_id", null: false
     t.string "version"
-    t.integer "eur"
     t.integer "km"
+    t.integer "eur"
     t.date "year"
     t.string "url"
     t.string "country"
-    t.string "crawler"
     t.boolean "visible", default: true
     t.string "currency"
     t.integer "price"
     t.json "data", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["model_id"], name: "index_cars_on_model_id"
+    t.index ["url"], name: "index_cars_on_url", unique: true
+  end
+
+  create_table "models", force: :cascade do |t|
+    t.string "make"
     t.string "model"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "cars", "models"
 end
