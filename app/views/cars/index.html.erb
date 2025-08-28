@@ -1,38 +1,50 @@
 <%= render 'search_form' %>
 
-<%=
-  line_chart @cars,
-    prefix: "€",
-    height: "600px",
-    min: @minprice,
-    max: @maxprice,
-    ytitle: "Prijs",
-    xtitle: "Bouwjaar",
-    adapter: "highcharts",
-    library: {
-      backgroundColor: "#eee",
-      xAxis: {
-        type: 'datetime',
-        dateTimeLabelFormats: {
-          month: '%b %Y',   # Format for month and year
-          year: '%Y',       # Format for the year
-        },
-        labels: {
-          format: '{value:%b %Y}'  # Format for the labels on the x-axis
-        }
-      },
-      tooltip: {
-        useHTML: true,
-        pointFormat: '<table>' +
-          '<tr><td>prijs: </td><td>€{point.y}</td></tr>' +
-          '<tr><td>bouwjaar: </td><td>{point.x:%Y-%m-%d}</td></tr>' +
-          # '<tr><td>km: </td><td>{series.scatter.data}</td></tr>' +
-          '</table>'
-      },
-      chart: {
-        zoomType: 'xy',
-        panning: true,
-        panKey: 'shift'
+<div id="chart" style="width: 800px; height: 500px;"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const chartDom = document.getElementById('chart');
+  const myChart = echarts.init(chartDom, 'dark');
+
+  const data = <%= raw @data.to_json %>;
+
+  const option = {
+    title: { text: 'Car Prices by Year' },
+    tooltip: {
+      trigger: 'item',
+      formatter: function(params) {
+        return `
+          Year: ${params.data.value[0]}<br>
+          Price: ${params.data.value[1]}<br>
+          KM: ${params.data.km}
+        `;
       }
+    },
+    xAxis: {
+      name: 'Year',
+      type: 'category',
+      data: [...new Set(data.map(d => d.value[0]))].sort((a, b) => a - b)
+    },
+    yAxis: {
+      name: 'Price',
+      type: 'value',
+      min: <%= @cars.minimum(:price) -1000 %>
+    },
+    series: [{
+      type: 'scatter',
+      data: data,
+      symbolSize: 10
+    }]
+  };
+
+  myChart.setOption(option);
+
+  // Make dots clickable
+  myChart.on('click', function(params) {
+    if (params.data.url) {
+      window.open(params.data.url, '_blank');
     }
- %>
+  });
+});
+</script>

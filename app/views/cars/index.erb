@@ -1,0 +1,27 @@
+<%= render 'search_form' %>
+
+<div id="chart" style="width: 800px; height: 500px;"></div>
+
+<!-- ECharts from CDN -->
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const chartDom = document.getElementById('chart');
+    const myChart = echarts.init(chartDom, 'dark');
+
+    const data = <%= raw @data.to_json %>;
+
+    const option = {
+      title: { text: 'Car Prices by Year' },
+      tooltip: {},
+      xAxis: { name: 'Year', type: 'category' },
+      yAxis: { name: 'Price', type: 'value' },
+      series: [{
+        type: 'scatter',
+        data: data
+      }]
+    };
+
+    myChart.setOption(option);
+  });
+</script>

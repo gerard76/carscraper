@@ -1,0 +1,14 @@
+<p style="color: green"><%= notice %></p>
+
+<h1>Models</h1>
+
+<table>
+<% @models.each do |model| %>
+  <tr>
+    <td><%= link_to model.type, model %></td>
+    <td><%= link_to 'graph', graph_path(model.id) %></td>
+  </tr>
+<% end %>
+</table>
+
+<%= link_to "New model", new_model_path %>

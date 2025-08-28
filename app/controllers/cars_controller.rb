@@ -1,21 +1,16 @@
 class CarsController < ApplicationController
 
   def index
-    @model = Model.find(2)
-    @cars = []
-    @maxprice = 0
-    @minprice = @model.cars.maximum(:eur)
-    @q = @model.cars.ransack(params[:q])
-    @q.result.for_graph.each do |country, cars|
-      data = cars.map do |car|
-        @minprice = car.eur if car.eur < @minprice
-        @maxprice = car.eur if car.eur > @maxprice
-        [car.year, car.eur ]
-      end
-      @cars << { name: country, data: data }
+    # @model = Model.find(params[:id])
+    @q = Car.ransack(params[:q])
+    @cars = @q.result.visible.order(:year)
+
+    @data = @cars.map do |car|
+      {
+        value: [car.year.strftime("%Y-%m"), car.price.to_f],
+        url: car.url,
+        km: car.km
+      }
     end
-# raise @cars.inspect
-    @minprice = @minprice.floor(-4)
-    @maxprice = @maxprice.ceil(-4)
   end
 end

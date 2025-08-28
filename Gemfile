@@ -47,7 +47,8 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem 'httparty'
 gem 'nokogiri'
 gem 'ransack'
-gem 'chartkick'
+# gem 'chartkick'
+gem "rails_charts"
 gem 'groupdate'
 
 group :development, :test do
@@ -64,6 +65,8 @@ group :development do
 
   # Speed up commands on slow machines / big apps [https://github.com/rails/spring]
   # gem "spring"
+  gem 'better_errors'
+  gem 'binding_of_caller'
 end
 
 group :test do
