@@ -14,14 +14,14 @@ class CarsController < ApplicationController
         version: car.version,
         type: car.type,
         comments: car.comments
+        itemStyle: { color: km_color(@cars, car) }
       }
     end
     xs = @data.map { |p| p[:value][0] / 1000.0 } # terug naar seconden voor berekening
     ys = @data.map { |p| p[:value][1] }
     n = xs.size
 
-    sum_x = xs.sum
-    sum_y = ys.sum
+    sum_x = xs.sum    sum_y = ys.sum
     sum_xy = xs.zip(ys).map { |x, y| x*y }.sum
     sum_xx = xs.map { |x| x*x }.sum
 
@@ -53,5 +53,19 @@ class CarsController < ApplicationController
 
   def load_car
     @car = Car.find(params[:id])
+  end
+
+  def km_color(cars, car)
+    max_km = cars.maximum(:km).to_f
+    min_km = cars.minimum(:km).to_f
+    step_size = (max_km - min_km) / 10.0
+    index = [(car.km - min_km) / step_size, 9].min.to_i
+
+    colors = [
+      '#00ff00', '#66ff00', '#ccff00', '#ffff00', '#ffcc00',
+      '#ff9900', '#ff6600', '#ff3300', '#ff0000', '#990000'
+    ]
+
+    colors[index]
   end
 end
