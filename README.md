@@ -1,7 +1,9 @@
 New version from https://github.com/gerard76/carcrawler
 
 It fetches the car model you are interested in and plots the result in a scatterplot
-so it is easy to see which cars are bargains.
+so it is easier to see which cars are bargains.
+
+The plot puts year and price on the axis and uses color to give you information about the milage (which may vary)
 
 # Get started
 
