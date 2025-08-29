@@ -1,7 +1,7 @@
+<%= link_to '< back', :back %>
 <div class="car-details">
   <h2><%= @car.type %> - <%= @car.version %></h2>
-  <p><strong>KM</strong> <%= @car.km %> km</p>
-  <p><strong>€</strong><%= @car.eur %></p>
+  <p><%= @car.year %> - <%= @car.km %>km - €<%= @car.eur %></p>
   <p><%= link_to @car.url, @car.url, target: "_blank" %></p>
 </div>
 
