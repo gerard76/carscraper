@@ -4,7 +4,7 @@ class Scrapers::Autoscout24
     @model = model
     countries = %w[NL A B D E F L]
     @urls = countries.map do |c|
-       "https://www.autoscout24.nl/lst/#{model.make}/#{model.model}?sort=age&desc=1&ustate=N%2CU&size=100&page=1&cy=#{c}&atype=C&ac=0"
+       "https://www.autoscout24.nl/lst/#{model.make.downcase}/#{model.model.downcase}?sort=age&desc=1&ustate=N%2CU&size=100&page=1&cy=#{c}&atype=C&ac=0"
     end
   end
 
