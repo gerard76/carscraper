@@ -10,6 +10,9 @@
   <%= f.label :km_max %>
   <%= f.search_field :km_lteq %>
 
+  <label for="q_year_min">Year from</label>
+  <input type="text" name="q[year_min]" id="q_year_min" value="<%= params.dig(:q, :year_min) %>">
+
   <%= f.label :country %>
   <%= f.select :country_eq,
         options_for_select([["Austria","a"],["Spain","e"],["Germany","d"],["Belgium","b"],["Luxembourg","l"],["France","f"],["Netherlands","nl"]], @q.country_eq),

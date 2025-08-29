@@ -2,10 +2,9 @@ class CarsController < ApplicationController
 
   before_action :load_car, only: [:show, :update]
   def index
-    session[:q] = params[:q]
-    @q = Car.ransack(params[:q])
     @cars = @q.result.visible.order(:year)
 
+    @q    = Car.ransack(search_params)
     @data = @cars.map do |car|
       {
         value: [car.year.to_date.to_time.to_i * 1000, car.price.to_f],
@@ -67,5 +66,19 @@ class CarsController < ApplicationController
     ]
 
     colors[index]
+  end
+
+  def search_params
+    session[:q] = params[:q]
+    return {} unless params[:q]
+
+    q = params[:q].dup
+
+    if q[:year_min].present?
+      year_start = Date.new(q.delete(:year_min).to_i, 1, 1)
+      q[:year_gteq] = year_start
+    end
+
+    q
   end
 end
