@@ -2,9 +2,8 @@ class CarsController < ApplicationController
 
   before_action :load_car, only: [:show, :update]
   def index
-    @cars = @q.result.visible.order(:year)
-
     @q    = Car.ransack(search_params)
+    @cars = @q.result.visible.includes(:model).order(:year)
     @data = @cars.map do |car|
       {
         value: [car.year.to_date.to_time.to_i * 1000, car.price.to_f],
@@ -12,7 +11,7 @@ class CarsController < ApplicationController
         km: car.km,
         version: car.version,
         type: car.type,
-        comments: car.comments
+        comments: car.comments,
         itemStyle: { color: km_color(@cars, car) }
       }
     end
@@ -20,7 +19,8 @@ class CarsController < ApplicationController
     ys = @data.map { |p| p[:value][1] }
     n = xs.size
 
-    sum_x = xs.sum    sum_y = ys.sum
+    sum_x = xs.sum
+    sum_y = ys.sum
     sum_xy = xs.zip(ys).map { |x, y| x*y }.sum
     sum_xx = xs.map { |x| x*x }.sum
 
@@ -55,10 +55,10 @@ class CarsController < ApplicationController
   end
 
   def km_color(cars, car)
-    max_km = cars.maximum(:km).to_f
-    min_km = cars.minimum(:km).to_f
-    step_size = (max_km - min_km) / 10.0
-    index = [(car.km - min_km) / step_size, 9].min.to_i
+    @max_km ||= cars.maximum(:km).to_f
+    @min_km ||= cars.minimum(:km).to_f
+    step_size = (@max_km - @min_km) / 10.0
+    index = [(car.km - @min_km) / step_size, 9].min.to_i
 
     colors = [
       '#00ff00', '#66ff00', '#ccff00', '#ffff00', '#ffcc00',

@@ -21,7 +21,6 @@ class Car < ApplicationRecord
   scope :visible,   -> { where(visible: true) }
 
   ### DELEGATIONS:
-  delegate :type, to: :model
   delegate :make, to: :model
 
   # Searching in json with Ransack
@@ -39,7 +38,11 @@ class Car < ApplicationRecord
   def self.ransackable_attributes(auth_object = nil)
     ["country", "created_at", "currency", "data", "eur", "id", "id_value", "km", "model_id", "price", "updated_at", "url", "version", "visible", "year"]
   end
+
   # Instance methods:
+  def type
+    @type ||= model.type
+  end
 
   def available?
     response = HTTParty.head(url)
