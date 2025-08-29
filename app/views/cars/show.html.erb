@@ -8,6 +8,10 @@
 <div class="car-visibility-form">
   <%= form_for @car do |f| %>
     <div class="form-group">
+
+      <%= f.label :comments %>
+      <%= f.text_area :comments %>
+
       <%= f.label :visible %>
       <%= f.check_box :visible %>
     </div>

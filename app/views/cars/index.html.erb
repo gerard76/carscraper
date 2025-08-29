@@ -14,30 +14,47 @@ document.addEventListener("DOMContentLoaded", () => {
     tooltip: {
       trigger: 'item',
       formatter: function(params) {
-        return `
+        const date = new Date(params.data.value[0]);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // maand 0–11
+
+        let text = `
           ${params.data.type}<br>
-          Year: ${params.data.value[0]}<br>
+          Year: ${year}-${month}<br>
           Price: ${params.data.value[1]}<br>
           KM: ${params.data.km}<br>
           ${params.data.version}
         `;
+
+         if (params.data.comments && params.data.comments.trim() !== "") {
+          text += `<br><br>${params.data.comments}`;
+        }
+
+        return text;
       }
     },
     xAxis: {
       name: 'Year',
-      type: 'category',
-      data: [...new Set(data.map(d => d.value[0]))].sort((a, b) => a - b)
+      type: 'time'
     },
     yAxis: {
       name: 'Price',
       type: 'value',
       min: <%= @cars.minimum(:price) -1000 %>
     },
-    series: [{
-      type: 'scatter',
-      data: data,
-      symbolSize: 10
-    }]
+    series: [
+      {
+        type: 'scatter',
+        data: data,
+        symbolSize: 10
+      },
+      {
+        type: 'line',
+        data: <%= raw @trendline.to_json %>,
+        symbol: 'none',
+        lineStyle: { color: 'yellow', width: 2 }
+      }
+    ]
   };
 
   myChart.setOption(option);

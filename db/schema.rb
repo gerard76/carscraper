@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2024_08_30_135804) do
+ActiveRecord::Schema[7.1].define(version: 2025_08_29_073535) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_trgm"
   enable_extension "plpgsql"
@@ -29,6 +29,7 @@ ActiveRecord::Schema[7.1].define(version: 2024_08_30_135804) do
     t.json "data", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "comments"
     t.index ["model_id"], name: "index_cars_on_model_id"
     t.index ["url"], name: "index_cars_on_url", unique: true
   end
