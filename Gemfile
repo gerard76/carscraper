@@ -47,8 +47,6 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem 'httparty'
 gem 'nokogiri'
 gem 'ransack'
-# gem 'chartkick'
-gem "rails_charts"
 gem 'groupdate'
 
 group :development, :test do

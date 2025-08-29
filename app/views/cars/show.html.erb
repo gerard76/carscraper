@@ -1,0 +1,38 @@
+<div class="car-details">
+  <h2><%= @car.type %> - <%= @car.version %></h2>
+  <p><strong>KM</strong> <%= @car.km %> km</p>
+  <p><strong>€</strong><%= @car.eur %></p>
+  <p><%= link_to @car.url, @car.url, target: "_blank" %></p>
+</div>
+
+<div class="car-visibility-form">
+  <%= form_for @car do |f| %>
+    <div class="form-group">
+      <%= f.label :visible %>
+      <%= f.check_box :visible %>
+    </div>
+    <div class="form-actions">
+      <%= f.submit "Update" %>
+    </div>
+  <% end %>
+</div>
+
+<style>
+  .car-details h2 {
+    margin-bottom: 10px;
+  }
+  .car-details p {
+    margin: 5px 0;
+  }
+  .car-visibility-form {
+    margin-top: 20px;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+  }
+  .form-group {
+    margin-bottom: 10px;
+  }
+  .form-actions {
+    margin-top: 10px;
+  }
+</style>
