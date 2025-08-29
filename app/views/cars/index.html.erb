@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
       trigger: 'item',
       formatter: function(params) {
         return `
+          ${params.data.type}<br>
           Year: ${params.data.value[0]}<br>
           Price: ${params.data.value[1]}<br>
           KM: ${params.data.km}<br>
@@ -44,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Make dots clickable
   myChart.on('click', function(params) {
     if (params.data.url) {
-      window.open(params.data.url, '_blank');
+      window.location.href = params.data.url;
     }
   });
 });

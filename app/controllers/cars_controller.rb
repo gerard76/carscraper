@@ -11,7 +11,8 @@ class CarsController < ApplicationController
         value: [car.year.strftime("%Y-%m"), car.price.to_f],
         url: car_path(car),
         km: car.km,
-        version: car.version
+        version: car.version,
+        type: car.type
       }
     end
   end

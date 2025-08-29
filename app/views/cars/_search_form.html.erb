@@ -1,8 +1,8 @@
 <%= search_form_for @q do |f| %>
-  <%= f.label :id %>
-  <%= f.select :model_id_eq,
+  <%= f.label :models %>
+  <%= f.select :model_id_in,
     options_from_collection_for_select(Model.all, :id, :type, @q.model_id_eq),
-    include_blank: "Any" %>
+    {include_blank: "Any"}, { multiple: true, size: 1} %>
 
   <%= f.label :eur_max %>
   <%= f.search_field :eur_lteq %>

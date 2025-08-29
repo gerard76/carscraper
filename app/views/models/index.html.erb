@@ -6,7 +6,7 @@
 <% @models.each do |model| %>
   <tr>
     <td><%= link_to model.type, model %></td>
-    <td><%= link_to 'graph', graph_path(model.id) %></td>
+    <td><%= link_to 'graph', cars_path(model.id) %></td>
   </tr>
 <% end %>
 </table>

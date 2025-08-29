@@ -19,7 +19,6 @@ class Car < ApplicationRecord
 
   ### SCOPES:
   scope :visible,   -> { where(visible: true) }
-  scope :for_graph, -> { visible.order(:country, :year).group_by(&:country) }
 
   ### DELEGATIONS:
   delegate :type, to: :model
