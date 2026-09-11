@@ -13,8 +13,10 @@ listings it correlates -0.68 with the build year, so it would mostly repeat
 what the position along the x axis already shows, while mileage per year
 correlates 0.10 with it and 0.10 with the distance to the line -- it is the one
 thing the graph cannot show twice. The scale runs over the 5th to 95th
-percentile of what is on screen, so a single absurd listing cannot flatten it,
-and a car whose seller left the odometer empty stays grey.
+percentile of what is on screen, so a single absurd listing cannot flatten it.
+The bar on the right of the graph is the legend, and its handles drag: pull
+them in to keep only part of the range in colour. A car whose seller left the
+odometer empty cannot be placed on that scale and is drawn as a grey ring.
 
 # Get started
 

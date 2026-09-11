@@ -4,21 +4,13 @@ class CarsController < ApplicationController
   def index
     @q    = Car.ransack(search_params)
     @cars = @q.result.visible.includes(:model).order(:year)
-    @data = @cars.map do |car|
-      {
-        # Plot eur, not price: finn.no quotes kroner, and the search form and
-        # the car page go by eur too.
-        value: [car.year.to_date.to_time.to_i * 1000, car.eur.to_f],
-        url: car_path(car),
-        km: car.km,
-        km_per_year: km_per_year(car)&.round,
-        version: car.version,
-        type: car.type,
-        comments: car.comments,
-        itemStyle: { color: wear_color(car) }
-      }
-    end
-    @trendline = trendline
+    points = @cars.map { |car| point(car) }
+
+    # A car whose seller left the odometer empty cannot be coloured, so it goes
+    # in a series of its own: grey, with a legend entry that says why.
+    @data, @unmeasured = points.partition { |point| point[:value][2] }
+    @wear      = wear_range
+    @trendline = trendline(points)
   end
 
   def show
@@ -39,11 +31,24 @@ class CarsController < ApplicationController
     @car = Car.find(params[:id])
   end
 
+  def point(car)
+    {
+      # Plot eur, not price: finn.no quotes kroner, and the search form and the
+      # car page go by eur too. The third value is what the colour scale reads.
+      value: [car.year.to_date.to_time.to_i * 1000, car.eur.to_f, km_per_year(car)&.round],
+      url: car_path(car),
+      km: car.km,
+      version: car.version,
+      type: car.type,
+      comments: car.comments
+    }
+  end
+
   # A straight line through price and year, as a guide for the eye: a car under
   # it asks less than its build year suggests.
-  def trendline
-    xs = @data.map { |point| point[:value][0] / 1000.0 } # back to seconds
-    ys = @data.map { |point| point[:value][1] }
+  def trendline(points)
+    xs = points.map { |point| point[:value][0] / 1000.0 } # back to seconds
+    ys = points.map { |point| point[:value][1] }
     return [] if xs.size < 2
 
     n      = xs.size
@@ -62,38 +67,19 @@ class CarsController < ApplicationController
     [[xs.min * 1000, a * xs.min + b], [xs.max * 1000, a * xs.max + b]]
   end
 
-  # Grey: the seller did not say what the odometer reads, so there is nothing
-  # to say about this one.
-  UNKNOWN_KM_COLOR = '#9e9e9e'
-
-  # Green: driven gently for its age, red: driven hard.
-  #
-  # The odometer reading itself is not what is coloured. It runs with the build
-  # year on the x axis (correlation -0.68 over 2000 ID. Buzz listings), so
-  # colouring it would mostly repeat what the position already shows. Mileage
-  # per year hardly does (0.10), and it is just as independent of the distance
-  # to the trend line, so it tells you something the graph cannot show twice:
-  # under the line and green is cheap and gently used, under the line and red
-  # is cheap because it has been hammered.
-  WEAR_COLORS = %w[#00e676 #76ff03 #c6ff00 #ffee58 #ffc400 #ff6d00 #ff1744].freeze
-
   # A car registered this month would divide by nearly nothing.
   MIN_AGE_IN_YEARS = 0.25
 
-  def wear_color(car)
-    per_year = km_per_year(car)
-    return UNKNOWN_KM_COLOR if per_year.nil?
-
-    low, high = wear_range
-    return WEAR_COLORS.first if high <= low
-
-    step  = (high - low) / WEAR_COLORS.size
-    index = ((per_year - low) / step).floor.clamp(0, WEAR_COLORS.size - 1)
-    WEAR_COLORS[index]
-  end
-
-  # The 5th to the 95th percentile of what is on screen: everything outside it
-  # gets the end of the scale, so one absurd listing cannot flatten the colours.
+  # The stretch of mileage per year the colours run over: the 5th to the 95th
+  # percentile of what is on screen, so one absurd listing cannot flatten them.
+  #
+  # Mileage per year is coloured rather than the odometer reading itself. That
+  # reading runs with the build year on the x axis (correlation -0.68 over 2000
+  # ID. Buzz listings), so colouring it would mostly repeat what the position
+  # already shows. Mileage per year hardly does (0.10), and it is just as
+  # independent of the distance to the trend line, so it tells you something
+  # the graph cannot show twice: under the line and green is cheap and gently
+  # used, under the line and red is cheap because it has been hammered.
   def wear_range
     @wear_range ||= begin
       values = @cars.filter_map { |car| km_per_year(car) }.sort

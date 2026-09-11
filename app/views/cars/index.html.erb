@@ -8,12 +8,65 @@ document.addEventListener("DOMContentLoaded", () => {
   const myChart = echarts.init(chartDom, 'dark');
 
   const data = <%= raw @data.to_json %>;
+  const unmeasured = <%= raw @unmeasured.to_json %>;
+  const wear = { low: <%= @wear[0].round %>, high: <%= @wear[1].round %> };
+
+  // Colour runs over mileage per year. Drag the handles on the bar to keep
+  // only part of that range in colour.
+  const scale = ['#00e676', '#76ff03', '#c6ff00', '#ffee58', '#ffc400', '#ff6d00', '#ff1744'];
+
+  const series = [
+    { name: 'Cars', type: 'scatter', data: data, symbolSize: 10 },
+    {
+      name: 'Trend',
+      type: 'line',
+      data: <%= raw @trendline.to_json %>,
+      symbol: 'none',
+      lineStyle: { color: '#eceff1', width: 2 },
+      tooltip: { show: false }
+    }
+  ];
+
+  // The seller did not say what the odometer reads, so there is nothing to say
+  // about how hard this one has been driven. Drawn as a ring: there are only a
+  // handful of these and a filled grey dot disappears between its neighbours.
+  if (unmeasured.length) {
+    series.push({
+      name: 'Mileage unknown',
+      type: 'scatter',
+      data: unmeasured,
+      symbolSize: 13,
+      itemStyle: { color: 'transparent', borderColor: '#b0bec5', borderWidth: 2 }
+    });
+  }
 
   const option = {
     title: {
       text: 'Car Prices by Year',
-      subtext: 'Colour: km per year. Green is gently used for its age, red is driven hard.'
+      subtext: 'Under the line is cheap for its build year. Green as well, and it is cheap without having been driven hard.'
     },
+    legend: {
+      show: unmeasured.length > 0,
+      data: ['Mileage unknown'],
+      right: 130,
+      top: 0
+    },
+    grid: { right: 120 },
+    visualMap: wear.high > wear.low ? [{
+      type: 'continuous',
+      // The third value of every point, set in CarsController#point.
+      dimension: 2,
+      seriesIndex: 0,
+      min: wear.low,
+      max: wear.high,
+      calculable: true,
+      right: 10,
+      top: 'middle',
+      itemHeight: 240,
+      text: ['driven hard', 'gently used'],
+      formatter: (value) => Math.round(value).toLocaleString() + ' km/year',
+      inRange: { color: scale }
+    }] : [],
     tooltip: {
       trigger: 'item',
       formatter: function(params) {
@@ -29,8 +82,8 @@ document.addEventListener("DOMContentLoaded", () => {
           ${params.data.version}
         `;
 
-        if (params.data.km_per_year !== null && params.data.km_per_year !== undefined) {
-          text += `<br>${params.data.km_per_year} km/year`;
+        if (params.data.value[2] !== null && params.data.value[2] !== undefined) {
+          text += `<br>${params.data.value[2]} km/year`;
         }
 
          if (params.data.comments && params.data.comments.trim() !== "") {
@@ -49,19 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
       type: 'value',
       min: <%= (@cars.minimum(:eur) || 1000) - 1000 %>
     },
-    series: [
-      {
-        type: 'scatter',
-        data: data,
-        symbolSize: 10
-      },
-      {
-        type: 'line',
-        data: <%= raw @trendline.to_json %>,
-        symbol: 'none',
-        lineStyle: { color: '#eceff1', width: 2 }
-      }
-    ]
+    series: series
   };
 
   myChart.setOption(option);
