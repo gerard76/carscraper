@@ -9,11 +9,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const data = <%= raw @data.to_json %>;
   const unmeasured = <%= raw @unmeasured.to_json %>;
-  const wear = { low: <%= @wear[0].round %>, high: <%= @wear[1].round %> };
-
-  // Colour runs over mileage per year. Drag the handles on the bar to keep
-  // only part of that range in colour.
-  const scale = ['#00e676', '#76ff03', '#c6ff00', '#ffee58', '#ffc400', '#ff6d00', '#ff1744'];
 
   const series = [
     { name: 'Cars', type: 'scatter', data: data, symbolSize: 10 },
@@ -48,27 +43,11 @@ document.addEventListener("DOMContentLoaded", () => {
     legend: {
       show: unmeasured.length > 0,
       data: ['Mileage unknown'],
-      right: 130,
+      right: 10,
       top: 0
     },
-    // Room on the right for the colour bar, and at the top so the y axis name
-    // clears the subtitle.
-    grid: { right: 120, top: 90 },
-    visualMap: wear.high > wear.low ? [{
-      type: 'continuous',
-      // The third value of every point, set in CarsController#point.
-      dimension: 2,
-      seriesIndex: 0,
-      min: wear.low,
-      max: wear.high,
-      calculable: true,
-      right: 10,
-      top: 'middle',
-      itemHeight: 240,
-      text: ['driven hard', 'gently used'],
-      formatter: (value) => Math.round(value).toLocaleString() + ' km/year',
-      inRange: { color: scale }
-    }] : [],
+    // Room at the top so the y axis name clears the subtitle.
+    grid: { top: 90 },
     tooltip: {
       trigger: 'item',
       formatter: function(params) {

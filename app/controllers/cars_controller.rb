@@ -9,7 +9,6 @@ class CarsController < ApplicationController
     # A car whose seller left the odometer empty cannot be coloured, so it goes
     # in a series of its own: grey, with a legend entry that says why.
     @data, @unmeasured = points.partition { |point| point[:value][2] }
-    @wear      = wear_range
     @trendline = trendline(points)
     @floor     = (points.map { |point| point[:value][1] }.min || 1_000) - 1_000
   end
@@ -38,6 +37,7 @@ class CarsController < ApplicationController
       # takes to get it here, which is the whole point of looking abroad. The
       # third value is what the colour scale reads.
       value: [car.year.to_date.to_time.to_i * 1000, car.landed_eur.to_f, km_per_year(car)&.round],
+      itemStyle: { color: wear_color(car) },
       url: car_path(car),
       asked: car.eur,
       import: car.import_costs,
@@ -73,6 +73,21 @@ class CarsController < ApplicationController
 
   # A car registered this month would divide by nearly nothing.
   MIN_AGE_IN_YEARS = 0.25
+
+  # Green: driven gently for its age, red: driven hard.
+  WEAR_COLORS = %w[#00e676 #76ff03 #c6ff00 #ffee58 #ffc400 #ff6d00 #ff1744].freeze
+
+  def wear_color(car)
+    per_year = km_per_year(car)
+    return nil if per_year.nil?
+
+    low, high = wear_range
+    return WEAR_COLORS.first if high <= low
+
+    step  = (high - low) / WEAR_COLORS.size
+    index = ((per_year - low) / step).floor.clamp(0, WEAR_COLORS.size - 1)
+    WEAR_COLORS[index]
+  end
 
   # The stretch of mileage per year the colours run over: the 5th to the 95th
   # percentile of what is on screen, so one absurd listing cannot flatten them.
