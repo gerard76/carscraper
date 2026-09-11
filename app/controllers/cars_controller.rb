@@ -6,7 +6,9 @@ class CarsController < ApplicationController
     @cars = @q.result.visible.includes(:model).order(:year)
     @data = @cars.map do |car|
       {
-        value: [car.year.to_date.to_time.to_i * 1000, car.price.to_f],
+        # Plot eur, not price: finn.no quotes kroner, and the search form and
+        # the car page go by eur too.
+        value: [car.year.to_date.to_time.to_i * 1000, car.eur.to_f],
         url: car_path(car),
         km: car.km,
         version: car.version,
@@ -54,7 +56,13 @@ class CarsController < ApplicationController
     @car = Car.find(params[:id])
   end
 
+  # Grey: the seller did not say what the odometer reads, so this car cannot
+  # be placed on the green-to-red scale.
+  UNKNOWN_KM_COLOR = '#9e9e9e'
+
   def km_color(cars, car)
+    return UNKNOWN_KM_COLOR if car.km.nil?
+
     @max_km ||= cars.maximum(:km).to_f
     @min_km ||= cars.minimum(:km).to_f
     step_size = (@max_km - @min_km) / 10.0

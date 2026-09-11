@@ -13,9 +13,20 @@ class Car < ApplicationRecord
   attribute :currency, :string, default: 'EUR'
   attribute :country,  :string, default: 'NL'
 
+  # Anything at or below this has delivery mileage: it is a new car, not a
+  # used one.
+  AS_NEW_KM = 100
+
+  # Rates per euro, looked up on 2026-09-10. They drift, so a car scraped much
+  # later than that is converted at a stale rate -- update these now and then,
+  # and run Car.recalculate_eur! afterwards to fix the cars already stored.
+  NOK_PER_EUR = 10.7635
+  SEK_PER_EUR = 11.1995
+
   ### CALLBACKS:
   before_validation :cleanup
   before_validation :set_eur
+  before_validation :hide_when_as_good_as_new, on: :create
 
   ### SCOPES:
   scope :visible,   -> { where(visible: true) }
@@ -44,6 +55,24 @@ class Car < ApplicationRecord
     %w[model]
   end
 
+  # A car keeps the eur it was given when it was scraped, so changing
+  # NOK_PER_EUR or SEK_PER_EUR leaves everything already stored on the old
+  # rate. This works those out again. Returns the number of cars it changed.
+  def self.recalculate_eur!
+    changed = 0
+
+    where.not(currency: 'EUR').find_each do |car|
+      was = car.eur
+      car.send(:set_eur)
+      next if car.eur == was
+
+      car.update_column(:eur, car.eur)
+      changed += 1
+    end
+
+    changed
+  end
+
   def self.ransackable_attributes(auth_object = nil)
     ["country", "created_at", "currency", "data", "eur", "id", "id_value", "km", "model_id", "price", "updated_at", "url", "version", "visible", "year"]
   end
@@ -69,7 +98,15 @@ class Car < ApplicationRecord
   end
 
   def km=(value)
-    km = value.to_s.gsub(/[^0-9]/, '').to_i
+    digits = value.to_s.gsub(/[^0-9]/, '')
+
+    # AutoScout24 writes "unknown" when the seller left the mileage out, and
+    # the other sites simply leave it off the card. That is not the same as
+    # zero: such a car must not be plotted as barely driven, and it is not a
+    # new car either.
+    return self.write_attribute(:km, nil) if digits.empty?
+
+    km = digits.to_i
     km *= 10 if country == 'SE'
     self.write_attribute(:km, km)
   end
@@ -80,14 +117,20 @@ class Car < ApplicationRecord
     self.version = version.strip.sub(/^#{type}/, '').strip unless version.nil?
   end
 
+  # New cars are kept but left out of the graph. Only on create, so one that
+  # is switched back on by hand stays on.
+  def hide_when_as_good_as_new
+    self.visible = false if km && km <= AS_NEW_KM
+  end
+
   def set_eur
     return unless price
 
     case currency
     when 'NOK'
-      self.eur = price / 10.0132423
+      self.eur = price / NOK_PER_EUR
     when 'SEK'
-      self.eur = price / 10.805452
+      self.eur = price / SEK_PER_EUR
     when 'EUR'
       self.eur = price
 
