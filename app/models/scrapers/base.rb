@@ -1,7 +1,5 @@
 # Shared plumbing for the scrapers: fetching pages, pacing the requests,
 # cleaning up the text the sites hand us and turning a listing into a Car.
-#
-# Scrapers::Autoscout24 predates this class and still fetches on its own.
 class Scrapers::Base
   USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36".freeze
 
@@ -94,6 +92,7 @@ class Scrapers::Base
     puts "skipped #{counts[:too_few_seats]} listings advertised with fewer than #{model.min_seats} seats" if counts[:too_few_seats] > 0
     puts "#{counts[:rejected]} listings did not pass validation (price too low, missing year, ...)" if counts[:rejected] > 0
     puts "ignored #{counts[:off_model]} listings that were not a #{model.type}" if counts[:off_model] > 0
+    puts "skipped #{counts[:no_url]} listings that came without a link" if counts[:no_url] > 0
     counts
   end
 
@@ -103,10 +102,11 @@ class Scrapers::Base
     text.to_s.gsub(/[[:space:]]+/, " ").strip
   end
 
-  # AutoScout24 filters on seats itself (see Model#min_seats), but none of
-  # these three sites can, so the cargo van -- which is not always advertised
-  # as a Cargo -- has to be spotted in the ad text. Only a listing that names
-  # a seat count can be judged; the rest are kept.
+  # None of the sites can be asked for a seat count. AutoScout24 can, but that
+  # also throws away every listing where the seller left the field empty, so
+  # the cargo van -- which is not always advertised as a Cargo -- is spotted in
+  # the ad text instead. Only a listing that names a seat count can be judged;
+  # the rest are kept.
   def too_few_seats?(text)
     minimum = model.min_seats.to_i
     return false if minimum.zero?

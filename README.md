@@ -42,13 +42,14 @@ Sites tend to park a different car in a model's category -- an ID. Buzz Cargo
 under ID. Buzz, say. Set `exclude_versions` on the model to drop those:
 `Model.first.update(exclude_versions: 'ID.3, ID.4, Cargo')`.
 
-`min_seats` catches the ones that never say "Cargo". AutoScout24 filters on it
-at the source, but 12gebrauchtwagen, AutoTrack and finn cannot -- none of them
-takes a seat count in its url, and AutoTrack's seats facet drops the
-make/model filter when you combine the two. So for those three the seat count
-is read from the ad text ("7-s", "6-Sitzer", "3 seter", and the bare "3s"
-Norwegian sellers use). A listing that names no seat count is kept, so this
-thins the cargo vans out rather than guaranteeing none get through. Cars
+`min_seats` catches the ones that never say "Cargo". None of the sites takes a
+seat count in its url that we can use: AutoScout24 has one, but it also drops
+every listing whose seller left the seats empty -- 35 of the 80 it removed on
+an ID. Buzz, genuine passenger versions among them -- and AutoTrack's seats
+facet drops the make/model filter when you combine the two. So the seat count
+is read from the ad text instead ("7-s", "6-Sitzer", "3 seter", and the bare
+"3s" Norwegian sellers use). A listing that names no seat count is kept, so
+this thins the cargo vans out rather than guaranteeing none get through. Cars
 already stored are not re-checked when you change `min_seats`.
 
 ## New cars, and other currencies
