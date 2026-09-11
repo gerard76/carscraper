@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_11_124909) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_11_130501) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -21,6 +21,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_11_124909) do
     t.datetime "created_at", null: false
     t.string "currency"
     t.json "data", default: {}
+    t.integer "distance_km"
     t.integer "eur"
     t.integer "km"
     t.bigint "model_id", null: false
@@ -42,6 +43,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_11_124909) do
     t.integer "min_seats"
     t.string "model"
     t.datetime "updated_at", null: false
+  end
+
+  create_table "postcodes", force: :cascade do |t|
+    t.string "code", null: false
+    t.string "country", null: false
+    t.float "latitude", null: false
+    t.float "longitude", null: false
+    t.index ["country", "code"], name: "index_postcodes_on_country_and_code", unique: true
   end
 
   add_foreign_key "cars", "models"

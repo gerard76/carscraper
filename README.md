@@ -82,6 +82,37 @@ the value of the car itself, which no fixed amount covers. It is set to a third
 of the asking price plus 1500, and that is the first figure to check if the
 Norwegian cars look off.
 
+## How far away it is
+
+`Car#distance_km` is the straight line distance from home, worked out from the
+postcode the listing comes with. It is a fifth or so short of the road
+distance, which is close enough to tell a errand from a trip.
+
+Two things have to be in place. First the postcode tables, which are free from
+GeoNames and imported once:
+
+```
+bin/rails postcodes:import
+```
+
+Then where you live, in `config/home.yml`, which is not in git because a
+postcode says roughly where you are and this remote is public:
+
+```yaml
+postcode: "1234"
+country: NL
+```
+
+Without either of those there are simply no distances, and the graph and the
+car page leave them out. After moving house, or after importing another
+country, run `Car.recalculate_distances!` to work the cars already stored out
+again.
+
+A listing only has a distance if its source names a postcode. AutoScout24 does
+for every car; 12gebrauchtwagen has one in the card (`.offer-card-location`,
+e.g. "17192 Waren (Müritz)") but does not read it yet, and AutoTrack and finn
+have not been checked.
+
 ## New cars, and other currencies
 
 A car at or below `Car::AS_NEW_KM` (100) has delivery mileage, so it is stored

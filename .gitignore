@@ -34,6 +34,9 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 
+# Where you live, used for Car#distance_km. Not in git: this remote is public.
+/config/home.yml
+
 /node_modules
 vendor/javascript
 .DS_Store

@@ -41,6 +41,7 @@ class CarsController < ApplicationController
       url: car_path(car),
       asked: car.eur,
       import: car.import_costs,
+      distance: car.distance_km,
       km: car.km,
       version: car.version,
       type: car.type,

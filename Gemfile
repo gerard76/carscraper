@@ -35,6 +35,9 @@ gem "json", "~> 2.18"
 gem "httparty"
 gem "nokogiri"
 
+# Unpacks the GeoNames postcode tables, for Car#distance_km
+gem "rubyzip", require: false
+
 # Search/filter forms on top of Active Record
 gem "ransack"
 

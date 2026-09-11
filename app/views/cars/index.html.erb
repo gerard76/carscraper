@@ -72,6 +72,10 @@ document.addEventListener("DOMContentLoaded", () => {
           text += `<br>${params.data.value[2]} km/year`;
         }
 
+        if (params.data.distance) {
+          text += `<br>${params.data.distance.toLocaleString()} km away`;
+        }
+
          if (params.data.comments && params.data.comments.trim() !== "") {
           text += `<br><br>${params.data.comments}`;
         }

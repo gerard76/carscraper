@@ -57,6 +57,7 @@ class Car < ApplicationRecord
   before_validation :cleanup
   before_validation :set_eur
   before_validation :hide_when_as_good_as_new, on: :create
+  before_validation :set_distance
 
   ### SCOPES:
   scope :visible,   -> { where(visible: true) }
@@ -99,6 +100,12 @@ class Car < ApplicationRecord
   # A car keeps the eur it was given when it was scraped, so changing
   # NOK_PER_EUR or SEK_PER_EUR leaves everything already stored on the old
   # rate. This works those out again. Returns the number of cars it changed.
+  # Moving house, or importing more postcode tables, leaves the distances
+  # already stored on the old answer.
+  def self.recalculate_distances!
+    find_each { |car| car.update_columns(distance_km: car.distance_from_home) }
+  end
+
   def self.recalculate_eur!
     changed = 0
 
@@ -115,7 +122,7 @@ class Car < ApplicationRecord
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    ["country", "created_at", "currency", "data", "eur", "id", "id_value", "km", "landed_eur", "model_id", "price", "updated_at", "url", "version", "visible", "year"]
+    ["country", "created_at", "currency", "data", "distance_km", "eur", "id", "id_value", "km", "landed_eur", "model_id", "postcode", "price", "updated_at", "url", "version", "visible", "year"]
   end
 
   # Instance methods:
@@ -125,6 +132,18 @@ class Car < ApplicationRecord
     costs = IMPORT_COSTS.fetch(country.to_s.downcase, DEFAULT_IMPORT_COSTS)
 
     (costs.fetch(:fixed) + costs.fetch(:share, 0) * eur.to_i).round
+  end
+
+  # Kilometres from home as the crow flies, or nil when either end is
+  # unknown: no postcode on the listing, no home set, or a postcode that is
+  # not in the imported tables.
+  def distance_from_home
+    return nil if postcode.blank?
+
+    here = Home.coordinates or return nil
+    there = Postcode.locate(country, postcode) or return nil
+
+    there.distance_to(here).round
   end
 
   # The asking price plus those costs: what the car actually costs you.
@@ -177,6 +196,10 @@ class Car < ApplicationRecord
   # is switched back on by hand stays on.
   def hide_when_as_good_as_new
     self.visible = false if km && km <= AS_NEW_KM
+  end
+
+  def set_distance
+    self.distance_km = distance_from_home
   end
 
   def set_eur
