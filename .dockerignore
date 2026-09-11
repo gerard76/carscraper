@@ -30,8 +30,7 @@
 /tmp/storage/*
 !/tmp/storage/.keep
 
-# Ignore assets.
+# Ignore assets. app/assets/builds is checked in (echarts is vendored there, there
+# is no JS build step), so it has to be part of the build context.
 /node_modules/
-/app/assets/builds/*
-!/app/assets/builds/.keep
 /public/assets

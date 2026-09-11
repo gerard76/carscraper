@@ -23,11 +23,20 @@ class Car < ApplicationRecord
   ### DELEGATIONS:
   delegate :make, to: :model
 
-  # Searching in json with Ransack
-  Car.pluck(Arel.sql("distinct json_object_keys(data)")).each do |key|
-    ransacker key do |parent|
-      Arel::Nodes::InfixOperation.new('->>', parent.table[:data], Arel::Nodes.build_quoted(key))
+  # Searching in json with Ransack: one ransacker per key present in the `data`
+  # column. This needs the database while the class loads, so it is skipped when
+  # there is no database to talk to yet -- eager loading during
+  # `assets:precompile`, `db:create` on an empty server, and so on.
+  begin
+    if table_exists?
+      pluck(Arel.sql("distinct json_object_keys(data)")).each do |key|
+        ransacker key do |parent|
+          Arel::Nodes::InfixOperation.new('->>', parent.table[:data], Arel::Nodes.build_quoted(key))
+        end
+      end
     end
+  rescue ActiveRecord::ActiveRecordError => e
+    Rails.logger&.warn "Car: skipping the `data` JSON ransackers (#{e.class}: #{e.message})"
   end
 
   ### CLASS METHODS:
@@ -51,7 +60,9 @@ class Car < ApplicationRecord
 
   def price=(value)
     version ||= ""
-    version += " ex btw" if value =~ /ex.*(btw|vat)/i
+    # `value` arrives as a string from the scraper, but can be a number when set
+    # by hand. Ruby 4 removed Object#=~, so cast before matching.
+    version += " ex btw" if value.to_s =~ /ex.*(btw|vat)/i
     price = value.to_s.gsub(/[^0-9]/, '').to_i
 
     self.write_attribute(:price, price)

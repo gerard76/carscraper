@@ -10,34 +10,34 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_08_29_073535) do
+ActiveRecord::Schema[8.1].define(version: 2025_08_29_073535) do
   # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
-  enable_extension "plpgsql"
 
   create_table "cars", force: :cascade do |t|
-    t.bigint "model_id", null: false
-    t.string "version"
-    t.integer "km"
-    t.integer "eur"
-    t.date "year"
-    t.string "url"
-    t.string "country"
-    t.boolean "visible", default: true
-    t.string "currency"
-    t.integer "price"
-    t.json "data", default: {}
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.text "comments"
+    t.string "country"
+    t.datetime "created_at", null: false
+    t.string "currency"
+    t.json "data", default: {}
+    t.integer "eur"
+    t.integer "km"
+    t.bigint "model_id", null: false
+    t.integer "price"
+    t.datetime "updated_at", null: false
+    t.string "url"
+    t.string "version"
+    t.boolean "visible", default: true
+    t.date "year"
     t.index ["model_id"], name: "index_cars_on_model_id"
     t.index ["url"], name: "index_cars_on_url", unique: true
   end
 
   create_table "models", force: :cascade do |t|
+    t.datetime "created_at", null: false
     t.string "make"
     t.string "model"
-    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
