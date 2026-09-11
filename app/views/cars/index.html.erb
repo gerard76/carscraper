@@ -10,7 +10,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const data = <%= raw @data.to_json %>;
 
   const option = {
-    title: { text: 'Car Prices by Year' },
+    title: {
+      text: 'Car Prices by Year',
+      subtext: 'Colour: km per year. Green is gently used for its age, red is driven hard.'
+    },
     tooltip: {
       trigger: 'item',
       formatter: function(params) {
@@ -26,6 +29,10 @@ document.addEventListener("DOMContentLoaded", () => {
           ${params.data.version}
         `;
 
+        if (params.data.km_per_year !== null && params.data.km_per_year !== undefined) {
+          text += `<br>${params.data.km_per_year} km/year`;
+        }
+
          if (params.data.comments && params.data.comments.trim() !== "") {
           text += `<br><br>${params.data.comments}`;
         }
@@ -40,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
     yAxis: {
       name: 'Price',
       type: 'value',
-      min: <%= @cars.minimum(:eur) -1000 %>
+      min: <%= (@cars.minimum(:eur) || 1000) - 1000 %>
     },
     series: [
       {
@@ -52,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
         type: 'line',
         data: <%= raw @trendline.to_json %>,
         symbol: 'none',
-        lineStyle: { color: 'yellow', width: 2 }
+        lineStyle: { color: '#eceff1', width: 2 }
       }
     ]
   };

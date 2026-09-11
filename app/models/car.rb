@@ -9,6 +9,10 @@ class Car < ApplicationRecord
   validates :year,    presence: true
   validates :url,     uniqueness: true
 
+  # Placeholder ads read 999999: a number no real car reaches, and one that
+  # stretches the colour scale so far that every other car looks the same.
+  validates :km, numericality: { less_than: 500_000 }, allow_nil: true
+
   # Defaults:
   attribute :currency, :string, default: 'EUR'
   attribute :country,  :string, default: 'NL'

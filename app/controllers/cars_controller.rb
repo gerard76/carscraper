@@ -11,31 +11,14 @@ class CarsController < ApplicationController
         value: [car.year.to_date.to_time.to_i * 1000, car.eur.to_f],
         url: car_path(car),
         km: car.km,
+        km_per_year: km_per_year(car)&.round,
         version: car.version,
         type: car.type,
         comments: car.comments,
-        itemStyle: { color: km_color(@cars, car) }
+        itemStyle: { color: wear_color(car) }
       }
     end
-    xs = @data.map { |p| p[:value][0] / 1000.0 } # terug naar seconden voor berekening
-    ys = @data.map { |p| p[:value][1] }
-    n = xs.size
-
-    sum_x = xs.sum
-    sum_y = ys.sum
-    sum_xy = xs.zip(ys).map { |x, y| x*y }.sum
-    sum_xx = xs.map { |x| x*x }.sum
-
-    a = (n * sum_xy - sum_x*sum_y).to_f / (n*sum_xx - sum_x**2)
-    b = (sum_y - a*sum_x).to_f / n
-
-    min_x = xs.min
-    max_x = xs.max
-
-    @trendline = [
-      [min_x*1000, a*min_x + b], # in ms
-      [max_x*1000, a*max_x + b]
-    ]
+    @trendline = trendline
   end
 
   def show
@@ -56,24 +39,77 @@ class CarsController < ApplicationController
     @car = Car.find(params[:id])
   end
 
-  # Grey: the seller did not say what the odometer reads, so this car cannot
-  # be placed on the green-to-red scale.
+  # A straight line through price and year, as a guide for the eye: a car under
+  # it asks less than its build year suggests.
+  def trendline
+    xs = @data.map { |point| point[:value][0] / 1000.0 } # back to seconds
+    ys = @data.map { |point| point[:value][1] }
+    return [] if xs.size < 2
+
+    n      = xs.size
+    sum_x  = xs.sum
+    sum_y  = ys.sum
+    sum_xy = xs.zip(ys).sum { |x, y| x * y }
+    sum_xx = xs.sum { |x| x * x }
+
+    # Zero when every car shares a build date: no line to draw through those.
+    denominator = n * sum_xx - sum_x**2
+    return [] if denominator.zero?
+
+    a = (n * sum_xy - sum_x * sum_y) / denominator
+    b = (sum_y - a * sum_x) / n
+
+    [[xs.min * 1000, a * xs.min + b], [xs.max * 1000, a * xs.max + b]]
+  end
+
+  # Grey: the seller did not say what the odometer reads, so there is nothing
+  # to say about this one.
   UNKNOWN_KM_COLOR = '#9e9e9e'
 
-  def km_color(cars, car)
-    return UNKNOWN_KM_COLOR if car.km.nil?
+  # Green: driven gently for its age, red: driven hard.
+  #
+  # The odometer reading itself is not what is coloured. It runs with the build
+  # year on the x axis (correlation -0.68 over 2000 ID. Buzz listings), so
+  # colouring it would mostly repeat what the position already shows. Mileage
+  # per year hardly does (0.10), and it is just as independent of the distance
+  # to the trend line, so it tells you something the graph cannot show twice:
+  # under the line and green is cheap and gently used, under the line and red
+  # is cheap because it has been hammered.
+  WEAR_COLORS = %w[#00e676 #76ff03 #c6ff00 #ffee58 #ffc400 #ff6d00 #ff1744].freeze
 
-    @max_km ||= cars.maximum(:km).to_f
-    @min_km ||= cars.minimum(:km).to_f
-    step_size = (@max_km - @min_km) / 10.0
-    index = [(car.km - @min_km) / step_size, 9].min.to_i
+  # A car registered this month would divide by nearly nothing.
+  MIN_AGE_IN_YEARS = 0.25
 
-    colors = [
-      '#00ff00', '#66ff00', '#ccff00', '#ffff00', '#ffcc00',
-      '#ff9900', '#ff6600', '#ff3300', '#ff0000', '#990000'
-    ]
+  def wear_color(car)
+    per_year = km_per_year(car)
+    return UNKNOWN_KM_COLOR if per_year.nil?
 
-    colors[index]
+    low, high = wear_range
+    return WEAR_COLORS.first if high <= low
+
+    step  = (high - low) / WEAR_COLORS.size
+    index = ((per_year - low) / step).floor.clamp(0, WEAR_COLORS.size - 1)
+    WEAR_COLORS[index]
+  end
+
+  # The 5th to the 95th percentile of what is on screen: everything outside it
+  # gets the end of the scale, so one absurd listing cannot flatten the colours.
+  def wear_range
+    @wear_range ||= begin
+      values = @cars.filter_map { |car| km_per_year(car) }.sort
+
+      if values.empty?
+        [0.0, 0.0]
+      else
+        [values[(values.size * 0.05).floor], values[(values.size * 0.95).floor.clamp(0, values.size - 1)]]
+      end
+    end
+  end
+
+  def km_per_year(car)
+    return nil if car.km.nil? || car.year.nil?
+
+    car.km / [(Date.current - car.year).to_f / 365.25, MIN_AGE_IN_YEARS].max
   end
 
   def search_params
