@@ -1,5 +1,8 @@
 <div id="<%= dom_id model %>">
   <%= model.type %>
+  <% if model.min_seats.to_i > 0 %>
+    <small>at least <%= model.min_seats %> seats</small>
+  <% end %>
   <% if model.exclude_terms.any? %>
     <small>excluding versions: <%= model.exclude_terms.join(", ") %></small>
   <% end %>

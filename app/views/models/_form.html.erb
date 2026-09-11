@@ -22,6 +22,14 @@
   </div>
 
   <div>
+    <%= form.label :min_seats, "Minimum seats" %>
+    <%= form.number_field :min_seats %>
+    <small>Leave empty to keep every version. Set it to 4 and listings that
+    advertise fewer seats than that are skipped, which is how the cargo van is
+    told apart. Listings that do not mention their seats are always kept.</small>
+  </div>
+
+  <div>
     <%= form.label :exclude_versions, "Exclude versions" %>
     <%= form.text_field :exclude_versions %>
     <small>Comma separated. Listings whose version mentions one of these are
