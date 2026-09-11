@@ -40,7 +40,7 @@ end
 
 | Scraper | Site | Covers |
 | --- | --- | --- |
-| `Scrapers::Autoscout24` | autoscout24.nl | NL, BE, DE, AT, ES, FR, LU |
+| `Scrapers::Autoscout24` | autoscout24.nl | NL, BE, DE, LU -- see `COUNTRIES` |
 | `Scrapers::GebrauchtwagenDe` | 12gebrauchtwagen.de | DE -- an aggregator over mobile.de, heycar, autohero, carwow and others |
 | `Scrapers::Autotrack` | autotrack.nl | NL |
 | `Scrapers::FinnNo` | finn.no | NO, prices in kroner |

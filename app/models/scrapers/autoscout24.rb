@@ -9,9 +9,11 @@ class Scrapers::Autoscout24 < Scrapers::Base
   CURRENCY  = "EUR".freeze
   MAX_PAGES = 40
 
-  # AutoScout24's own country codes. All of these are in the eurozone, so the
+  # AutoScout24's own country codes. Kept to the countries that are worth
+  # driving to and back in a day -- Austria, Spain and France were dropped for
+  # that reason, not because there was nothing there. All eurozone, so the
   # prices need no conversion.
-  COUNTRIES = %w[NL A B D E F L].freeze
+  COUNTRIES = %w[NL B D L].freeze
 
   GUID  = /[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\z/
   TITLE = ".//*[contains(@class, 'ListItemTitle_title')]".freeze
