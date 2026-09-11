@@ -92,6 +92,7 @@ class Scrapers::Autoscout24 < Scrapers::Base
       km:         item["data-mileage"],
       year:       year,
       country:    item["data-listing-country"],
+      postcode:   item["data-listing-zip-code"],
       currency:   CURRENCY,
     )
   end

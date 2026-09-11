@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_11_103937) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_11_124909) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -24,6 +24,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_11_103937) do
     t.integer "eur"
     t.integer "km"
     t.bigint "model_id", null: false
+    t.string "postcode"
     t.integer "price"
     t.datetime "updated_at", null: false
     t.string "url"
