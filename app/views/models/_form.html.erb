@@ -22,6 +22,13 @@
   </div>
 
   <div>
+    <%= form.label :exclude_versions, "Exclude versions" %>
+    <%= form.text_field :exclude_versions %>
+    <small>Comma separated. Listings whose version mentions one of these are
+    skipped while scraping, e.g. "ID.3, ID.4, ID.5" for an ID. Buzz.</small>
+  </div>
+
+  <div>
     <%= form.submit %>
   </div>
 <% end %>

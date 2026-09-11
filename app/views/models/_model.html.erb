@@ -1,3 +1,6 @@
 <div id="<%= dom_id model %>">
   <%= model.type %>
+  <% if model.exclude_terms.any? %>
+    <small>excluding versions: <%= model.exclude_terms.join(", ") %></small>
+  <% end %>
 </div>
