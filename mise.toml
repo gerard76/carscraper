@@ -1,0 +1,39 @@
+[tools]
+ruby = "4.0.2"
+# node and yarn are only here to refresh the echarts build that is checked into
+# app/assets/builds; the app itself has no JS toolchain.
+node = "24.18.1"
+yarn = "1.22.19"
+
+[tasks.server]
+description = 'Run the rails server on port 3012'
+run = 'PORT=3012 bundle exec rails server'
+
+[tasks.development]
+description = 'Run the full development stack like a foreman process'
+run = [{ tasks = ["server"] }]
+
+## CREDENTIALS
+
+[tasks.edcred]
+description = "Edit Rails credentials (default env: production)"
+# Define a positional arg named "env" with default "production"
+usage = '''
+arg "env" "Rails environment to edit" default="production"
+'''
+# Use bash so we can do a little logic and command substitution
+shell = "bash -euo pipefail -c"
+run = """
+ENV="${usage_env}"
+EDITOR="vi"
+
+if [[ "$ENV" == "production" ]]; then
+  # Derive APP_NAME from current dir and uppercase it
+  APP_NAME="$(basename "$PWD" | tr '[:lower:]' '[:upper:]')"
+  # Read the master key from 1Password and export it for Rails
+  export RAILS_MASTER_KEY="$(op read "op://Production/${APP_NAME}/MASTER_KEY")"
+  RAILS_ENV=production bundle exec rails credentials:edit -e production
+else
+  RAILS_ENV="$ENV" bundle exec rails credentials:edit -e "$ENV"
+fi
+"""
