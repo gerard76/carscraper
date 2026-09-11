@@ -4,8 +4,8 @@
     options_from_collection_for_select(Model.all, :id, :type, @q.model_id_in),
     {include_blank: "Any"}, { multiple: true, size: 1} %>
 
-  <%= f.label :eur_max %>
-  <%= f.search_field :eur_lteq %>
+  <label for="q_landed_eur_lteq">Eur max (incl. import)</label>
+  <%= f.search_field :landed_eur_lteq %>
 
   <%= f.label :km_max %>
   <%= f.search_field :km_lteq %>

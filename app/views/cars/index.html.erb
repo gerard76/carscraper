@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const option = {
     title: {
       text: 'Car Prices by Year',
-      subtext: 'Under the line is cheap for its build year. Green as well, and it is cheap without having been driven hard.'
+      subtext: 'Price includes an estimate of what it costs to import the car. Under the line and green is cheap for its build year without having been driven hard.'
     },
     legend: {
       show: unmeasured.length > 0,
@@ -51,7 +51,9 @@ document.addEventListener("DOMContentLoaded", () => {
       right: 130,
       top: 0
     },
-    grid: { right: 120 },
+    // Room on the right for the colour bar, and at the top so the y axis name
+    // clears the subtitle.
+    grid: { right: 120, top: 90 },
     visualMap: wear.high > wear.low ? [{
       type: 'continuous',
       // The third value of every point, set in CarsController#point.
@@ -74,10 +76,15 @@ document.addEventListener("DOMContentLoaded", () => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0'); // maand 0–11
 
+        let price = `Price: ${params.data.value[1].toLocaleString()}`;
+        if (params.data.import > 0) {
+          price += ` (${params.data.asked.toLocaleString()} + ${params.data.import.toLocaleString()} import)`;
+        }
+
         let text = `
           ${params.data.type}<br>
           Year: ${year}-${month}<br>
-          Price: ${params.data.value[1]}<br>
+          ${price}<br>
           KM: ${params.data.km}<br>
           ${params.data.version}
         `;
@@ -98,9 +105,9 @@ document.addEventListener("DOMContentLoaded", () => {
       type: 'time'
     },
     yAxis: {
-      name: 'Price',
+      name: 'Price incl. import',
       type: 'value',
-      min: <%= (@cars.minimum(:eur) || 1000) - 1000 %>
+      min: <%= @floor.round %>
     },
     series: series
   };

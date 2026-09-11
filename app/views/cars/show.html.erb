@@ -2,6 +2,9 @@
 <div class="car-details">
   <h2><%= @car.type %> - <%= @car.version %></h2>
   <p><%= @car.year %> - <%= @car.km %>km - €<%= @car.eur %></p>
+  <% if @car.import_costs > 0 %>
+    <p>€<%= @car.landed_eur %> with an estimated €<%= @car.import_costs %> to import it from <%= @car.country.to_s.upcase %></p>
+  <% end %>
   <p><%= link_to @car.url, @car.url, target: "_blank" %></p>
 </div>
 

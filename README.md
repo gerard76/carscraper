@@ -65,6 +65,24 @@ is read from the ad text instead ("7-s", "6-Sitzer", "3 seter", and the bare
 this thins the cargo vans out rather than guaranteeing none get through. Cars
 already stored are not re-checked when you change `min_seats`.
 
+## What a car costs you
+
+The graph plots the asking price plus an estimate of what it takes to get the
+car onto Dutch plates, per country, from `Car::IMPORT_COSTS`. The `Eur max`
+filter goes by that same total, and the car page breaks it out.
+
+Every figure is the same paperwork -- RDW identification and inspection,
+registration, and the BPM a zero emission car owes, which is the fixed base
+amount only -- plus what it costs to go and collect the car, which is the whole
+difference between Belgium at 1200 and Spain at 2400. They are estimates, not
+quotes, and the tax side of them goes stale every January: change the constant
+and the graph follows.
+
+Norway is the odd one out. It sits outside the EU, so duty and VAT are owed on
+the value of the car itself, which no fixed amount covers. It is set to a third
+of the asking price plus 1500, and that is the first figure to check if the
+Norwegian cars look off.
+
 ## New cars, and other currencies
 
 A car at or below `Car::AS_NEW_KM` (100) has delivery mileage, so it is stored

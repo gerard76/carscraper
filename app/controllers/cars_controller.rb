@@ -11,6 +11,7 @@ class CarsController < ApplicationController
     @data, @unmeasured = points.partition { |point| point[:value][2] }
     @wear      = wear_range
     @trendline = trendline(points)
+    @floor     = (points.map { |point| point[:value][1] }.min || 1_000) - 1_000
   end
 
   def show
@@ -33,10 +34,13 @@ class CarsController < ApplicationController
 
   def point(car)
     {
-      # Plot eur, not price: finn.no quotes kroner, and the search form and the
-      # car page go by eur too. The third value is what the colour scale reads.
-      value: [car.year.to_date.to_time.to_i * 1000, car.eur.to_f, km_per_year(car)&.round],
+      # Plot what the car costs you: the asking price in euro plus what it
+      # takes to get it here, which is the whole point of looking abroad. The
+      # third value is what the colour scale reads.
+      value: [car.year.to_date.to_time.to_i * 1000, car.landed_eur.to_f, km_per_year(car)&.round],
       url: car_path(car),
+      asked: car.eur,
+      import: car.import_costs,
       km: car.km,
       version: car.version,
       type: car.type,

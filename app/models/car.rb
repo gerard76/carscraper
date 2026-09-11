@@ -21,6 +21,32 @@ class Car < ApplicationRecord
   # used one.
   AS_NEW_KM = 100
 
+  # What it costs to get a car onto Dutch plates, on top of the asking price.
+  # These are estimates, not quotes: change them and the graph follows.
+  #
+  # Each one is the same paperwork -- RDW identification and inspection (~200),
+  # registration (~50), and the BPM a zero emission car owes, which is the
+  # fixed base amount only (~700) -- plus what it costs to go and collect the
+  # car, which is the whole difference between Belgium and Spain.
+  #
+  # `share` is a slice of the asking price, for a country outside the EU where
+  # customs duty and VAT are owed on the value of the car itself.
+  IMPORT_COSTS = {
+    "nl" => { fixed:     0 },                  # already here
+    "b"  => { fixed: 1_200 },
+    "l"  => { fixed: 1_300 },
+    "d"  => { fixed: 1_400 },
+    "f"  => { fixed: 1_700 },
+    "a"  => { fixed: 1_900 },
+    "e"  => { fixed: 2_400 },
+    # Norway is outside the EU, so 10% duty and 21% VAT are owed on import and
+    # a fixed amount cannot cover it. Worth checking before you trust it.
+    "no" => { fixed: 1_500, share: 0.33 },
+  }.freeze
+
+  # A country we have no figure for is treated like Germany.
+  DEFAULT_IMPORT_COSTS = { fixed: 1_400 }.freeze
+
   # Rates per euro, looked up on 2026-09-10. They drift, so a car scraped much
   # later than that is converted at a stale rate -- update these now and then,
   # and run Car.recalculate_eur! afterwards to fix the cars already stored.
@@ -54,6 +80,17 @@ class Car < ApplicationRecord
     Rails.logger&.warn "Car: skipping the `data` JSON ransackers (#{e.class}: #{e.message})"
   end
 
+  # Lets the search form filter on the price with import costs included, the
+  # same price the graph plots. The country codes come from IMPORT_COSTS, which
+  # is ours, so there is nothing to quote here.
+  ransacker :landed_eur do
+    branches = IMPORT_COSTS.map do |country, costs|
+      "WHEN '#{country}' THEN #{costs.fetch(:fixed).to_i} + cars.eur * #{costs.fetch(:share, 0).to_f}"
+    end
+
+    Arel.sql("(cars.eur + CASE cars.country #{branches.join(' ')} ELSE #{DEFAULT_IMPORT_COSTS.fetch(:fixed).to_i} END)")
+  end
+
   ### CLASS METHODS:
   def self.ransackable_associations(auth_object = nil)
     %w[model]
@@ -78,10 +115,25 @@ class Car < ApplicationRecord
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    ["country", "created_at", "currency", "data", "eur", "id", "id_value", "km", "model_id", "price", "updated_at", "url", "version", "visible", "year"]
+    ["country", "created_at", "currency", "data", "eur", "id", "id_value", "km", "landed_eur", "model_id", "price", "updated_at", "url", "version", "visible", "year"]
   end
 
   # Instance methods:
+
+  # What getting this car here costs on top of the asking price.
+  def import_costs
+    costs = IMPORT_COSTS.fetch(country.to_s.downcase, DEFAULT_IMPORT_COSTS)
+
+    (costs.fetch(:fixed) + costs.fetch(:share, 0) * eur.to_i).round
+  end
+
+  # The asking price plus those costs: what the car actually costs you.
+  def landed_eur
+    return nil if eur.nil?
+
+    eur + import_costs
+  end
+
   def type
     @type ||= model.type
   end
