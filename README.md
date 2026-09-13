@@ -116,6 +116,20 @@ postcode at all. `Car#location` holds whichever came with the listing and
 as a town, whose postcodes are averaged into its middle. finn.no is left out --
 Norway is too far to drive to anyway.
 
+## The same car twice
+
+12gebrauchtwagen carries a lot of what AutoScout24 already has, so one car
+turns up as two listings and counts twice, in the graph and in the trend line.
+`Car.hide_duplicates!` sets all but the cheapest of a set to not visible, which
+is where they stay: a later scrape leaves listings it already has alone. Worth
+running after a scrape.
+
+Two listings are one car when they agree on build month, odometer reading and
+location, and their prices are within `Car::PRICE_SPREAD` of each other. They
+also have to come from different sites -- there are dealers with several
+similar cars on one site, whose listings match on all of that without being
+the same car.
+
 ## New cars, and other currencies
 
 A car at or below `Car::AS_NEW_KM` (100) has delivery mileage, so it is stored

@@ -21,6 +21,10 @@ class Car < ApplicationRecord
   # used one.
   AS_NEW_KM = 100
 
+  # How far apart two listings for the same car may be in price. The sites
+  # copy each other's asking price but not always to the euro.
+  PRICE_SPREAD = 0.02
+
   # What it costs to get a car onto Dutch plates, on top of the asking price.
   # These are estimates, not quotes: change them and the graph follows.
   #
@@ -100,6 +104,44 @@ class Car < ApplicationRecord
   # A car keeps the eur it was given when it was scraped, so changing
   # NOK_PER_EUR or SEK_PER_EUR leaves everything already stored on the old
   # rate. This works those out again. Returns the number of cars it changed.
+  # The same car is often for sale on two sites at once -- 12gebrauchtwagen
+  # carries a lot of what AutoScout24 has -- and two listings for one car
+  # count twice in the graph and twice in the trend line.
+  #
+  # Two listings are taken to be one car when they agree on build month,
+  # odometer reading and location, sit within PRICE_SPREAD of each other, and
+  # come from different sites. That last one matters: a dealer with several
+  # similar cars on one site is not a duplicate, and there are such dealers.
+  #
+  # The cheapest of the set stays visible and the rest are hidden, so they
+  # stay hidden through the next scrape. Returns the number hidden.
+  def self.hide_duplicates!
+    hidden = 0
+
+    duplicates.each do |group|
+      keep = group.min_by { |car| [car.eur, car.direct_link? ? 0 : 1] }
+
+      (group - [keep]).each do |car|
+        car.update_columns(visible: false)
+        hidden += 1
+      end
+    end
+
+    hidden
+  end
+
+  def self.duplicates
+    visible.where.not(km: nil).where.not(location: nil).group_by(&:duplicate_key).filter_map do |_, group|
+      next if group.size < 2
+      next if group.map(&:source).uniq.size < 2
+
+      prices = group.map(&:eur)
+      next if prices.max - prices.min > prices.min * PRICE_SPREAD
+
+      group
+    end
+  end
+
   # Moving house, or importing more postcode tables, leaves the distances
   # already stored on the old answer.
   def self.recalculate_distances!
@@ -132,6 +174,22 @@ class Car < ApplicationRecord
     costs = IMPORT_COSTS.fetch(country.to_s.downcase, DEFAULT_IMPORT_COSTS)
 
     (costs.fetch(:fixed) + costs.fetch(:share, 0) * eur.to_i).round
+  end
+
+  def duplicate_key
+    [year, km, Postcode.digits(location)]
+  end
+
+  def source
+    URI.parse(url).host.to_s.delete_prefix("www.")
+  rescue URI::InvalidURIError
+    url.to_s
+  end
+
+  # 12gebrauchtwagen sends you on to the site it found the car on, so its link
+  # is the one to drop when the price is a tie.
+  def direct_link?
+    !url.to_s.include?("/c/partner")
   end
 
   # Kilometres from home as the crow flies, or nil when either end is
