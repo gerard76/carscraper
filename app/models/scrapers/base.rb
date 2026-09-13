@@ -97,6 +97,16 @@ class Scrapers::Base
     counts
   end
 
+  # Some sites give a build year and no month. The middle of the year is the
+  # honest guess: January would put every one of those cars up to half a year
+  # older than it is, which on the graph reads as half a year of depreciation
+  # too little, and they would all look overpriced.
+  def built_in_year(year)
+    return nil unless year.to_s.match?(/\A\d{4}\z/)
+
+    Date.new(year.to_i, 7, 1)
+  end
+
   # Collapses runs of whitespace, including the non breaking spaces finn.no
   # puts inside its numbers.
   def squish(text)

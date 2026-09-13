@@ -32,7 +32,7 @@ Every scraper takes a model and fetches what that site has for it:
 
 ```ruby
 model = Model.first
-[Scrapers::Autoscout24, Scrapers::GebrauchtwagenDe, Scrapers::Autotrack, Scrapers::FinnNo].each do |scraper|
+[Scrapers::Autoscout24, Scrapers::GebrauchtwagenDe, Scrapers::Autotrack, Scrapers::Gaspedaal, Scrapers::FinnNo].each do |scraper|
   scraper.new(model).scrape
 end
 ```
@@ -42,6 +42,7 @@ end
 | `Scrapers::Autoscout24` | autoscout24.nl | NL, BE, DE, LU -- see `COUNTRIES` |
 | `Scrapers::GebrauchtwagenDe` | 12gebrauchtwagen.de | DE -- an aggregator over mobile.de, heycar, autohero, carwow and others |
 | `Scrapers::Autotrack` | autotrack.nl | NL |
+| `Scrapers::Gaspedaal` | gaspedaal.nl | NL -- an aggregator over Marktplaats, the ANWB, dealer sites and a few dozen more |
 | `Scrapers::FinnNo` | finn.no | NO, prices in kroner |
 
 Running a scraper again only adds what is new; listings already stored are
@@ -110,8 +111,11 @@ again.
 
 A listing only has a distance if its site says where the car is, and they do
 not agree on how. AutoScout24 and 12gebrauchtwagen name a postcode ("8606 JS",
-"40233 Düsseldorf"); AutoTrack names the seller's town ("Harderwijk") and no
-postcode at all. `Car#location` holds whichever came with the listing and
+"40233 Düsseldorf"); AutoTrack and gaspedaal name the seller's town
+("Harderwijk", "Den Bosch") and no postcode at all. Towns are matched on their
+name, falling back to an everyday alias and then to the name without the
+province a seller tacked on, so "Den Haag" finds 's-Gravenhage and "Hengelo Ov"
+finds Hengelo. `Car#location` holds whichever came with the listing and
 `Postcode.locate` takes both: digits are looked up as a postcode, anything else
 as a town, whose postcodes are averaged into its middle. finn.no is left out --
 Norway is too far to drive to anyway.
@@ -124,11 +128,19 @@ turns up as two listings and counts twice, in the graph and in the trend line.
 is where they stay: a later scrape leaves listings it already has alone. Worth
 running after a scrape.
 
-Two listings are one car when they agree on build month, odometer reading and
-location, and their prices are within `Car::PRICE_SPREAD` of each other. They
-also have to come from different sites -- there are dealers with several
-similar cars on one site, whose listings match on all of that without being
-the same car.
+Two listings are one car when they agree on build year, odometer reading and
+place, and their prices are within `Car::PRICE_SPREAD` of each other. They also
+have to come from different sites -- there are dealers with several similar
+cars on one site, whose listings match on all of that without being the same
+car.
+
+Year rather than build month, and place rather than the location as written,
+because the sites do not say those the same way: gaspedaal knows only a year
+where AutoScout24 knows the month, and one names a postcode where the other
+names a town. Both are resolved through the postcode tables first, so "6546 AS"
+and "Nijmegen" meet. Matching on odometer alone is tempting and wrong: two
+different cars can share a reading, and one Leverkusen dealer has seven sets
+that do.
 
 ## New cars, and other currencies
 

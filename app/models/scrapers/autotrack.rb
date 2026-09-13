@@ -104,7 +104,7 @@ class Scrapers::Autotrack < Scrapers::Base
       exclude_on: squish("#{item['model']} #{version}"),
       price:      price,
       km:         item.dig("mileageFromOdometer", "value"),
-      year:       built_on(item["vehicleModelDate"] || item["productionDate"]),
+      year:       built_in_year(item["vehicleModelDate"] || item["productionDate"]),
       country:    COUNTRY,
       currency:   "EUR",
     )
@@ -113,9 +113,4 @@ class Scrapers::Autotrack < Scrapers::Base
   end
 
   # AutoTrack only publishes the year on its result pages, not the month.
-  def built_on(year)
-    return nil unless year.to_s.match?(/\A\d{4}\z/)
-
-    Date.new(year.to_i, 1, 1)
-  end
 end

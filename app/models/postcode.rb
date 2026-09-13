@@ -28,15 +28,41 @@ class Postcode < ApplicationRecord
     centre_of(iso, location)
   end
 
+  # Sellers write a town the way people say it, the tables the way the post
+  # office does.
+  ALIASES = {
+    "den haag"  => "s gravenhage",
+    "den bosch" => "s hertogenbosch"
+  }.freeze
+
   # A town covers several postcodes, so its middle is the average of them.
   def self.centre_of(iso, place)
     key = place_key(place)
     return nil if key.blank?
 
-    rows = where(country: iso, place_key: key)
+    rows = rows_for(iso, key)
     return nil if rows.empty?
 
-    new(latitude: rows.average(:latitude).to_f, longitude: rows.average(:longitude).to_f)
+    # The name the tables use, not the one the seller wrote: "Hengelo Ov" and
+    # "Hengelo" have to come out as the same place, or the same car listed on
+    # two sites counts twice.
+    new(
+      latitude: rows.average(:latitude).to_f,
+      longitude: rows.average(:longitude).to_f,
+      place_key: rows.first.place_key
+    )
+  end
+
+  # The name as written, else the everyday name, else without the province the
+  # seller tacked on: "Hengelo Ov" is the Hengelo in Overijssel, and the tables
+  # call that one simply "hengelo".
+  def self.rows_for(iso, key)
+    [key, ALIASES[key], key.sub(/ [a-z]{1,3}\z/, "")].compact.uniq.each do |candidate|
+      rows = where(country: iso, place_key: candidate)
+      return rows if rows.any?
+    end
+
+    none
   end
 
   # "Köln-Mülheim" and "koln-mulheim" have to meet, so both sides go through

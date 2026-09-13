@@ -131,7 +131,8 @@ class Car < ApplicationRecord
   end
 
   def self.duplicates
-    visible.where.not(km: nil).where.not(location: nil).group_by(&:duplicate_key).filter_map do |_, group|
+    visible.where.not(km: nil).where.not(location: nil).group_by(&:duplicate_key).filter_map do |key, group|
+      next if key.any?(&:nil?)
       next if group.size < 2
       next if group.map(&:source).uniq.size < 2
 
@@ -176,8 +177,17 @@ class Car < ApplicationRecord
     (costs.fetch(:fixed) + costs.fetch(:share, 0) * eur.to_i).round
   end
 
+  # What two listings for one car have to agree on. Build month is out: some
+  # sites only know the year. So is the wording of the location: one names a
+  # postcode and the next the town, so both are resolved to the same place.
   def duplicate_key
-    [year, km, Postcode.digits(location)]
+    [year&.year, km, place_key]
+  end
+
+  def place_key
+    return nil if location.blank?
+
+    Postcode.locate(country, location)&.place_key
   end
 
   def source
@@ -186,10 +196,12 @@ class Car < ApplicationRecord
     url.to_s
   end
 
-  # 12gebrauchtwagen sends you on to the site it found the car on, so its link
-  # is the one to drop when the price is a tie.
+  # A link that opens this car, rather than the page it was found on:
+  # 12gebrauchtwagen sends you on to whichever site it came from, and gaspedaal
+  # only points at its own model page with the listing id in the fragment. When
+  # the price is a tie, those are the ones to drop.
   def direct_link?
-    !url.to_s.include?("/c/partner")
+    !url.to_s.include?("/c/partner") && !url.to_s.include?("#")
   end
 
   # Kilometres from home as the crow flies, or nil when either end is
