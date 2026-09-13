@@ -108,10 +108,13 @@ car page leave them out. After moving house, or after importing another
 country, run `Car.recalculate_distances!` to work the cars already stored out
 again.
 
-A listing only has a distance if its source names a postcode. AutoScout24 does
-for every car; 12gebrauchtwagen has one in the card (`.offer-card-location`,
-e.g. "17192 Waren (Müritz)") but does not read it yet, and AutoTrack and finn
-have not been checked.
+A listing only has a distance if its site says where the car is, and they do
+not agree on how. AutoScout24 and 12gebrauchtwagen name a postcode ("8606 JS",
+"40233 Düsseldorf"); AutoTrack names the seller's town ("Harderwijk") and no
+postcode at all. `Car#location` holds whichever came with the listing and
+`Postcode.locate` takes both: digits are looked up as a postcode, anything else
+as a town, whose postcodes are averaged into its middle. finn.no is left out --
+Norway is too far to drive to anyway.
 
 ## New cars, and other currencies
 

@@ -98,6 +98,8 @@ class Scrapers::Autotrack < Scrapers::Base
 
     save_car(
       url:        url,
+      # AutoTrack names the seller's town, not a postcode.
+      location:   item.dig("offers", "seller", "address", "addressLocality"),
       version:    version,
       exclude_on: squish("#{item['model']} #{version}"),
       price:      price,

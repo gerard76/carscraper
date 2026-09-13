@@ -17,11 +17,32 @@ class Postcode < ApplicationRecord
 
   EARTH_RADIUS_IN_KM = 6371.0
 
-  def self.locate(country, code)
-    digits = digits(code)
-    return nil if digits.blank?
+  # The listing says where the car is in whatever way its site does: a postcode
+  # ("8606 JS", "40233 Düsseldorf") or just a town ("Harderwijk").
+  def self.locate(country, location)
+    iso  = iso_code(country)
+    code = digits(location)
 
-    find_by(country: iso_code(country), code: digits)
+    return find_by(country: iso, code: code) if code.present?
+
+    centre_of(iso, location)
+  end
+
+  # A town covers several postcodes, so its middle is the average of them.
+  def self.centre_of(iso, place)
+    key = place_key(place)
+    return nil if key.blank?
+
+    rows = where(country: iso, place_key: key)
+    return nil if rows.empty?
+
+    new(latitude: rows.average(:latitude).to_f, longitude: rows.average(:longitude).to_f)
+  end
+
+  # "Köln-Mülheim" and "koln-mulheim" have to meet, so both sides go through
+  # this before they are compared.
+  def self.place_key(place)
+    I18n.transliterate(place.to_s).downcase.gsub(/[^a-z0-9]+/, " ").strip
   end
 
   # Sellers write a postcode however they like: "8606 JS", "74523", "1234 ab".
@@ -49,7 +70,7 @@ class Postcode < ApplicationRecord
   def self.import!(countries: COUNTRIES)
     countries.each do |country|
       rows = download(country)
-      upsert_all(rows, unique_by: [:country, :code]) if rows.any?
+      upsert_all(rows, unique_by: [:country, :code], update_only: [:latitude, :longitude, :place_key]) if rows.any?
       puts "#{country}: #{rows.size} postcodes"
     end
 
@@ -68,7 +89,10 @@ class Postcode < ApplicationRecord
 
       Zip::File.open(file.path) do |zip|
         entry = zip.find_entry("#{country}.txt") or raise "no #{country}.txt in the archive"
-        parse(entry.get_input_stream.read)
+
+        # The archive hands its contents back as bytes, and place names are
+        # full of umlauts and accents.
+        parse(entry.get_input_stream.read.force_encoding(Encoding::UTF_8))
       end
     end
   end
@@ -82,15 +106,16 @@ class Postcode < ApplicationRecord
       code   = digits(fields[1])
       next if code.blank? || fields[9].blank? || fields[10].blank?
 
-      [fields[0], code, fields[9].to_f, fields[10].to_f]
+      [fields[0], code, fields[9].to_f, fields[10].to_f, place_key(fields[2])]
     end
 
-    places.group_by { |country, code, _, _| [country, code] }.map do |(country, code), rows|
+    places.group_by { |country, code, _, _, _| [country, code] }.map do |(country, code), rows|
       {
         country: country,
         code: code,
         latitude: rows.sum { |row| row[2] } / rows.size,
-        longitude: rows.sum { |row| row[3] } / rows.size
+        longitude: rows.sum { |row| row[3] } / rows.size,
+        place_key: rows.first[4]
       }
     end
   end

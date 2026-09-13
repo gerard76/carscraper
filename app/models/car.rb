@@ -122,7 +122,7 @@ class Car < ApplicationRecord
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    ["country", "created_at", "currency", "data", "distance_km", "eur", "id", "id_value", "km", "landed_eur", "model_id", "postcode", "price", "updated_at", "url", "version", "visible", "year"]
+    ["country", "created_at", "currency", "data", "distance_km", "eur", "id", "id_value", "km", "landed_eur", "location", "model_id", "price", "updated_at", "url", "version", "visible", "year"]
   end
 
   # Instance methods:
@@ -138,10 +138,10 @@ class Car < ApplicationRecord
   # unknown: no postcode on the listing, no home set, or a postcode that is
   # not in the imported tables.
   def distance_from_home
-    return nil if postcode.blank?
+    return nil if location.blank?
 
     here = Home.coordinates or return nil
-    there = Postcode.locate(country, postcode) or return nil
+    there = Postcode.locate(country, location) or return nil
 
     there.distance_to(here).round
   end

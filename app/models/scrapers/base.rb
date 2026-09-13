@@ -51,7 +51,7 @@ class Scrapers::Base
   end
 
   # Order matters: Car#km= looks at country, so that has to be set first.
-  def save_car(url:, price:, year:, km: nil, version: nil, country: nil, currency: nil, postcode: nil, exclude_on: nil)
+  def save_car(url:, price:, year:, km: nil, version: nil, country: nil, currency: nil, location: nil, exclude_on: nil)
     if model.excluded_version?(exclude_on || version)
       counts[:excluded] += 1
       return :excluded
@@ -66,7 +66,7 @@ class Scrapers::Base
     car.country  = country  if country
     car.currency = currency if currency
     car.url      = url
-    car.postcode = postcode if postcode.present?
+    car.location = location if location.present?
     car.version  = version
     car.km       = km
     car.year     = year
