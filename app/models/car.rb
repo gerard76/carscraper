@@ -25,6 +25,13 @@ class Car < ApplicationRecord
   # copy each other's asking price but not always to the euro.
   PRICE_SPREAD = 0.02
 
+  # A commercial vehicle -- a three seater on grey plates, say -- is quoted
+  # without VAT to the trade and with VAT to everybody else, so the same car
+  # shows up at two prices exactly 21% apart, on two sites that each took one
+  # of them. Buying it privately, the higher one is what you pay.
+  VAT = 1.21
+  VAT_SPREAD = 0.015
+
   # What it costs to get a car onto Dutch plates, on top of the asking price.
   # These are estimates, not quotes: change them and the graph follows.
   #
@@ -114,12 +121,18 @@ class Car < ApplicationRecord
   # similar cars on one site is not a duplicate, and there are such dealers.
   #
   # The cheapest of the set stays visible and the rest are hidden, so they
-  # stay hidden through the next scrape. Returns the number hidden.
+  # stay hidden through the next scrape -- except where the difference is the
+  # VAT, and then the price you would actually pay stays. Returns the number
+  # hidden.
   def self.hide_duplicates!
     hidden = 0
 
     duplicates.each do |group|
-      keep = group.min_by { |car| [car.eur, car.direct_link? ? 0 : 1] }
+      keep = if quoted_without_vat?(group.map(&:eur))
+               group.max_by { |car| [car.eur, car.direct_link? ? 1 : 0] }
+             else
+               group.min_by { |car| [car.eur, car.direct_link? ? 0 : 1] }
+             end
 
       (group - [keep]).each do |car|
         car.update_columns(visible: false)
@@ -130,14 +143,29 @@ class Car < ApplicationRecord
     hidden
   end
 
+  # Two listings are for one car when they ask the same, or when they ask the
+  # same but for the VAT.
+  def self.same_car?(prices)
+    one_price?(prices) || quoted_without_vat?(prices)
+  end
+
+  def self.one_price?(prices)
+    prices.max - prices.min <= prices.min * PRICE_SPREAD
+  end
+
+  def self.quoted_without_vat?(prices)
+    return false if prices.min.to_i.zero?
+
+    (prices.max.to_f / prices.min - VAT).abs <= VAT_SPREAD
+  end
+
   def self.duplicates
     visible.where.not(km: nil).where.not(location: nil).group_by(&:duplicate_key).filter_map do |key, group|
       next if key.any?(&:nil?)
       next if group.size < 2
       next if group.map(&:source).uniq.size < 2
 
-      prices = group.map(&:eur)
-      next if prices.max - prices.min > prices.min * PRICE_SPREAD
+      next unless same_car?(group.map(&:eur))
 
       group
     end

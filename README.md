@@ -134,6 +134,14 @@ have to come from different sites -- there are dealers with several similar
 cars on one site, whose listings match on all of that without being the same
 car.
 
+One exception to the price having to match: when two listings are exactly
+`Car::VAT` apart, that difference is the VAT. The Dutch trade quotes a
+commercial vehicle -- a three seater on grey plates, say -- without it and
+everybody else with it, and the sites each pick up one of the two. The listing
+that includes it stays, because privately that is what you pay. Three such
+pairs were in here, and the cheapest car on the graph was one of them: 27900 at
+gaspedaal against 33759 at AutoScout24, to the euro the same car.
+
 Year rather than build month, and place rather than the location as written,
 because the sites do not say those the same way: gaspedaal knows only a year
 where AutoScout24 knows the month, and one names a postcode where the other
