@@ -21,10 +21,13 @@
   <tbody>
     <% @cars.each do |car| %>
       <tr>
-        <td>
+        <td class="title">
           <%# The ad's own title. The model is the same on every row -- it is
-              what you searched for -- so it only shows when it is all there is. %>
-          <%= link_to car.version.presence || car.type, car %>
+              what you searched for -- so it only shows when it is all there is.
+              Sellers write titles of any length, so the cell cuts it off with
+              an ellipsis and keeps the whole thing for the tooltip. %>
+          <% title = car.version.presence || car.type %>
+          <%= link_to title, car, title: title %>
         </td>
         <td class="right"><%= car.year.strftime("%Y-%m") %></td>
         <td class="right"><%= number_with_delimiter car.km %></td>
@@ -75,8 +78,11 @@
   table.cars tr:hover td {
     background: #f4f4f4;
   }
-  table.cars .version {
-    color: #555;
+  /* Nine in ten titles fit in 52 characters; the longest in here runs to 722. */
+  table.cars td.title {
+    max-width: 52ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   table.cars .import {
     color: #888;
