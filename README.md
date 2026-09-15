@@ -19,7 +19,8 @@ is drawn as a grey ring.
 
 `/cars/photos` is the same cars as a wall of photographs, cheapest for their
 age and mileage first. The picture is the first one from the listing, loaded
-from the site that has the car.
+from the site that has the car. A grid has no column headers to click, so the
+same sorts sit above it as links.
 
 `/cars/table` has the same cars as a table instead, sortable by distance,
 price, mileage, build date, title or place, keeping whatever the search form is

@@ -13,3 +13,64 @@
  *= require_tree .
  *= require_self
  */
+
+/* Albert Sans, the way evkenniscentrum.nl reads, with a system stack behind it
+   for when there is no network. The app had no font styling at all, so every
+   page was rendering in the browser's default serif. */
+:root {
+  --ink: #1a1a1a;
+  --muted: #666;
+  --line: #e2e2e2;
+  --link: #0057b8;
+}
+
+body {
+  font-family: "Albert Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 0;
+  padding: 14px 18px;
+}
+
+h1, h2, h3 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--link);
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+input, select, button, textarea {
+  font: inherit;
+  color: inherit;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+}
+
+button, input[type="submit"] {
+  cursor: pointer;
+  background: #f6f6f6;
+}
+
+button:hover, input[type="submit"]:hover {
+  background: #eee;
+}
+
+/* The search form: a row of labelled fields that wraps. */
+form label {
+  color: var(--muted);
+  font-size: 13px;
+  margin-right: 2px;
+}
+
+form input[type="search"], form input[type="text"], form input[type="number"] {
+  width: 8em;
+}

@@ -6,6 +6,18 @@
   <%= pluralize(@cars.size, "car") %>
 </p>
 
+<p class="sorting">
+  <%# A grid has no column headers to click, so the same sorts live here. %>
+  Sort by
+  <%= sort_link(@q, :bargain_eur, "bargain") %> &middot;
+  <%= sort_link(@q, :landed_eur, "price") %> &middot;
+  <%= sort_link(@q, :km, "km") %> &middot;
+  <%= sort_link(@q, :year, "built") %> &middot;
+  <%= sort_link(@q, :distance_km, "distance") %> &middot;
+  <%= sort_link(@q, :location, "where") %> &middot;
+  <%= sort_link(@q, :version, "title") %>
+</p>
+
 <div class="photos">
   <% @cars.each do |car| %>
     <div class="photo">
@@ -86,6 +98,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .sorting {
+    color: #666;
+    font-size: 13px;
   }
   .photo .cheap { color: #0a0; }
   .photo .dear  { color: #a00; }
