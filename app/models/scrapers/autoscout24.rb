@@ -93,8 +93,20 @@ class Scrapers::Autoscout24 < Scrapers::Base
       year:       year,
       country:    item["data-listing-country"],
       location:   item["data-listing-zip-code"],
+      image:      photo(item),
       currency:   CURRENCY,
     )
+  end
+
+  # The first photograph of the car. Some cards lead with a dealer's trust seal
+  # -- seal-images/146/146.gif and the like -- so only the listing image CDN
+  # counts as a picture of the car.
+  PHOTO_HOST = "pictures.autoscout24.net".freeze
+
+  def photo(item)
+    item.css("img[src], source[srcset]").flat_map { |element|
+      [element["src"], element["srcset"].to_s.split(",").first.to_s.split(" ").first]
+    }.compact.find { |url| url.include?(PHOTO_HOST) }
   end
 
   # Maps guid => listing url for every car on the page.

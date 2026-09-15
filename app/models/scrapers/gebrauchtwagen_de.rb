@@ -82,6 +82,7 @@ class Scrapers::GebrauchtwagenDe < Scrapers::Base
     save_car(
       url:        card["href"],
       location:   squish(card.at_css(".offer-card-location")&.text),
+      image:      card.at_css("img")&.[]("src"),
       version:    strip_make_and_model(title),
       exclude_on: title,
       price:      price,

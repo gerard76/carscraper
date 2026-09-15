@@ -17,6 +17,10 @@ percentile of what is on screen, so a single absurd listing cannot flatten it.
 A car whose seller left the odometer empty cannot be placed on that scale and
 is drawn as a grey ring.
 
+`/cars/photos` is the same cars as a wall of photographs, cheapest for their
+age and mileage first. The picture is the first one from the listing, loaded
+from the site that has the car.
+
 `/cars/table` has the same cars as a table instead, sortable by distance,
 price, mileage, build date, title or place, keeping whatever the search form is
 filtering on. The title links to the car's own page, where you can hide it or
@@ -62,6 +66,19 @@ end
 | `Scrapers::Autotrack` | autotrack.nl | NL |
 | `Scrapers::Gaspedaal` | gaspedaal.nl | NL -- an aggregator over Marktplaats, the ANWB, dealer sites and a few dozen more |
 | `Scrapers::FinnNo` | finn.no | NO, prices in kroner |
+
+A car is on the pages when two things hold: you have not clicked it away
+(`visible`) and a scraper has seen it on a site lately (`Car.listed`, within
+`Car::SEEN_WINDOW`). The two are kept apart on purpose -- one is your decision,
+the other is the market's.
+
+A listing nobody has seen for that long is sold or withdrawn, and
+`Car.remove_vanished!` takes the row out at the end of a scrape. That is worth
+knowing about: the first sweep removed 1121 of 2788 rows, 599 of which were
+still on the graph -- 12gebrauchtwagen's links answer 410 Gone within days. The
+window is the safety margin, so a source that falls over does not cost you its
+cars on a single miss. A car that comes back comes back as a new row, and any
+note on it is gone with it.
 
 Running a scraper again only adds what is new. A listing is recognised by its
 fingerprint -- `Car#identity`: the site it came from, its build month, its

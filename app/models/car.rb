@@ -73,7 +73,17 @@ class Car < ApplicationRecord
   before_validation :set_fingerprint
 
   ### SCOPES:
+  # Yours: a car you have clicked away stays away.
   scope :visible,   -> { where(visible: true) }
+
+  # Theirs: a listing that is sold disappears from the search pages, so a
+  # scraper stops stamping it. 12gebrauchtwagen's links go 410 Gone within
+  # days. Kept apart from `visible` on purpose -- one is your decision, the
+  # other is the market's -- so a listing that briefly drops off a page and
+  # comes back needs no undoing.
+  SEEN_WINDOW = 3.days
+  scope :listed,    -> { where(seen_at: SEEN_WINDOW.ago..) }
+  scope :on_offer,  -> { visible.listed }
 
   ### DELEGATIONS:
   delegate :make, to: :model
@@ -168,7 +178,7 @@ class Car < ApplicationRecord
   def self.hide_small_batteries!
     hidden = 0
 
-    visible.includes(:model).each do |car|
+    on_offer.includes(:model).each do |car|
       minimum = car.model.min_kwh.to_i
       next if minimum.zero?
 
@@ -180,6 +190,21 @@ class Car < ApplicationRecord
     end
 
     hidden
+  end
+
+  # A listing no scraper has seen for SEEN_WINDOW is sold or withdrawn: the
+  # link is dead -- 12gebrauchtwagen answers 410 Gone -- so the row goes.
+  #
+  # The window is the safety margin: a source that falls over, or a listing
+  # that slips off the last page for a round, is not thrown away on one miss.
+  # A car that comes back after being removed comes back as a new row, so any
+  # note on it is gone with it.
+  def self.remove_vanished!
+    vanished.destroy_all.size
+  end
+
+  def self.vanished
+    where("seen_at is null or seen_at < ?", SEEN_WINDOW.ago)
   end
 
   # Rows that are the same listing re-arrived under a new url. Keeps the one
@@ -205,7 +230,7 @@ class Car < ApplicationRecord
   end
 
   def self.duplicates
-    visible.where.not(km: nil).where.not(location: nil).group_by(&:duplicate_key).filter_map do |key, group|
+    on_offer.where.not(km: nil).where.not(location: nil).group_by(&:duplicate_key).filter_map do |key, group|
       next if key.any?(&:nil?)
       next if group.size < 2
       next if group.map(&:source).uniq.size < 2
@@ -224,7 +249,7 @@ class Car < ApplicationRecord
   # number. So this belongs after a scrape, next to hide_duplicates!. Cars
   # scraped since are left on nil until it runs.
   def self.recalculate_bargains!
-    fit = PriceFit.new(visible.to_a)
+    fit = PriceFit.new(on_offer.to_a)
 
     find_each { |car| car.update_columns(bargain_eur: fit.bargain(car)) }
 

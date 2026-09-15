@@ -29,6 +29,8 @@ namespace :cars do
     puts "hid #{Car.hide_duplicates!} listings that were already here"
     puts "hid #{Car.hide_small_batteries!} listings whose battery is too small"
 
+    puts "removed #{Car.remove_vanished!} listings that are no longer on the sites"
+
     fit = Car.recalculate_bargains!
     puts "worked the bargains out again: #{fit.coefficients.inspect}"
     puts "#{Car.visible.count} cars visible of #{Car.count}"

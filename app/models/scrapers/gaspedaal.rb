@@ -85,6 +85,7 @@ class Scrapers::Gaspedaal < Scrapers::Base
       km:         listing.dig("mileageFromOdometer", "value"),
       year:       year,
       location:   listing.dig("offers", "seller", "address", "addressLocality"),
+      image:      Array(listing["image"]).first,
       country:    COUNTRY,
       currency:   "EUR",
     )

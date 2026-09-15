@@ -100,6 +100,7 @@ class Scrapers::Autotrack < Scrapers::Base
       url:        url,
       # AutoTrack names the seller's town, not a postcode.
       location:   item.dig("offers", "seller", "address", "addressLocality"),
+      image:      Array(item["image"]).first,
       version:    version,
       exclude_on: squish("#{item['model']} #{version}"),
       price:      price,

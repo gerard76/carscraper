@@ -1,7 +1,8 @@
 <%= render 'search_form', url: table_cars_path %>
 
 <p>
-  <%= link_to "See them in the graph", cars_path(q: search_query) %> &middot;
+  <%= link_to "Graph", cars_path(q: search_query) %> &middot;
+  <%= link_to "Photos", photos_cars_path(q: search_query) %> &middot;
   <%= pluralize(@cars.size, "car") %>
 </p>
 

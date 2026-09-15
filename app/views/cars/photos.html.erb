@@ -1,0 +1,92 @@
+<%= render 'search_form', url: photos_cars_path %>
+
+<p>
+  <%= link_to "Graph", cars_path(q: search_query) %> &middot;
+  <%= link_to "Table", table_cars_path(q: search_query) %> &middot;
+  <%= pluralize(@cars.size, "car") %>
+</p>
+
+<div class="photos">
+  <% @cars.each do |car| %>
+    <div class="photo">
+      <%= link_to car do %>
+        <% if car.image_url.present? %>
+          <%# Straight from the site that has the car, the way the browser
+              would load it there. loading=lazy keeps a thousand of them from
+              arriving at once. %>
+          <%= image_tag car.image_url, alt: car.version.to_s, loading: "lazy", referrerpolicy: "no-referrer" %>
+        <% else %>
+          <span class="missing">no photo</span>
+        <% end %>
+      <% end %>
+
+      <div class="facts">
+        <strong><%= number_to_currency car.landed_eur, unit: "€", precision: 0 %></strong>
+        <% if car.bargain_eur %>
+          <span class="<%= car.bargain_eur.positive? ? "cheap" : "dear" %>">
+            <%= number_to_currency car.bargain_eur, unit: "€", precision: 0, format: car.bargain_eur.positive? ? "+%u%n" : "%u%n" %>
+          </span>
+        <% end %>
+        <%= link_to car.url, target: "_blank", rel: "noopener", title: "Open this listing on #{car.source}", class: "away" do %>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <path d="M15 3h6v6" />
+            <path d="M10 14 21 3" />
+          </svg>
+        <% end %>
+      </div>
+
+      <div class="small">
+        <%= car.year.strftime("%Y-%m") %> &middot;
+        <%= number_with_delimiter car.km %> km<%= " · #{number_with_delimiter car.distance_km} km away" if car.distance_km %>
+      </div>
+
+      <div class="small title" title="<%= car.version %>"><%= car.version.presence || car.type %></div>
+    </div>
+  <% end %>
+</div>
+
+<style>
+  .photos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px;
+    padding: 8px 0;
+  }
+  .photo img, .photo .missing {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: #eee;
+    border-radius: 4px;
+  }
+  .photo .missing {
+    display: grid;
+    place-items: center;
+    color: #999;
+    font-size: 12px;
+  }
+  .photo .facts {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 14px;
+  }
+  .photo .away {
+    margin-left: auto;
+    color: #06c;
+  }
+  .photo .small {
+    font-size: 12px;
+    color: #555;
+  }
+  .photo .title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .photo .cheap { color: #0a0; }
+  .photo .dear  { color: #a00; }
+</style>

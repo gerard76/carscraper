@@ -13,6 +13,9 @@ Rails.application.routes.draw do
     collection do
       # The same cars as the graph, as a table you can sort.
       get :table
+
+      # And as a wall of photographs.
+      get :photos
     end
   end
 end

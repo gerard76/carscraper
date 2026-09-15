@@ -51,7 +51,7 @@ class Scrapers::Base
   end
 
   # Order matters: Car#km= looks at country, so that has to be set first.
-  def save_car(url:, price:, year:, km: nil, version: nil, country: nil, currency: nil, location: nil, exclude_on: nil)
+  def save_car(url:, price:, year:, km: nil, version: nil, country: nil, currency: nil, location: nil, image: nil, exclude_on: nil)
     if model.excluded_version?(exclude_on || version)
       counts[:excluded] += 1
       return :excluded
@@ -63,10 +63,12 @@ class Scrapers::Base
     end
 
     car = model.cars.new
+    car.seen_at = Time.current
     car.country  = country  if country
     car.currency = currency if currency
     car.url      = url
     car.location = location if location.present?
+    car.image_url = image if image.present?
     car.version  = version
     car.km       = km
     car.year     = year
@@ -97,11 +99,16 @@ class Scrapers::Base
     stored ||= Car.find_by(url: fresh.url)
     return :known if stored.nil?
 
+    # Seen on the site today, whether or not anything about it changed. What
+    # stops being stamped has been sold.
+    stored.update_columns(seen_at: Time.current)
+
     stored.url      = fresh.url
     stored.price    = fresh.price
     stored.km       = fresh.km
     stored.version  = fresh.version if fresh.version.present?
     stored.location = fresh.location if fresh.location.present? && stored.location.blank?
+    stored.image_url = fresh.image_url if fresh.image_url.present?
 
     return :known unless stored.changed?
 

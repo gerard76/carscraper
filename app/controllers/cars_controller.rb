@@ -9,7 +9,7 @@ class CarsController < ApplicationController
 
   def index
     @q    = Car.ransack(search_params)
-    @cars = @q.result.visible.includes(:model).order(:year)
+    @cars = @q.result.on_offer.includes(:model).order(:year)
     points = @cars.map { |car| point(car) }
 
     # A car whose seller left the odometer empty cannot be coloured, so it goes
@@ -24,7 +24,15 @@ class CarsController < ApplicationController
   def table
     @q    = Car.ransack(search_params)
     @q.sorts = "distance_km asc" if @q.sorts.empty?
-    @cars = @q.result.visible.includes(:model)
+    @cars = @q.result.on_offer.includes(:model)
+  end
+
+  # The same cars again, as photographs. The cheapest for their age and
+  # mileage first, since that is what you are looking at pictures for.
+  def photos
+    @q = Car.ransack(search_params)
+    @q.sorts = "bargain_eur desc" if @q.sorts.empty?
+    @cars = @q.result.on_offer.includes(:model)
   end
 
   def show
