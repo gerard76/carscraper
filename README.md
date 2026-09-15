@@ -17,6 +17,12 @@ percentile of what is on screen, so a single absurd listing cannot flatten it.
 A car whose seller left the odometer empty cannot be placed on that scale and
 is drawn as a grey ring.
 
+`/cars/table` has the same cars as a table instead, sortable by distance,
+price, mileage, build date, title or place, keeping whatever the search form is
+filtering on. The title links to the car's own page, where you can hide it or
+leave a note; the icon at the end of the row opens the listing on the site it
+came from.
+
 # Get started
 
 Create you first model: `Model.create(make: 'Fiat', model: 'Ducato')`

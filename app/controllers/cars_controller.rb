@@ -1,6 +1,12 @@
 class CarsController < ApplicationController
 
   before_action :load_car, only: [:show, :update]
+
+  # The filter as it came in, as a plain hash: strong parameters refuses to
+  # hand an unpermitted one to a url helper, and the graph and the table link
+  # to each other keeping whatever is filled in.
+  helper_method :search_query
+
   def index
     @q    = Car.ransack(search_params)
     @cars = @q.result.visible.includes(:model).order(:year)
@@ -11,6 +17,14 @@ class CarsController < ApplicationController
     @data, @unmeasured = points.partition { |point| point[:value][2] }
     @trendline = trendline(points)
     @floor     = (points.map { |point| point[:value][1] }.min || 1_000) - 1_000
+  end
+
+  # The same cars as the graph, as a table. Ransack does the sorting, so the
+  # column headers keep whatever is filled in on the search form.
+  def table
+    @q    = Car.ransack(search_params)
+    @q.sorts = "distance_km asc" if @q.sorts.empty?
+    @cars = @q.result.visible.includes(:model)
   end
 
   def show
@@ -116,6 +130,10 @@ class CarsController < ApplicationController
     return nil if car.km.nil? || car.year.nil?
 
     car.km / [(Date.current - car.year).to_f / 365.25, MIN_AGE_IN_YEARS].max
+  end
+
+  def search_query
+    request.query_parameters[:q]
   end
 
   def search_params

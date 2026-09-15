@@ -1,4 +1,4 @@
-<%= search_form_for @q do |f| %>
+<%= search_form_for @q, url: local_assigns.fetch(:url, cars_path) do |f| %>
   <%= f.label :models %>
   <%= f.select :model_id_in,
     options_from_collection_for_select(Model.all, :id, :type, @q.model_id_in),

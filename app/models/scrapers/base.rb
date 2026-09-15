@@ -75,7 +75,7 @@ class Scrapers::Base
     outcome = if car.save
                 :saved
               elsif car.errors.of_kind?(:url, :taken)
-                :known
+                refresh(car)
               else
                 :rejected
               end
@@ -84,8 +84,26 @@ class Scrapers::Base
     outcome
   end
 
+  # A listing we already have. The seller may have dropped the price since, or
+  # the car may have driven on, and a stale price is worse than no price on a
+  # graph you read for bargains. Only what the site owns is touched: whether a
+  # car is visible, and any note on it, are yours.
+  def refresh(fresh)
+    stored = Car.find_by(url: fresh.url)
+    return :known if stored.nil?
+
+    stored.price    = fresh.price
+    stored.km       = fresh.km
+    stored.version  = fresh.version if fresh.version.present?
+    stored.location = fresh.location if fresh.location.present? && stored.location.blank?
+
+    return :known unless stored.changed?
+
+    stored.save ? :updated : :rejected
+  end
+
   def report
-    puts "saved #{counts[:saved]}, already had #{counts[:known]}"
+    puts "saved #{counts[:saved]}, already had #{counts[:known]}, updated #{counts[:updated]}"
     puts "skipped #{counts[:excluded]} listings matching #{model.exclude_terms.join(', ')}" if counts[:excluded] > 0
     puts "skipped #{counts[:leasing]} leasing offers, whose price is a monthly rate" if counts[:leasing] > 0
     puts "skipped #{counts[:no_price]} listings without a price" if counts[:no_price] > 0

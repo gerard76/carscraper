@@ -9,5 +9,10 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   # root "posts#index"
   root to: "models#index"
-  resources :cars
+  resources :cars do
+    collection do
+      # The same cars as the graph, as a table you can sort.
+      get :table
+    end
+  end
 end

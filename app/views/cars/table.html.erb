@@ -1,0 +1,96 @@
+<%= render 'search_form', url: table_cars_path %>
+
+<p>
+  <%= link_to "See them in the graph", cars_path(q: search_query) %> &middot;
+  <%= pluralize(@cars.size, "car") %>
+</p>
+
+<table class="cars">
+  <thead>
+    <tr>
+      <th><%= sort_link(@q, :version, "Title") %></th>
+      <th class="right"><%= sort_link(@q, :year, "Built") %></th>
+      <th class="right"><%= sort_link(@q, :km, "Km") %></th>
+      <th class="right"><%= sort_link(@q, :landed_eur, "Price") %></th>
+      <th class="right"><%= sort_link(@q, :distance_km, "Distance") %></th>
+      <th><%= sort_link(@q, :location, "Where") %></th>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @cars.each do |car| %>
+      <tr>
+        <td>
+          <%# The ad's own title. The model is the same on every row -- it is
+              what you searched for -- so it only shows when it is all there is. %>
+          <%= link_to car.version.presence || car.type, car %>
+        </td>
+        <td class="right"><%= car.year.strftime("%Y-%m") %></td>
+        <td class="right"><%= number_with_delimiter car.km %></td>
+        <td class="right">
+          <%= number_to_currency car.landed_eur, unit: "€", precision: 0 %>
+          <% if car.import_costs > 0 %>
+            <span class="import" title="<%= number_to_currency car.eur, unit: "€", precision: 0 %> plus <%= number_to_currency car.import_costs, unit: "€", precision: 0 %> to import it">incl. import</span>
+          <% end %>
+        </td>
+        <td class="right"><%= "#{number_with_delimiter car.distance_km} km" if car.distance_km %></td>
+        <td><%= car.location %></td>
+        <td>
+          <%# The listing itself, on the site it came from. %>
+          <%= link_to car.url, target: "_blank", rel: "noopener", title: "Open this listing on #{car.source}" do %>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <path d="M15 3h6v6" />
+              <path d="M10 14 21 3" />
+            </svg>
+            <span class="visually-hidden">Open on <%= car.source %></span>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<style>
+  table.cars {
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  table.cars th, table.cars td {
+    padding: 4px 10px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+    white-space: nowrap;
+  }
+  table.cars th {
+    position: sticky;
+    top: 0;
+    background: #fff;
+    border-bottom: 2px solid #999;
+  }
+  table.cars .right, table.cars th.right {
+    text-align: right;
+  }
+  table.cars tr:hover td {
+    background: #f4f4f4;
+  }
+  table.cars .version {
+    color: #555;
+  }
+  table.cars .import {
+    color: #888;
+    font-size: 11px;
+  }
+  table.cars svg {
+    vertical-align: middle;
+    color: #06c;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+</style>
