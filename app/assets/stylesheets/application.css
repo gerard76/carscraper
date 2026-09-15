@@ -64,6 +64,29 @@ button:hover, input[type="submit"]:hover {
   background: #eee;
 }
 
+/* Select boxes. The font they inherit from body is what makes them look like
+   the rest of the page -- a form control does not inherit it on its own, which
+   is why Bootstrap's reset sets it and why `font: inherit` above does the same
+   job here. The shape is the other half: the native control is replaced by a
+   chevron of our own, so it matches the text fields next to it. */
+select:not([multiple]) {
+  appearance: none;
+  padding-right: 26px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%23666' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+select[multiple] {
+  padding-right: 6px;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--link) 35%, transparent);
+  outline-offset: 1px;
+  border-color: var(--link);
+}
+
 /* The search form: a row of labelled fields that wraps. */
 form label {
   color: var(--muted);
