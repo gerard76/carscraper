@@ -33,30 +33,31 @@ class Car < ApplicationRecord
   VAT_SPREAD = 0.015
 
   # What it costs to get a car onto Dutch plates, on top of the asking price.
-  # These are estimates, not quotes: change them and the graph follows.
   #
-  # Each one is the same paperwork -- RDW identification and inspection (~200),
-  # registration (~50), and the BPM a zero emission car owes, which is the
-  # fixed base amount only (~700) -- plus what it costs to go and collect the
-  # car, which is the whole difference between Belgium and Spain.
+  # 1700 is what Das Import quotes all-in for fetching a car from Germany --
+  # their service, transport, the RDW fees and the registration -- and the same
+  # goes for Belgium and Luxembourg, which are no further away.
+  #
+  # There is no tax to add on top of it: a fully electric car owes no BPM.
+  # That is what makes one flat figure enough. A Cargo on grey plates is a
+  # bestelauto, which the Belastingdienst taxes by its own tariff, but those
+  # are filtered out before they reach the graph.
   #
   # `share` is a slice of the asking price, for a country outside the EU where
   # customs duty and VAT are owed on the value of the car itself.
   IMPORT_COSTS = {
     "nl" => { fixed:     0 },                  # already here
-    "b"  => { fixed: 1_200 },
-    "l"  => { fixed: 1_300 },
-    "d"  => { fixed: 1_400 },
-    "f"  => { fixed: 1_700 },
-    "a"  => { fixed: 1_900 },
-    "e"  => { fixed: 2_400 },
+    "b"  => { fixed: 1_700 },
+    "d"  => { fixed: 1_700 },
+    "l"  => { fixed: 1_700 },
     # Norway is outside the EU, so 10% duty and 21% VAT are owed on import and
-    # a fixed amount cannot cover it. Worth checking before you trust it.
-    "no" => { fixed: 1_500, share: 0.33 },
+    # a fixed amount cannot cover it. Not searched any more; worth checking
+    # before you trust it.
+    "no" => { fixed: 1_700, share: 0.33 },
   }.freeze
 
-  # A country we have no figure for is treated like Germany.
-  DEFAULT_IMPORT_COSTS = { fixed: 1_400 }.freeze
+  # Any other country: the same trip, the same paperwork.
+  DEFAULT_IMPORT_COSTS = { fixed: 1_700 }.freeze
 
   # Rates per euro, looked up on 2026-09-10. They drift, so a car scraped much
   # later than that is converted at a stale rate -- update these now and then,

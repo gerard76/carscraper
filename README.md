@@ -77,12 +77,15 @@ The graph plots the asking price plus an estimate of what it takes to get the
 car onto Dutch plates, per country, from `Car::IMPORT_COSTS`. The `Eur max`
 filter goes by that same total, and the car page breaks it out.
 
-Every figure is the same paperwork -- RDW identification and inspection,
-registration, and the BPM a zero emission car owes, which is the fixed base
-amount only -- plus what it costs to go and collect the car, which is the whole
-difference between Belgium at 1200 and Spain at 2400. They are estimates, not
-quotes, and the tax side of them goes stale every January: change the constant
-and the graph follows.
+It is one figure for every country worth driving to: 1700, which is what Das
+Import quotes all-in for fetching a car from Germany -- their service,
+transport, the RDW fees and the registration. Nothing is added for tax, because
+a fully electric car owes no BPM, and that is what makes a single number
+enough. Change the constant and the graph follows.
+
+A Cargo on grey plates is a bestelauto, which is taxed by its own tariff, so
+this figure would not hold for one. They are filtered out well before the
+graph.
 
 Norway is the odd one out. It sits outside the EU, so duty and VAT are owed on
 the value of the car itself, which no fixed amount covers. It is set to a third
