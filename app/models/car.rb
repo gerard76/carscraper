@@ -70,6 +70,7 @@ class Car < ApplicationRecord
   before_validation :set_eur
   before_validation :hide_when_as_good_as_new, on: :create
   before_validation :set_distance
+  before_validation :set_fingerprint
 
   ### SCOPES:
   scope :visible,   -> { where(visible: true) }
@@ -181,6 +182,28 @@ class Car < ApplicationRecord
     hidden
   end
 
+  # Rows that are the same listing re-arrived under a new url. Keeps the one
+  # that is visible, or the oldest when none is, and carries over any note.
+  # Returns the number of rows removed.
+  def self.merge_relisted!
+    removed = 0
+
+    where.not(fingerprint: nil).group_by(&:fingerprint).each do |_, group|
+      next if group.size < 2
+
+      keep = group.find(&:visible?) || group.min_by(&:id)
+      note = group.filter_map { |car| car.comments.presence }.first
+      keep.update_columns(comments: note) if note && keep.comments.blank?
+
+      (group - [keep]).each do |car|
+        car.destroy
+        removed += 1
+      end
+    end
+
+    removed
+  end
+
   def self.duplicates
     visible.where.not(km: nil).where.not(location: nil).group_by(&:duplicate_key).filter_map do |key, group|
       next if key.any?(&:nil?)
@@ -250,6 +273,23 @@ class Car < ApplicationRecord
   # are one and the same battery -- so read it as "about this big".
   def battery_kwh
     version.to_s[/(\d{2,3})\s*kwh\b/i, 1]&.to_i
+  end
+
+  # What makes this listing this listing, whatever url it happens to carry
+  # today. 12gebrauchtwagen links through a redirect whose offer_id rotates, so
+  # the same car came back as a new row on every scrape -- 491 of 3354 rows
+  # were re-arrivals -- and the url is no use as identity for it.
+  #
+  # Mileage is part of it on purpose: without it, six different cars from one
+  # seller with the same generic title collapsed into one.
+  def identity
+    [source, year, km, Postcode.digits(location).presence || place_key, version.to_s.downcase.gsub(/[^a-z0-9]+/, " ").strip]
+  end
+
+  # Computed rather than read from the column, so a scraper can ask a car it
+  # has just built -- before saving -- whether we already have this listing.
+  def identity_digest
+    Digest::SHA256.hexdigest(identity.join("|"))[0, 32]
   end
 
   def duplicate_key
@@ -338,6 +378,10 @@ class Car < ApplicationRecord
   # is switched back on by hand stays on.
   def hide_when_as_good_as_new
     self.visible = false if km && km <= AS_NEW_KM
+  end
+
+  def set_fingerprint
+    self.fingerprint = identity_digest
   end
 
   def set_distance

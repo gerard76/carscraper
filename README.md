@@ -63,8 +63,18 @@ end
 | `Scrapers::Gaspedaal` | gaspedaal.nl | NL -- an aggregator over Marktplaats, the ANWB, dealer sites and a few dozen more |
 | `Scrapers::FinnNo` | finn.no | NO, prices in kroner |
 
-Running a scraper again only adds what is new; listings already stored are
-recognised by their url.
+Running a scraper again only adds what is new. A listing is recognised by its
+fingerprint -- `Car#identity`: the site it came from, its build month, its
+mileage, its place and its title -- and not by its url, because a url is not
+always the same thing twice. 12gebrauchtwagen links through a redirect whose
+offer_id rotates, so the same car used to come back as a new row on every
+round: 491 of 3354 rows were re-arrivals, hidden again as duplicates the moment
+they landed. Now they are recognised and refreshed instead, url and all.
+
+Mileage is part of the fingerprint on purpose. Without it, six different cars
+from one seller sharing a generic title collapsed into one. That does mean a
+seller who updates the odometer creates a new row; `Car.merge_relisted!` sweeps
+those up, keeping the visible one and carrying over any note.
 
 A scraper stops after `MAX_PAGES` pages as a brake, so raise that (or pass
 `scrape(max_pages: 200)`) if a model has more listings than that.

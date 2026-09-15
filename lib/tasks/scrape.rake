@@ -25,6 +25,7 @@ namespace :cars do
     # already here under another url, and the bargain of every car moves when
     # a single car is added.
     puts "== tidying up =="
+    puts "merged away #{Car.merge_relisted!} rows that were the same listing twice"
     puts "hid #{Car.hide_duplicates!} listings that were already here"
     puts "hid #{Car.hide_small_batteries!} listings whose battery is too small"
 

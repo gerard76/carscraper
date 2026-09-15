@@ -72,7 +72,12 @@ class Scrapers::Base
     car.year     = year
     car.price    = price
 
-    outcome = if car.save
+    # The same listing can come back under a new url -- 12gebrauchtwagen's
+    # redirect rotates its offer_id -- so it is looked up by what it is, not
+    # by where it lives today.
+    outcome = if (stored = Car.find_by(fingerprint: car.identity_digest))
+                refresh(car, stored)
+              elsif car.save
                 :saved
               elsif car.errors.of_kind?(:url, :taken)
                 refresh(car)
@@ -88,10 +93,11 @@ class Scrapers::Base
   # the car may have driven on, and a stale price is worse than no price on a
   # graph you read for bargains. Only what the site owns is touched: whether a
   # car is visible, and any note on it, are yours.
-  def refresh(fresh)
-    stored = Car.find_by(url: fresh.url)
+  def refresh(fresh, stored = nil)
+    stored ||= Car.find_by(url: fresh.url)
     return :known if stored.nil?
 
+    stored.url      = fresh.url
     stored.price    = fresh.price
     stored.km       = fresh.km
     stored.version  = fresh.version if fresh.version.present?
