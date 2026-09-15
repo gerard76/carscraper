@@ -56,6 +56,7 @@ class CarsController < ApplicationController
       asked: car.eur,
       import: car.import_costs,
       distance: car.distance_km,
+      bargain: car.bargain_eur,
       km: car.km,
       version: car.version,
       type: car.type,

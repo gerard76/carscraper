@@ -4,6 +4,11 @@
     options_from_collection_for_select(Model.all, :id, :type, @q.model_id_in),
     {include_blank: "Any"}, { multiple: true, size: 1} %>
 
+  <%# Bargain compares a car to every other car, trim and all, so narrowing to
+      one trim first is what makes that number mean something. %>
+  <%= f.label :version_cont, "Title contains" %>
+  <%= f.search_field :version_cont %>
+
   <label for="q_landed_eur_lteq">Eur max (incl. import)</label>
   <%= f.search_field :landed_eur_lteq %>
 

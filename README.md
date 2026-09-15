@@ -71,6 +71,25 @@ is read from the ad text instead ("7-s", "6-Sitzer", "3 seter", and the bare
 this thins the cargo vans out rather than guaranteeing none get through. Cars
 already stored are not re-checked when you change `min_seats`.
 
+## Is it a good price
+
+`Car#bargain_eur` says how much less a car asks than comparable cars of its
+age and mileage: the distance from a least squares plane through price, build
+year and mileage, in euro. Positive is cheap, negative is dear.
+
+It is worked out for every car at once, because the plane is drawn from all of
+them -- one car arriving moves it, and with it everybody's number. So
+`Car.recalculate_bargains!` belongs after a scrape, next to
+`hide_duplicates!`; cars scraped since sit on nil until it runs.
+
+Read it within a trim, not across trims. The fit knows nothing about trim
+level, and a Pure is not a cheap GTX but a cheaper car: over these listings a
+GTX averages 7168 under the plane and a Pure 14514 over it, and 18 of the top
+20 "bargains" are Pures. Neither fix is clean -- trim words in ad titles are
+unreliable ("Pure GTX 86 kWh" exists) and only a third of titles name a kW or
+kWh figure -- so the search form has a `Title contains` box instead: narrow to
+one trim, then sort on the column.
+
 ## What a car costs you
 
 The graph plots the asking price plus an estimate of what it takes to get the

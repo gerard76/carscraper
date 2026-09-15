@@ -77,6 +77,11 @@ document.addEventListener("DOMContentLoaded", () => {
           text += `<br>${params.data.distance.toLocaleString()} km away`;
         }
 
+        if (params.data.bargain) {
+          const b = params.data.bargain;
+          text += `<br>${Math.abs(b).toLocaleString()} ${b > 0 ? "under" : "over"} what its age and mileage suggest`;
+        }
+
          if (params.data.comments && params.data.comments.trim() !== "") {
           text += `<br><br>${params.data.comments}`;
         }

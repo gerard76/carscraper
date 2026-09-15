@@ -12,6 +12,7 @@
       <th class="right"><%= sort_link(@q, :year, "Built") %></th>
       <th class="right"><%= sort_link(@q, :km, "Km") %></th>
       <th class="right"><%= sort_link(@q, :landed_eur, "Price") %></th>
+      <th class="right"><%= sort_link(@q, :bargain_eur, "Bargain") %></th>
       <th class="right"><%= sort_link(@q, :distance_km, "Distance") %></th>
       <th><%= sort_link(@q, :location, "Where") %></th>
       <th></th>
@@ -35,6 +36,16 @@
           <%= number_to_currency car.landed_eur, unit: "€", precision: 0 %>
           <% if car.import_costs > 0 %>
             <span class="import" title="<%= number_to_currency car.eur, unit: "€", precision: 0 %> plus <%= number_to_currency car.import_costs, unit: "€", precision: 0 %> to import it">incl. import</span>
+          <% end %>
+        </td>
+        <td class="right">
+          <%# How much less it asks than comparable cars of its age and
+              mileage. Blank until Car.recalculate_bargains! has run. %>
+          <% if car.bargain_eur %>
+            <span class="<%= car.bargain_eur.positive? ? "cheap" : "dear" %>"
+                  title="comparable cars of this age and mileage ask <%= number_to_currency car.landed_eur + car.bargain_eur, unit: "€", precision: 0 %>">
+              <%= number_to_currency car.bargain_eur, unit: "€", precision: 0, format: car.bargain_eur.positive? ? "+%u%n" : "%u%n" %>
+            </span>
           <% end %>
         </td>
         <td class="right"><%= "#{number_with_delimiter car.distance_km} km" if car.distance_km %></td>
@@ -83,6 +94,12 @@
     max-width: 52ch;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  table.cars .cheap {
+    color: #0a0;
+  }
+  table.cars .dear {
+    color: #a00;
   }
   table.cars .import {
     color: #888;

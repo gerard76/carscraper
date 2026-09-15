@@ -172,6 +172,21 @@ class Car < ApplicationRecord
     end
   end
 
+  # bargain_eur says how much less a car asks than comparable cars of its age
+  # and mileage: the distance from the plane PriceFit lays through the lot.
+  #
+  # It has to be worked out for every car at once, because the plane is drawn
+  # from all of them -- one car arriving moves it, and with it everybody's
+  # number. So this belongs after a scrape, next to hide_duplicates!. Cars
+  # scraped since are left on nil until it runs.
+  def self.recalculate_bargains!
+    fit = PriceFit.new(visible.to_a)
+
+    find_each { |car| car.update_columns(bargain_eur: fit.bargain(car)) }
+
+    fit
+  end
+
   # Moving house, or importing more postcode tables, leaves the distances
   # already stored on the old answer.
   def self.recalculate_distances!
@@ -194,7 +209,7 @@ class Car < ApplicationRecord
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    ["country", "created_at", "currency", "data", "distance_km", "eur", "id", "id_value", "km", "landed_eur", "location", "model_id", "price", "updated_at", "url", "version", "visible", "year"]
+    ["country", "created_at", "currency", "data", "distance_km", "eur", "id", "id_value", "bargain_eur", "km", "landed_eur", "location", "model_id", "price", "updated_at", "url", "version", "visible", "year"]
   end
 
   # Instance methods:

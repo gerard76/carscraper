@@ -10,12 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_13_090001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_15_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
 
   create_table "cars", force: :cascade do |t|
+    t.integer "bargain_eur"
     t.text "comments"
     t.string "country"
     t.datetime "created_at", null: false
@@ -32,6 +33,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_090001) do
     t.string "version"
     t.boolean "visible", default: true
     t.date "year"
+    t.index ["bargain_eur"], name: "index_cars_on_bargain_eur"
     t.index ["model_id"], name: "index_cars_on_model_id"
     t.index ["url"], name: "index_cars_on_url", unique: true
   end
