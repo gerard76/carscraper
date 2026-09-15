@@ -9,6 +9,9 @@
   <%= f.label :version_cont, "Title contains" %>
   <%= f.search_field :version_cont %>
 
+  <%= f.label :version_not_cont, "Title excludes" %>
+  <%= f.search_field :version_not_cont %>
+
   <label for="q_landed_eur_lteq">Eur max (incl. import)</label>
   <%= f.search_field :landed_eur_lteq %>
 

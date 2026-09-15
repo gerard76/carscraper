@@ -87,8 +87,17 @@ level, and a Pure is not a cheap GTX but a cheaper car: over these listings a
 GTX averages 7168 under the plane and a Pure 14514 over it, and 18 of the top
 20 "bargains" are Pures. Neither fix is clean -- trim words in ad titles are
 unreliable ("Pure GTX 86 kWh" exists) and only a third of titles name a kW or
-kWh figure -- so the search form has a `Title contains` box instead: narrow to
-one trim, then sort on the column.
+kWh figure -- so the search form has `Title contains` and `Title excludes`
+boxes instead: narrow to one trim, or knock one out, then sort on the column.
+
+What the trims are, going by what the ads themselves say:
+
+| | cars | average | battery | power | 4MOTION |
+| --- | --- | --- | --- | --- | --- |
+| Pure | 53 | 47525 | 59-63 kWh | 125 kW | none |
+| 1st | 6 | 43758 | 77 kWh | | none |
+| Pro | 821 | 51994 | 77-86 kWh | 150 or 210 kW | none |
+| GTX | 319 | 68044 | mostly 86 kWh | 250 kW only | 70% |
 
 ## What a car costs you
 
