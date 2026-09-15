@@ -34,7 +34,19 @@ See the graph on http://localhost:3000/cars
 
 # Scrapers
 
-Every scraper takes a model and fetches what that site has for it:
+One command does the lot -- every source for every model, and the tidying up
+that a scrape leaves behind:
+
+```
+bin/rails cars:scrape
+```
+
+That last part matters and cannot be skipped: listings turn up that are already
+here under another url, and one car arriving moves the bargain of every other
+car. The task hides the duplicates and the batteries that are too small, then
+works the bargains out again.
+
+Every scraper also takes a model on its own and fetches what that site has:
 
 ```ruby
 model = Model.first
@@ -60,6 +72,11 @@ A scraper stops after `MAX_PAGES` pages as a brake, so raise that (or pass
 Sites tend to park a different car in a model's category -- an ID. Buzz Cargo
 under ID. Buzz, say. Set `exclude_versions` on the model to drop those:
 `Model.first.update(exclude_versions: 'ID.3, ID.4, Cargo')`.
+
+`min_kwh` throws out a battery smaller than you want. It only judges an ad
+that names one -- 149 of 1366 do -- so a Pure that keeps quiet about its 59 kWh
+stays. Set to 77 it caught eight, one of them titled "Pro 58KWh", which no
+amount of filtering on trim names would have found.
 
 `min_seats` catches the ones that never say "Cargo". None of the sites takes a
 seat count in its url that we can use: AutoScout24 has one, but it also drops

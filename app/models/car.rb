@@ -160,6 +160,27 @@ class Car < ApplicationRecord
     (prices.max.to_f / prices.min - VAT).abs <= VAT_SPREAD
   end
 
+  # Hides the cars whose ad names a battery smaller than the model asks for.
+  # Only those: a car that does not state its battery is not judged, the same
+  # way min_seats leaves a listing alone when it names no seat count. Belongs
+  # after a scrape. Returns the number hidden.
+  def self.hide_small_batteries!
+    hidden = 0
+
+    visible.includes(:model).each do |car|
+      minimum = car.model.min_kwh.to_i
+      next if minimum.zero?
+
+      stated = car.battery_kwh
+      next if stated.nil? || stated >= minimum
+
+      car.update_columns(visible: false)
+      hidden += 1
+    end
+
+    hidden
+  end
+
   def self.duplicates
     visible.where.not(km: nil).where.not(location: nil).group_by(&:duplicate_key).filter_map do |key, group|
       next if key.any?(&:nil?)
@@ -224,6 +245,13 @@ class Car < ApplicationRecord
   # What two listings for one car have to agree on. Build month is out: some
   # sites only know the year. So is the wording of the location: one names a
   # postcode and the next the town, so both are resolved to the same place.
+  # The battery as the ad states it, in kWh, or nil when it says nothing.
+  # Sellers quote the gross and the net capacity of the same pack -- 86 and 79
+  # are one and the same battery -- so read it as "about this big".
+  def battery_kwh
+    version.to_s[/(\d{2,3})\s*kwh\b/i, 1]&.to_i
+  end
+
   def duplicate_key
     [year&.year, km, place_key]
   end
