@@ -1,0 +1,94 @@
+# Deployed with kamal to the same droplet as the other projects:
+#
+#   bin/kamal setup     first time -- installs docker, boots postgres, deploys
+#   bin/kamal deploy    every time after that
+#   bin/kamal rollback  back to the previous version
+#
+# The hooks in .kamal/hooks check what tends to go wrong; README.md has the
+# one-time steps (the DNS record, the secrets file, loading the data).
+service: carscraper
+image: carscraper
+
+ssh:
+  user: deployer
+
+servers:
+  web:
+    - 146.185.130.81
+
+# kamal-proxy terminates TLS with a Let's Encrypt certificate, which it can
+# only get once carscraper.diamondbay.nl resolves to the server above.
+# Thruster listens on 80 inside the container.
+proxy:
+  ssl: true
+  host: carscraper.diamondbay.nl
+  app_port: 80
+
+registry:
+  server: registry.digitalocean.com/eet-nu
+  username: KAMAL_REGISTRY_USER
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+# The droplet is x86, this laptop is not, so the build is emulated and slow.
+# If that starts to hurt, build on the droplet instead:
+#   builder:
+#     remote: ssh://deployer@146.185.130.81
+builder:
+  arch: amd64
+
+env:
+  clear:
+    RAILS_ENV: production
+    # Thruster serves public/ itself, but Rails is the fallback for anything
+    # it hands through.
+    RAILS_SERVE_STATIC_FILES: 1
+    # The accessory below, by the name docker gives its container.
+    DATABASE_HOST: carscraper-postgres
+    DATABASE_PORT: 5432
+    DATABASE_USER: carscraper
+  secret:
+    - SECRET_KEY_BASE
+    - CARSCRAPER_DATABASE_PASSWORD
+    # Unset, nothing is locked. Set, every click needs it -- see
+    # ApplicationController.
+    - CARSCRAPER_PASSWORD
+    # Not a secret in any real sense: it is the middle of a village. It is
+    # here rather than in env/clear because this repository is public and
+    # where you live is nobody's business.
+    - HOME_LATITUDE
+    - HOME_LONGITUDE
+
+aliases:
+  console: app exec --interactive --reuse "bin/rails console"
+  shell: app exec --interactive --reuse bash
+  logs: app logs -f
+  psql: accessory exec postgres --interactive --reuse "psql -U carscraper carscraper_production"
+  # A scrape from the droplet. Prefer scraping from your own machine over the
+  # tunnel (README.md): the sites are friendlier to a home address than to a
+  # data centre.
+  scrape: app exec "bin/rails cars:scrape"
+
+# Lets a deploy hand the previous version's fingerprinted assets to the new
+# one, so a page loaded a second before the switch keeps working.
+asset_path: /rails/public/assets
+
+accessories:
+  postgres:
+    image: postgres:18-alpine
+    host: 146.185.130.81
+    # 5432 on the droplet is taken by the trading-bot database, and this one
+    # only has to be reachable through an ssh tunnel anyway.
+    port: "127.0.0.1:5433:5432"
+    env:
+      clear:
+        POSTGRES_USER: carscraper
+        POSTGRES_DB: carscraper_production
+        # Pinned rather than left to the image: postgres 18 moved its default
+        # data directory, and a data directory that moves is a data directory
+        # you lose.
+        PGDATA: /var/lib/postgresql/data
+      secret:
+        - POSTGRES_PASSWORD
+    directories:
+      - data:/var/lib/postgresql/data

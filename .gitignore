@@ -37,6 +37,10 @@
 # Where you live, used for Car#distance_km. Not in git: this remote is public.
 /config/home.yml
 
+# The deploy secrets in plain text. Not in git for the same reason, and the
+# only copy there is -- see .kamal/read-secret.
+/.kamal/secrets.local
+
 /node_modules
 vendor/javascript
 .DS_Store
