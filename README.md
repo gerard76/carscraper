@@ -368,12 +368,39 @@ name resolves today and resolves *wrong*: `pre-connect` refuses to deploy until
 it points at the right machine, because kamal-proxy would otherwise ask Let's
 Encrypt for a certificate it cannot be given and the site would sit on 502.
 
-**`.kamal/secrets.local`**, which is not in git and is the only copy of these
-values -- put it in 1Password as well. `.kamal/secrets.local.sample` lists what
-goes in it; `SECRET_KEY_BASE`, the database password, the click password and the
-home coordinates are already filled in. The two that are not are the
-DigitalOcean registry token and the name it goes with. `pre-connect` names
-anything still empty before the deploy touches the server.
+**The secrets**, all of which live in `config/credentials/production.yml.enc`
+and nowhere else:
+
+```
+bin/rails credentials:edit --environment production
+```
+
+```yaml
+secret_key_base: ...          # signs the cookies
+kamal:
+  registry_user: ...          # a DigitalOcean registry token with read+write;
+  registry_password: ...      # for a personal token, the same value twice
+database:
+  password: ...               # postgres is created with it, the app connects with it
+auth:
+  password: ...               # what you and Mila type before a click that changes something
+home:
+  latitude: ...               # where the distances are measured from
+  longitude: ...
+```
+
+`secret_key_base`, the database password, the click password and the
+coordinates are filled in already; the two registry values are not.
+`pre-connect` names anything still empty before the deploy touches the server.
+
+`.kamal/secrets` holds no values -- this repository is public -- only the names,
+each one read out of those credentials by `.kamal/read-secret` at deploy time
+and handed to the container as an environment variable. So the app on the
+server reads none of that file itself and is never given the key.
+
+The key is `config/credentials/production.key`, which is not in git and is the
+only copy: put it in 1Password. Without it nothing can be deployed or read
+back, and `pre-build` refuses to build if it ever turns up in git.
 
 **The data**, because the database starts empty and the graph needs cars:
 
@@ -406,8 +433,8 @@ All nine of kamal's hooks are in `.kamal/hooks`, and each one says at the top
 what it is for. Three of them only announce what is happening; the rest check
 something that has actually gone wrong somewhere: an empty secret (docker
 answers "flag needs an argument: 'p' in -p"), a DNS record pointing at the
-wrong server, a dirty checkout shipping code that matches no commit, a private
-file creeping into a public repository, a migration running against the image
+wrong server, a dirty checkout shipping code that matches no commit, the
+credentials key creeping into a public repository, a migration running against the image
 the server already had rather than the one being deployed, a deploy that exits
 0 having changed nothing, and a proxy reboot taking every other site on the
 droplet down with it.

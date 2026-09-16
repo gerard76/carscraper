@@ -10,22 +10,31 @@ set -eo pipefail
 #    then asks Let's Encrypt for a certificate it cannot be given, and the
 #    site answers 502 with nothing in the logs to explain it.
 
+# Everything comes out of config/credentials/production.yml.enc, so without
+# its key nothing can be read at all -- and what the reader says then is a
+# ruby backtrace.
+if [ ! -f config/credentials/production.key ] && [ -z "$RAILS_MASTER_KEY" ]; then
+  echo "✗ config/credentials/production.key is not here, so none of the secrets can be read." >&2
+  echo "  It is not in git on purpose. Restore it from 1Password, or pass it as RAILS_MASTER_KEY." >&2
+  exit 1
+fi
+
 missing=()
-for name in KAMAL_REGISTRY_USER KAMAL_REGISTRY_PASSWORD SECRET_KEY_BASE \
-            CARSCRAPER_DATABASE_PASSWORD HOME_LATITUDE HOME_LONGITUDE; do
-  [ -n "$(.kamal/read-secret "$name")" ] || missing+=("$name")
+for path in kamal.registry_user kamal.registry_password secret_key_base \
+            database.password home.latitude home.longitude; do
+  [ -n "$(.kamal/read-secret "$path")" ] || missing+=("$path")
 done
 
 if [ ${#missing[@]} -gt 0 ]; then
   echo "✗ No value for: ${missing[*]}" >&2
-  echo "  Put them in .kamal/secrets.local as NAME=value -- it is not in git -- or pass them in" >&2
-  echo "  the environment for one deploy. README.md lists what each one is." >&2
+  echo "  bin/rails credentials:edit --environment production" >&2
+  echo "  README.md lists what each one is." >&2
   exit 1
 fi
 
 # Allowed to be empty, but then the site is a free-for-all, so say so out loud.
-if [ -z "$(.kamal/read-secret CARSCRAPER_PASSWORD)" ]; then
-  echo "⚠️  CARSCRAPER_PASSWORD is empty: anyone who finds the site can cross cars away."
+if [ -z "$(.kamal/read-secret auth.password)" ]; then
+  echo "⚠️  auth.password is empty: anyone who finds the site can cross cars away."
 fi
 
 host=$(ruby -ryaml -e 'puts YAML.load_file("config/deploy.yml").dig("proxy", "host").to_s' 2>/dev/null || true)
