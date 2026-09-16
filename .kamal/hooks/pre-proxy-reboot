@@ -1,0 +1,18 @@
+#!/bin/bash
+set -eo pipefail
+
+# ⚠️ One kamal-proxy serves every app on this droplet, carscraper and
+# trading-bot both. Rebooting it takes them all down for as long as it takes
+# to come back, and nothing about `kamal proxy reboot` says so.
+#
+# A reboot is almost never what is wanted: a deploy does not need one, and
+# neither does a new certificate. Changing the proxy's own configuration does.
+# CONFIRM_PROXY_REBOOT=1 says you know what else is behind it.
+if [ -z "$CONFIRM_PROXY_REBOOT" ]; then
+  echo "✗ Refusing to reboot kamal-proxy on $KAMAL_HOSTS." >&2
+  echo "  Every site on that droplet goes down with it, trading-bot included." >&2
+  echo "  CONFIRM_PROXY_REBOOT=1 bin/kamal proxy reboot   if that is really what you want." >&2
+  exit 1
+fi
+
+echo "Rebooting kamal-proxy on $KAMAL_HOSTS -- every site on it is down until post-proxy-reboot says otherwise..."

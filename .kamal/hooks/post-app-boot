@@ -1,0 +1,7 @@
+#!/bin/bash
+set -eo pipefail
+
+# The container is up and has passed its health check by now, and kamal-proxy
+# has been pointed at it. Whether the site is actually reachable from outside
+# is a different question, and post-deploy asks it.
+echo "Booted carscraper $KAMAL_VERSION on $KAMAL_HOSTS in ${KAMAL_RUNTIME:-?}s"

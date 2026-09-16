@@ -1,0 +1,50 @@
+#!/bin/bash
+set -eo pipefail
+
+# Two things break a deploy before it has done anything, and both are cheap to
+# check from here.
+#
+# 1. A secret with no value. Kamal does not mind an empty string, docker does,
+#    and what it says is "flag needs an argument: 'p' in -p".
+# 2. The name in config/deploy.yml not pointing at this server. kamal-proxy
+#    then asks Let's Encrypt for a certificate it cannot be given, and the
+#    site answers 502 with nothing in the logs to explain it.
+
+missing=()
+for name in KAMAL_REGISTRY_USER KAMAL_REGISTRY_PASSWORD SECRET_KEY_BASE \
+            CARSCRAPER_DATABASE_PASSWORD HOME_LATITUDE HOME_LONGITUDE; do
+  [ -n "$(.kamal/read-secret "$name")" ] || missing+=("$name")
+done
+
+if [ ${#missing[@]} -gt 0 ]; then
+  echo "✗ No value for: ${missing[*]}" >&2
+  echo "  Put them in .kamal/secrets.local as NAME=value -- it is not in git -- or pass them in" >&2
+  echo "  the environment for one deploy. README.md lists what each one is." >&2
+  exit 1
+fi
+
+# Allowed to be empty, but then the site is a free-for-all, so say so out loud.
+if [ -z "$(.kamal/read-secret CARSCRAPER_PASSWORD)" ]; then
+  echo "⚠️  CARSCRAPER_PASSWORD is empty: anyone who finds the site can cross cars away."
+fi
+
+host=$(ruby -ryaml -e 'puts YAML.load_file("config/deploy.yml").dig("proxy", "host").to_s' 2>/dev/null || true)
+
+if [ -z "$host" ]; then
+  echo "⚠️  Could not read proxy/host out of config/deploy.yml, so the DNS check was skipped."
+elif ! command -v dig >/dev/null; then
+  echo "⚠️  No dig here, so the DNS check for $host was skipped."
+else
+  resolved=$(dig +short "$host" A | tail -n 1)
+  if [ -z "$resolved" ]; then
+    echo "✗ $host does not resolve. Give it an A record pointing at ${KAMAL_HOSTS%%,*} first:" >&2
+    echo "  without it kamal-proxy cannot get a certificate and the site stays on 502." >&2
+    exit 1
+  fi
+  case ",$KAMAL_HOSTS," in
+    *",$resolved,"*) echo "✓ $host resolves to $resolved" ;;
+    *) echo "✗ $host resolves to $resolved, but this deploy goes to $KAMAL_HOSTS." >&2
+       echo "  Fix the A record, or the certificate will be issued for a server that is not this one." >&2
+       exit 1 ;;
+  esac
+fi

@@ -1,0 +1,40 @@
+#!/bin/bash
+set -eo pipefail
+
+# Migrate before any container boots, rather than from inside one.
+#
+# bin/docker-entrypoint does run db:prepare, but only for the web role, and
+# only as the new container starts -- so the schema changes while the old
+# container is still answering. Doing it here is the same work a moment
+# earlier, where a failure stops the deploy instead of half-finishing it.
+#
+# db:prepare rather than db:migrate, so the very first deploy creates the
+# database and loads the schema instead of failing on a database that is not
+# there yet.
+#
+# --version is load-bearing. Without it `kamal app exec` runs :latest, and the
+# docker daemon on the server serves the :latest it already has rather than
+# pulling: the migration then "succeeds" in seconds having run the previous
+# image, and nothing says so.
+#
+# A destructive migration is a warning here rather than a refusal, unlike in
+# trading-bot: this app has one role and no background worker, so the only
+# thing that can meet the new schema on old code is a request in flight to a
+# page that reads. Worth knowing about, not worth blocking.
+added=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- db/migrate 2>/dev/null || true)
+if [ -n "$added" ]; then
+  destructive=$(grep -lE '^[[:space:]]*(remove_column|rename_column|drop_table|rename_table)' $added || true)
+  if [ -n "$destructive" ]; then
+    echo "⚠️  A destructive migration is shipping in this deploy:"
+    printf '     %s\n' $destructive
+    echo "     Old code answers requests for a few seconds yet. Ship the code that stops reading it first if it matters."
+  fi
+fi
+
+echo "Preparing the database on version $KAMAL_VERSION..."
+if ! kamal app exec --version="$KAMAL_VERSION" --roles=web --primary "bin/rails db:prepare"; then
+  echo "✗ The database could not be prepared, so nothing was booted." >&2
+  echo "  Usually one of: the postgres accessory is not running (bin/kamal accessory boot postgres)," >&2
+  echo "  or CARSCRAPER_DATABASE_PASSWORD here and POSTGRES_PASSWORD in the accessory have drifted apart." >&2
+  exit 1
+fi

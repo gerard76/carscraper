@@ -1,0 +1,7 @@
+#!/bin/bash
+set -eo pipefail
+
+# Nothing to check here that pre-connect and pre-deploy have not checked
+# already, so this only says what is about to happen -- which is worth having
+# in the log when a deploy is being read back afterwards.
+echo "Booting carscraper $KAMAL_VERSION on $KAMAL_HOSTS (the old container answers until the new one is healthy)..."

@@ -1,0 +1,34 @@
+#!/bin/bash
+set -eo pipefail
+
+# The proxy carries more than this app, so check the neighbours came back too
+# rather than only the site that happened to be deployed from.
+echo "Rebooted kamal-proxy on $KAMAL_HOSTS"
+
+command -v curl >/dev/null || { echo "⚠️  No curl here, so nothing was checked."; exit 0; }
+
+hosts=$(ruby -ryaml -e 'puts YAML.load_file("config/deploy.yml").dig("proxy", "host").to_s' 2>/dev/null || true)
+hosts="$hosts trade.diamondbay.nl"
+failed=()
+
+for host in $hosts; do
+  code=000
+  for attempt in 1 2 3 4 5; do
+    code=$(curl -sS -m 10 -o /dev/null -w '%{http_code}' "https://$host/up" 2>/dev/null || echo 000)
+    # Anything that answers at all means the proxy is routing again; a 401 or
+    # a 404 is that app's business, not the proxy's.
+    [ "$code" != "000" ] && break
+    sleep 4
+  done
+  if [ "$code" = "000" ]; then
+    failed+=("$host")
+  else
+    echo "✓ https://$host answers $code"
+  fi
+done
+
+if [ ${#failed[@]} -gt 0 ]; then
+  echo "✗ Nothing came back from: ${failed[*]}" >&2
+  echo "  bin/kamal proxy logs, and remember the other apps need their own kamal to re-register." >&2
+  exit 1
+fi

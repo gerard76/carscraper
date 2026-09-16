@@ -1,0 +1,26 @@
+#!/bin/bash
+set -eo pipefail
+
+# Kamal names the image after the git revision, so a tree with uncommitted
+# changes ships code that matches no commit and cannot be gone back to.
+# ALLOW_DIRTY_TREE=1 deploys anyway, knowing that.
+if [ -z "$ALLOW_DIRTY_TREE" ] && [ -n "$(git status --porcelain)" ]; then
+  echo "✗ Uncommitted changes, so the deployed version would match no commit:" >&2
+  git status --short >&2
+  echo "  Commit them, or ALLOW_DIRTY_TREE=1 bin/kamal deploy." >&2
+  exit 1
+fi
+
+# This repository is public. config/home.yml says where you live and
+# .kamal/secrets.local holds every password; once either is pushed, deleting
+# it does not take it back. git checks them at every deploy because a deploy
+# is the one moment you are certainly looking.
+for private in config/home.yml .kamal/secrets.local; do
+  if git ls-files --error-unmatch "$private" >/dev/null 2>&1; then
+    echo "✗ $private is tracked in git, and this repository is public." >&2
+    echo "  git rm --cached $private   and check whether it was ever pushed." >&2
+    exit 1
+  fi
+done
+
+echo "✓ Clean checkout, nothing private in git"

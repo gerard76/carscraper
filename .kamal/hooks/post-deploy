@@ -1,0 +1,57 @@
+#!/bin/bash
+set -eo pipefail
+
+# Say what production is actually running, and fail the deploy if it is not
+# what was just pushed. A kamal deploy can exit 0 having changed nothing, and
+# then it looks deployed until somebody runs `kamal app version` by hand.
+# This is that hand. It also runs after redeploy and rollback, where
+# KAMAL_VERSION is the version being moved to, so it reads the same way.
+expected="$KAMAL_VERSION"
+head=$(git rev-parse HEAD 2>/dev/null || echo unknown)
+output=$(kamal app version 2>&1) || true
+running=$(printf '%s\n' "$output" | grep -Ev '^App Host:|^\s*(INFO|DEBUG|ERROR)|^\s*$' | tail -n 1 | tr -d '[:space:]')
+
+echo "Deployed version:  $expected"
+echo "Running on server: ${running:-<unreadable>}"
+echo "Local git HEAD:    $head"
+
+if [ -z "$running" ]; then
+  echo "✗ Could not read the running version off the server. kamal said:" >&2
+  printf '%s\n' "$output" | tail -n 5 >&2
+  exit 1
+fi
+
+if [ "$running" != "$expected" ]; then
+  echo "✗ The server is not running what was just deployed. Find out why before anything else." >&2
+  exit 1
+fi
+
+if [ "$head" != "$expected" ]; then
+  echo "⚠️  Local HEAD ($head) is not the deployed version: a commit landed during the deploy, or --version was given."
+fi
+
+# End to end, the way Mila will meet it: through DNS, through the certificate,
+# through kamal-proxy, into the container. /up is Rails' own health endpoint
+# and needs no password.
+host=$(ruby -ryaml -e 'puts YAML.load_file("config/deploy.yml").dig("proxy", "host").to_s' 2>/dev/null || true)
+
+if [ -z "$host" ] || ! command -v curl >/dev/null; then
+  echo "⚠️  Skipped the check from outside (no host in config/deploy.yml, or no curl here)."
+  exit 0
+fi
+
+# A fresh certificate can take a few seconds, so give it three tries rather
+# than calling a good deploy broken.
+for attempt in 1 2 3; do
+  code=$(curl -sS -m 10 -o /dev/null -w '%{http_code}' "https://$host/up" 2>/dev/null || echo 000)
+  [ "$code" = "200" ] && break
+  sleep 3
+done
+
+if [ "$code" = "200" ]; then
+  echo "✓ https://$host answers 200"
+else
+  echo "✗ https://$host answers $code. The version above is running, so this is the way in, not the app:" >&2
+  echo "  the DNS record, the certificate (bin/kamal proxy logs), or the proxy host in config/deploy.yml." >&2
+  exit 1
+fi

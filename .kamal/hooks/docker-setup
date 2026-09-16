@@ -1,0 +1,27 @@
+#!/bin/bash
+set -eo pipefail
+
+# Runs once, during `kamal setup`, right after docker has been installed on
+# the server. There is nothing to install on top of it -- postgres arrives as
+# an accessory and kamal creates its data directory itself -- so this prints
+# the steps that setup does not do for you, in the order they have to happen.
+cat <<'NOTE'
+
+carscraper, first time on this server. What setup does not do:
+
+  1. An A record for carscraper.diamondbay.nl pointing at the droplet.
+     Without it kamal-proxy cannot get a certificate. pre-connect refuses to
+     deploy until it resolves, so you will not get far without noticing.
+
+  2. The database starts empty, so nothing is in the graph:
+
+       bin/kamal accessory boot postgres
+       ssh -fN -L 5433:127.0.0.1:5432 deployer@146.185.130.81
+       pg_dump carscrape | psql -h localhost -p 5433 -U carscraper carscraper_production
+
+     README.md has the same thing written out, including the postcodes.
+
+  3. Scraping keeps happening here, not there, over that same tunnel -- the
+     sites are friendlier to a home address than to a data centre.
+
+NOTE
