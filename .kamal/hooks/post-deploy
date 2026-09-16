@@ -8,7 +8,7 @@ set -eo pipefail
 # KAMAL_VERSION is the version being moved to, so it reads the same way.
 expected="$KAMAL_VERSION"
 head=$(git rev-parse HEAD 2>/dev/null || echo unknown)
-output=$(kamal app version 2>&1) || true
+output=$(bin/kamal app version 2>&1) || true
 running=$(printf '%s\n' "$output" | grep -Ev '^App Host:|^\s*(INFO|DEBUG|ERROR)|^\s*$' | tail -n 1 | tr -d '[:space:]')
 
 echo "Deployed version:  $expected"

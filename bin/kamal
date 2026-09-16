@@ -1,5 +1,12 @@
-#!/usr/bin/env ruby
-require "rubygems"
-require "bundler/setup"
+#!/bin/bash
+# Through mise, because the ruby that can run this app is the one mise.toml
+# pins: /usr/bin/ruby is 2.6 and cannot even parse the Gemfile ("`windows` is
+# not a valid platform"), which is what you get from a shell where mise is not
+# activated.
+set -euo pipefail
 
-load Gem.bin_path("kamal", "kamal")
+if command -v mise >/dev/null 2>&1; then
+  exec mise exec -- bundle exec kamal "$@"
+else
+  exec bundle exec kamal "$@"
+fi
