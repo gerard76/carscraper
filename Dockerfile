@@ -1,9 +1,10 @@
 # syntax=docker/dockerfile:1
 # check=error=true
 
-# This Dockerfile is designed for production, not development. Build'n'run by hand:
+# This Dockerfile is designed for production, not development. `kamal deploy`
+# builds and ships it (config/deploy.yml). By hand:
 # docker build -t carscraper .
-# docker run -d -p 3000:3000 -e RAILS_MASTER_KEY=<value from config/master.key> -e DATABASE_URL=<postgres url> --name carscraper carscraper
+# docker run -d -p 3000:80 -e SECRET_KEY_BASE=<anything long> -e DATABASE_URL=<postgres url> --name carscraper carscraper
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version and Gemfile
 ARG RUBY_VERSION=4.0.2
@@ -67,6 +68,7 @@ COPY --chown=rails:rails --from=build /rails /rails
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
-# Start the server by default, this can be overwritten at runtime
-EXPOSE 3000
-CMD ["./bin/rails", "server"]
+# Thruster sits in front of Puma: it serves and compresses the assets and
+# gives kamal-proxy a single port to talk to.
+EXPOSE 80
+CMD ["./bin/thrust", "./bin/rails", "server"]
