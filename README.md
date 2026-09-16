@@ -425,17 +425,32 @@ That carries the postcodes over too, which is the slow part of a fresh start
 
 ## Scraping stays here
 
-The sites are friendlier to a home address than to a data centre, so keep
-running `bin/rails cars:scrape` on this machine, against the database on the
-droplet, through that same tunnel:
+The sites are friendlier to a home address than to a data centre, so the
+scraping runs on this machine and only the result travels:
 
 ```
-ssh -fN -L 5433:127.0.0.1:5433 deployer@146.185.130.81
-DATABASE_URL="postgres://carscraper:<password>@localhost:5433/carscraper_production" bin/rails cars:scrape
+mise run scrape:production
 ```
+
+That opens the tunnel if it is not open already and runs `cars:scrape` against
+the droplet's database. It is not optional upkeep: `Car.on_offer` only counts a
+car seen in the last three days (`Car::SEEN_WINDOW`), so a site nobody scrapes
+into empties itself out within three days of the last scrape.
 
 `bin/kamal scrape` runs it on the droplet instead, which works but is asking
 for a block.
+
+Which also means the droplet's database is the real one -- it is where your
+clicks land when you are looking at the site -- and the one here is a
+development copy. To catch this one up rather than the other way round, dump in
+the other direction:
+
+```
+ssh -fN -L 5433:127.0.0.1:5433 deployer@146.185.130.81
+PGPASSWORD=$(.kamal/read-secret database.password) \
+  pg_dump --clean --if-exists --no-owner --no-privileges \
+  -h localhost -p 5433 -U carscraper carscraper_production | psql carscrape
+```
 
 ## The hooks
 

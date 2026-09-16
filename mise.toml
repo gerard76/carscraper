@@ -20,3 +20,25 @@ description = "Edit the Rails credentials"
 # Every secret this project has is in config/credentials.yml.enc, opened by
 # config/master.key, which sits next to it and is not in git.
 run = 'EDITOR="${EDITOR:-vi}" bundle exec rails credentials:edit'
+
+## SCRAPING
+
+[tasks."scrape:production"]
+description = "Scrape from here into the database on the droplet"
+shell = "bash -euo pipefail -c"
+# The scraping stays on this machine on purpose: the sites are friendlier to a
+# home address than to a data centre. Only the result travels, through an ssh
+# tunnel to the accessory, which listens on 5433 there because 5432 is
+# trading-bot's.
+#
+# Without this, the site empties itself out: Car.on_offer only counts a car
+# that has been seen in the last three days.
+run = """
+if ! nc -z localhost 5433 2>/dev/null; then
+  echo "Opening the tunnel to the droplet..."
+  ssh -fN -L 5433:127.0.0.1:5433 deployer@146.185.130.81
+fi
+
+export DATABASE_URL="postgres://carscraper:$(.kamal/read-secret database.password)@localhost:5433/carscraper_production"
+RAILS_ENV=production bundle exec rails cars:scrape
+"""
