@@ -51,6 +51,11 @@ document.addEventListener("DOMContentLoaded", () => {
     grid: { top: 60 },
     tooltip: {
       trigger: 'item',
+      // Sellers write titles of 174 characters, which on one line runs the
+      // tooltip clean off the page. Wrap it, and keep the box inside the chart
+      // wherever the dot happens to sit.
+      confine: true,
+      extraCssText: 'max-width: 360px; white-space: normal;',
       formatter: function(params) {
         const date = new Date(params.data.value[0]);
         const year = date.getFullYear();
