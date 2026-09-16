@@ -17,10 +17,13 @@ percentile of what is on screen, so a single absurd listing cannot flatten it.
 A car whose seller left the odometer empty cannot be placed on that scale and
 is drawn as a grey ring.
 
-`/cars/photos` is the same cars as a wall of photographs, cheapest for their
-age and mileage first. The picture is the first one from the listing, loaded
-from the site that has the car. A grid has no column headers to click, so the
-same sorts sit above it as links.
+`/cars/photos` is the same cars as a wall of photographs. The picture is the
+first one from the listing, loaded from the site that has the car. A grid has
+no column headers to click, so the same sorts sit above it as links.
+
+Both open cheapest first, and then on whatever you last sorted on: the choice
+is kept in the session and shared between the two pages, so the table and the
+photos agree without being told twice.
 
 `/cars/table` has the same cars as a table instead, sortable by distance,
 price, mileage, build date, title or place, keeping whatever the search form is

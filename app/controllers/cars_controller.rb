@@ -17,16 +17,13 @@ class CarsController < ApplicationController
   # The same cars as the graph, as a table. Ransack does the sorting, so the
   # column headers keep whatever is filled in on the search form.
   def table
-    @q    = Car.ransack(search_params)
-    @q.sorts = "distance_km asc" if @q.sorts.empty?
+    @q    = remember_sort(Car.ransack(search_params))
     @cars = @q.result.on_offer.includes(:model)
   end
 
-  # The same cars again, as photographs. The cheapest for their age and
-  # mileage first, since that is what you are looking at pictures for.
+  # The same cars again, as photographs.
   def photos
-    @q = Car.ransack(search_params)
-    @q.sorts = "bargain_eur desc" if @q.sorts.empty?
+    @q    = remember_sort(Car.ransack(search_params))
     @cars = @q.result.on_offer.includes(:model)
   end
 
@@ -153,6 +150,19 @@ class CarsController < ApplicationController
     return nil if car.km.nil? || car.year.nil?
 
     car.km / [(Date.current - car.year).to_f / 365.25, MIN_AGE_IN_YEARS].max
+  end
+
+  # Cheapest first until you say otherwise.
+  DEFAULT_SORT = "landed_eur asc".freeze
+
+  # Whatever you last sorted on is what the next page opens with, this visit
+  # and the ones after it, on the table and the photos alike.
+  def remember_sort(query)
+    chosen = params.dig(:q, :s).presence
+    session[:sort] = chosen if chosen
+
+    query.sorts = chosen || session[:sort] || DEFAULT_SORT if query.sorts.empty?
+    query
   end
 
   def search_params
