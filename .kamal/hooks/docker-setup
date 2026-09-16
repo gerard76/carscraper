@@ -16,7 +16,7 @@ carscraper, first time on this server. What setup does not do:
   2. The database starts empty, so nothing is in the graph:
 
        bin/kamal accessory boot postgres
-       ssh -fN -L 5433:127.0.0.1:5432 deployer@146.185.130.81
+       ssh -fN -L 5433:127.0.0.1:5433 deployer@146.185.130.81
        pg_dump carscrape | psql -h localhost -p 5433 -U carscraper carscraper_production
 
      README.md has the same thing written out, including the postcodes.

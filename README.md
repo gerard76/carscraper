@@ -405,7 +405,9 @@ it in 1Password. Without it nothing can be deployed or read back, and
 
 ```
 bin/kamal accessory boot postgres
-ssh -fN -L 5433:127.0.0.1:5432 deployer@146.185.130.81
+# 5433 at both ends: the accessory publishes 5433 on the droplet, because
+# 5432 there is trading-bot's database and would take the password badly.
+ssh -fN -L 5433:127.0.0.1:5433 deployer@146.185.130.81
 pg_dump --no-owner --no-privileges carscrape | psql -h localhost -p 5433 -U carscraper carscraper_production
 ```
 
@@ -419,7 +421,7 @@ running `bin/rails cars:scrape` on this machine, against the database on the
 droplet, through that same tunnel:
 
 ```
-ssh -fN -L 5433:127.0.0.1:5432 deployer@146.185.130.81
+ssh -fN -L 5433:127.0.0.1:5433 deployer@146.185.130.81
 DATABASE_URL="postgres://carscraper:<password>@localhost:5433/carscraper_production" bin/rails cars:scrape
 ```
 
