@@ -1,5 +1,7 @@
 <h1>The bin</h1>
 
+<p class="count"><%= pluralize(@cars.size, "car") %></p>
+
 <% if @cars.any? %>
   <div class="photos">
     <% @cars.each do |car| %>
@@ -26,8 +28,6 @@
       </div>
     <% end %>
   </div>
-<% else %>
-  <p class="count">Empty.</p>
 <% end %>
 
 <style>
