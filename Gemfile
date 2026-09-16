@@ -44,6 +44,13 @@ gem "ransack"
 # Group records by day/week/month in the database
 gem "groupdate"
 
+# Serves the assets, compresses what it serves and terminates the connection in
+# front of Puma, so kamal-proxy can talk to one port [https://github.com/basecamp/thruster/]
+gem "thruster", require: false
+
+# Deploy with Docker in a zero-downtime way [https://kamal-deploy.org]
+gem "kamal", require: false
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
