@@ -12,10 +12,10 @@ if [ -z "$ALLOW_DIRTY_TREE" ] && [ -n "$(git status --porcelain)" ]; then
 fi
 
 # This repository is public. config/home.yml says where you live and
-# config/credentials/production.key opens every password there is; once either
+# config/master.key opens every password there is; once either
 # is pushed, deleting it does not take it back. Checked at every deploy
 # because a deploy is the one moment you are certainly looking.
-for private in config/home.yml config/credentials/production.key; do
+for private in config/home.yml config/master.key; do
   if git ls-files --error-unmatch "$private" >/dev/null 2>&1; then
     echo "✗ $private is tracked in git, and this repository is public." >&2
     echo "  git rm --cached $private   and check whether it was ever pushed." >&2

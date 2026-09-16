@@ -31,6 +31,19 @@ if [ -n "$added" ]; then
   fi
 fi
 
+# On the very first deploy there is nothing to run this with: kamal uploads the
+# role's env file while it boots the app, which is after this hook, so
+# `kamal app exec` has no --env-file to point at and docker exits 125. It is
+# also the one deploy that does not need this, because bin/docker-entrypoint
+# runs db:prepare as the container starts.
+running=$(kamal app version 2>/dev/null |
+          grep -Ev '^App Host:|^\s*(INFO|DEBUG|ERROR)|^\s*$' | tail -n 1 | tr -d '[:space:]') || true
+
+if [ -z "$running" ]; then
+  echo "Nothing running there yet, so this is the first deploy: the entrypoint prepares the database as the container starts."
+  exit 0
+fi
+
 echo "Preparing the database on version $KAMAL_VERSION..."
 if ! kamal app exec --version="$KAMAL_VERSION" --roles=web --primary "bin/rails db:prepare"; then
   echo "✗ The database could not be prepared, so nothing was booted." >&2

@@ -10,11 +10,11 @@ set -eo pipefail
 #    then asks Let's Encrypt for a certificate it cannot be given, and the
 #    site answers 502 with nothing in the logs to explain it.
 
-# Everything comes out of config/credentials/production.yml.enc, so without
-# its key nothing can be read at all -- and what the reader says then is a
-# ruby backtrace.
-if [ ! -f config/credentials/production.key ] && [ -z "$RAILS_MASTER_KEY" ]; then
-  echo "✗ config/credentials/production.key is not here, so none of the secrets can be read." >&2
+# Everything comes out of config/credentials.yml.enc, so without its key
+# nothing can be read at all -- and what the reader says then is a ruby
+# backtrace.
+if [ ! -f config/master.key ] && [ -z "$RAILS_MASTER_KEY" ]; then
+  echo "✗ config/master.key is not here, so none of the secrets can be read." >&2
   echo "  It is not in git on purpose. Restore it from 1Password, or pass it as RAILS_MASTER_KEY." >&2
   exit 1
 fi
@@ -27,7 +27,7 @@ done
 
 if [ ${#missing[@]} -gt 0 ]; then
   echo "✗ No value for: ${missing[*]}" >&2
-  echo "  bin/rails credentials:edit --environment production" >&2
+  echo "  bin/rails credentials:edit" >&2
   echo "  README.md lists what each one is." >&2
   exit 1
 fi

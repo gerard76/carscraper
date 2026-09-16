@@ -368,11 +368,10 @@ name resolves today and resolves *wrong*: `pre-connect` refuses to deploy until
 it points at the right machine, because kamal-proxy would otherwise ask Let's
 Encrypt for a certificate it cannot be given and the site would sit on 502.
 
-**The secrets**, all of which live in `config/credentials/production.yml.enc`
-and nowhere else:
+**The secrets**, all of which live in the credentials and nowhere else:
 
 ```
-bin/rails credentials:edit --environment production
+bin/rails credentials:edit
 ```
 
 ```yaml
@@ -398,9 +397,9 @@ each one read out of those credentials by `.kamal/read-secret` at deploy time
 and handed to the container as an environment variable. So the app on the
 server reads none of that file itself and is never given the key.
 
-The key is `config/credentials/production.key`, which is not in git and is the
-only copy: put it in 1Password. Without it nothing can be deployed or read
-back, and `pre-build` refuses to build if it ever turns up in git.
+The key is `config/master.key`, which is not in git and is the only copy: put
+it in 1Password. Without it nothing can be deployed or read back, and
+`pre-build` refuses to build if it ever turns up in git.
 
 **The data**, because the database starts empty and the graph needs cars:
 
