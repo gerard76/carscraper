@@ -32,6 +32,13 @@ test:
 #   DATABASE_URL="postgres://myuser:mypass@localhost/carscrape_production"
 #
 # Rails merges the values from that URL on top of the ones below.
+# Kamal hands the pieces over as environment variables: the accessory's
+# container name as the host, and the password as a secret. DATABASE_URL still
+# works and still wins, for a container run by hand.
 production:
   <<: *default
-  database: carscrape_production
+  database: carscraper_production
+  username: <%= ENV.fetch("DATABASE_USER", "carscraper") %>
+  password: <%= ENV["CARSCRAPER_DATABASE_PASSWORD"] %>
+  host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
+  port: <%= ENV.fetch("DATABASE_PORT", 5432) %>
