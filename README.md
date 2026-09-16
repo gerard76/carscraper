@@ -423,19 +423,35 @@ pg_dump --no-owner --no-privileges carscrape | psql -h localhost -p 5433 -U cars
 That carries the postcodes over too, which is the slow part of a fresh start
 (`Postcode.import!` downloads 20375 rows and only needs doing once).
 
-## Scraping stays here
+## Scraping on its own
 
-The sites are friendlier to a home address than to a data centre, so the
-scraping runs on this machine and only the result travels:
+A `job` container next to the web one runs GoodJob, and GoodJob runs the
+scrape at **07:00 and 19:00**, Amsterdam time. `Car::SEEN_WINDOW` is three
+days, so once a day would keep the pages full; twice means a listing is in the
+graph within twelve hours of appearing, and one failed round leaves nothing
+stale. Asking four sites more often than that buys nothing.
+
+The schedule is in `config/initializers/good_job.rb`, and only the process
+started with `GOOD_JOB_ENABLE_CRON=1` acts on it -- the job role, and nothing
+else -- so the web container cannot enqueue a scrape of its own.
+
+`Scrape` is the whole of it, and `bin/rails cars:scrape` is the same class from
+the command line. It has one guard worth knowing about: a source that is
+blocked or has changed its markup returns nothing, and `remove_vanished!`
+would then delete every car that source had. So when a round has seen fewer
+than half the cars already in the database, it says so and deletes nothing
+(`Scrape::MOST_OF_THEM`).
+
+That guard is also the thing to watch, because the droplet scrapes from a data
+centre address and the sites are friendlier to a home one. If the pages start
+emptying out, run it from here instead:
 
 ```
 mise run scrape:production
 ```
 
-That opens the tunnel if it is not open already and runs `cars:scrape` against
-the droplet's database. It is not optional upkeep: `Car.on_offer` only counts a
-car seen in the last three days (`Car::SEEN_WINDOW`), so a site nobody scrapes
-into empties itself out within three days of the last scrape.
+That opens the tunnel if it is not open already and runs the same scrape
+against the droplet's database, from this machine.
 
 `bin/kamal scrape` runs it on the droplet instead, which works but is asking
 for a block.

@@ -16,6 +16,17 @@ servers:
   web:
     - 146.185.130.81
 
+  # The worker that runs the scrape, twice a day. GOOD_JOB_ENABLE_CRON is set
+  # here and nowhere else, so this is the only container that schedules
+  # anything -- see config/initializers/good_job.rb.
+  job:
+    cmd: bundle exec good_job start
+    hosts:
+      - 146.185.130.81
+    env:
+      clear:
+        GOOD_JOB_ENABLE_CRON: 1
+
 # kamal-proxy terminates TLS with a Let's Encrypt certificate, which it can
 # only get once carscraper.diamondbay.nl resolves to the server above.
 # Thruster listens on 80 inside the container.
@@ -63,6 +74,7 @@ aliases:
   console: app exec --interactive --reuse "bin/rails console"
   shell: app exec --interactive --reuse bash
   logs: app logs -f
+  worker: app logs -f --roles=job
   psql: accessory exec postgres --interactive --reuse "psql -U carscraper carscraper_production"
   # A scrape from the droplet. Prefer scraping from your own machine over the
   # tunnel (README.md): the sites are friendlier to a home address than to a

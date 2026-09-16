@@ -17,17 +17,22 @@ set -eo pipefail
 # pulling: the migration then "succeeds" in seconds having run the previous
 # image, and nothing says so.
 #
-# A destructive migration is a warning here rather than a refusal, unlike in
-# trading-bot: this app has one role and no background worker, so the only
-# thing that can meet the new schema on old code is a request in flight to a
-# page that reads. Worth knowing about, not worth blocking.
+# ⚠️ A destructive migration must not ship in the same deploy as the code that
+# still runs against it. The migration below lands before any container is
+# replaced, so the old job container -- which may be halfway through a scrape,
+# writing to every column there is -- meets the new schema on old code for the
+# length of the boot. An add_column is safe there; a remove or a rename is not.
+#
+# ALLOW_DESTRUCTIVE_MIGRATION=1 says the deployed code no longer touches it.
 added=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- db/migrate 2>/dev/null || true)
-if [ -n "$added" ]; then
+if [ -z "$ALLOW_DESTRUCTIVE_MIGRATION" ] && [ -n "$added" ]; then
   destructive=$(grep -lE '^[[:space:]]*(remove_column|rename_column|drop_table|rename_table)' $added || true)
   if [ -n "$destructive" ]; then
-    echo "⚠️  A destructive migration is shipping in this deploy:"
-    printf '     %s\n' $destructive
-    echo "     Old code answers requests for a few seconds yet. Ship the code that stops reading it first if it matters."
+    echo "✗ REFUSING TO DEPLOY: a destructive migration is shipping alongside code that still runs against it." >&2
+    printf '   %s\n' $destructive >&2
+    echo "   Ship the code that stops reading it first, then the removal." >&2
+    echo "   ALLOW_DESTRUCTIVE_MIGRATION=1 overrides once the old code is gone." >&2
+    exit 1
   fi
 fi
 

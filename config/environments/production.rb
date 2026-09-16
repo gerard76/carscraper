@@ -53,7 +53,11 @@ Rails.application.configure do
   # config.cache_store = :mem_cache_store
 
   # Replace the default in-process and non-durable queuing backend for Active Job.
-  # config.active_job.queue_adapter = :resque
+  # Jobs live in the database, and a separate container works them off: the
+  # job role in config/deploy.yml, which runs `good_job start`. :external keeps
+  # the web container from executing any itself.
+  config.active_job.queue_adapter = :good_job
+  config.good_job.execution_mode = :external
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
