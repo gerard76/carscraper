@@ -151,10 +151,27 @@ them -- one car arriving moves it, and with it everybody's number. So
 Read it within a trim, not across trims. The fit knows nothing about trim
 level, and a Pure is not a cheap GTX but a cheaper car: over these listings a
 GTX averages 7168 under the plane and a Pure 14514 over it, and 18 of the top
-20 "bargains" are Pures. Neither fix is clean -- trim words in ad titles are
-unreliable ("Pure GTX 86 kWh" exists) and only a third of titles name a kW or
-kWh figure -- so the search form has `Title contains` and `Title excludes`
-boxes instead: narrow to one trim, or knock one out, then sort on the column.
+20 "bargains" are Pures. The search form has `Title contains` and `Title
+excludes` boxes for that: narrow to one trim, or knock one out, then sort on
+the column.
+
+`Car.hide_pures!` takes the Pures out altogether, and it is that same lopsided
+number it goes by. A Pure has 59 kWh where a Pro has 79 and 125 kW where a Pro
+has 150, but its ad seldom states either, so `min_kwh` never sees it. What the
+graph sees is a car priced against Pros, sitting far under the line. Neither
+half of the rule would do alone -- "Pure" turns up in paint names, and a car
+can honestly be `Car::PURE_BARGAIN` (8000) under the going rate -- but
+together they are as certain as this gets without the seller saying anything.
+All 23 on offer were caught, the closest call at 8679 where the whole fleet's
+ninth decile was 9365, and none was a mislabelled Pro: the four whose titles
+name a power all said 125 kW, and one spelled out "Motor: 125 kW (170 PS) 59
+kW". A "Pure GTX 86 kWh" is safe from it, because a GTX does not sit 8000 under
+the line.
+
+The rule runs between two passes of `recalculate_bargains!`: it needs the
+numbers to spot them, and taking two dozen cars out from under the line moves
+the line for everyone left. Over these listings it lifted the fit from 6608 to
+6910 euro a year of age.
 
 What the trims are, going by what the ads themselves say:
 
@@ -258,6 +275,37 @@ everybody else with it, and the sites each pick up one of the two. The listing
 that includes it stays, because privately that is what you pay. Three such
 pairs were in here, and the cheapest car on the graph was one of them: 27900 at
 gaspedaal against 33759 at AutoScout24, to the euro the same car.
+
+The photographs are the other way past the price. A Reutlingen car was on
+12gebrauchtwagen for 38830 and on AutoScout24 for 37460 -- 3.7% apart, too far
+for `Car::PRICE_SPREAD` -- but both listings show the same picture. That is
+visible because 12gebrauchtwagen serves AutoScout24's pictures through a proxy,
+and `Car#unwrapped_image_url` takes them back out of it.
+
+The picture's path is worth more than the picture. AutoScout24 files it as
+`listing-images/<advert>_<picture>`, so the first half is the advert's own id,
+and `Car#photo_key` keeps only that: two listings whose pictures come out of one
+folder are one advert, even where the two sites picked a different picture out
+of it. A Berlin car was 67989 on one site and 68985 on the other, both from
+advert deae2207.
+
+It is still only corroboration, never proof. A site with no picture for a car
+can hand out a placeholder, and a placeholder would tie together every car it
+was given to. So the photo replaces the price and nothing else: the build month,
+the town, a mileage within `Car::RELISTED_KM` and two different sites all still
+have to agree, and the group has to be no bigger than
+`Car::MOST_SITES_WITH_ONE_CAR`, which a placeholder would blow past at once. In
+this data there is no placeholder to worry about: all 667 adverts that appear
+twice appear exactly twice, never twice on one site, every pair agrees on build
+month and town, 658 of them read the same mileage to the kilometre, and 662
+carry the same title to the character. The rule collapsed 27 pairs the price had
+let through, as much as 6900 euro apart.
+
+Those pairs are also what the price rule alone keeps missing, because it asks
+that a whole group of cars be one price rather than pairing them up. A Rosstal
+dealer had three GTXs on the same day at the same mileage, each cross-listed:
+59190, 60490 and 60990, which the group test reads as 3% and throws out whole.
+The adverts sort them into the three pairs they are.
 
 Year rather than build month, and place rather than the location as written,
 because the sites do not say those the same way: gaspedaal knows only a year

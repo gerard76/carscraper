@@ -31,6 +31,12 @@ namespace :cars do
 
     puts "removed #{Car.remove_vanished!} listings that are no longer on the sites"
 
+    # Twice around: the Pure is spotted by how far under the line it sits, and
+    # taking a couple of dozen of them out moves the line the rest are judged
+    # against.
+    Car.recalculate_bargains!
+    puts "hid #{Car.hide_pures!} listings that are the cheap Pure model"
+
     fit = Car.recalculate_bargains!
     puts "worked the bargains out again: #{fit.coefficients.inspect}"
     puts "#{Car.visible.count} cars visible of #{Car.count}"

@@ -50,8 +50,16 @@ class CarsController < ApplicationController
   end
 
   def update
-    @car.update(car_params)
-    redirect_to cars_path(q: session[:q])
+    # Unticking the box here is the same decision as clicking the cross on a
+    # photo, so it leaves the same reason behind and lands in the same bin.
+    changes = car_params.to_h
+    if changes.key?("visible")
+      changes["hidden_by"] = changes["visible"] == "1" ? nil : Car::BY_HAND
+    end
+
+    @car.update(changes)
+
+    redirect_back fallback_location: cars_path(q: session[:q]), notice: "Saved."
   end
 
   private
@@ -69,7 +77,7 @@ class CarsController < ApplicationController
       # Plot what the car costs you: the asking price in euro plus what it
       # takes to get it here, which is the whole point of looking abroad. The
       # third value is what the colour scale reads.
-      value: [car.year.to_date.to_time.to_i * 1000, car.landed_eur.to_f, km_per_year(car)&.round],
+      value: [car.year.to_date.to_time.to_i * 1000, car.landed_eur.to_f, car.km_per_year&.round],
       itemStyle: { color: wear_color(car) },
       url: car_path(car),
       asked: car.eur,
@@ -106,14 +114,11 @@ class CarsController < ApplicationController
     [[xs.min * 1000, a * xs.min + b], [xs.max * 1000, a * xs.max + b]]
   end
 
-  # A car registered this month would divide by nearly nothing.
-  MIN_AGE_IN_YEARS = 0.25
-
   # Green: driven gently for its age, red: driven hard.
   WEAR_COLORS = %w[#00e676 #76ff03 #c6ff00 #ffee58 #ffc400 #ff6d00 #ff1744].freeze
 
   def wear_color(car)
-    per_year = km_per_year(car)
+    per_year = car.km_per_year
     return nil if per_year.nil?
 
     low, high = wear_range
@@ -136,7 +141,7 @@ class CarsController < ApplicationController
   # used, under the line and red is cheap because it has been hammered.
   def wear_range
     @wear_range ||= begin
-      values = @cars.filter_map { |car| km_per_year(car) }.sort
+      values = @cars.filter_map { |car| car.km_per_year }.sort
 
       if values.empty?
         [0.0, 0.0]
@@ -144,12 +149,6 @@ class CarsController < ApplicationController
         [values[(values.size * 0.05).floor], values[(values.size * 0.95).floor.clamp(0, values.size - 1)]]
       end
     end
-  end
-
-  def km_per_year(car)
-    return nil if car.km.nil? || car.year.nil?
-
-    car.km / [(Date.current - car.year).to_f / 365.25, MIN_AGE_IN_YEARS].max
   end
 
   # Cheapest first until you say otherwise.

@@ -165,6 +165,12 @@ class Car < ApplicationRecord
       hidden += hide_all_but(keep, group, "listed on two sites")
     end
 
+    photo_twins.each do |group|
+      keep = group.min_by { |car| [car.eur, car.direct_link? ? 0 : 1] }
+
+      hidden += hide_all_but(keep, group, "same photograph")
+    end
+
     relisted.each do |group|
       # The freshest reading of the same car: the advert that has been seen
       # most recently, and of those the one with the most on the clock.
@@ -182,6 +188,30 @@ class Car < ApplicationRecord
 
   def hidden_by_hand?
     hidden_by == BY_HAND
+  end
+
+  # Two sites carrying one car, where the asking prices are too far apart for
+  # the price to vouch for it -- 38830 against 37460 on a Reutlingen car, 3.7%
+  # -- but the listings point at the same photograph.
+  #
+  # The photograph alone proves nothing, so everything else still has to
+  # agree: the same build month, the same town, mileage within RELISTED_KM,
+  # two different sites, and a group small enough that it cannot be a
+  # placeholder handed out to every car without a picture.
+  MOST_SITES_WITH_ONE_CAR = 3
+
+  def self.photo_twins
+    on_offer.where.not(image_url: nil).where.not(km: nil)
+            .group_by(&:photo_key).filter_map do |key, group|
+      next if key.nil? || group.size < 2 || group.size > MOST_SITES_WITH_ONE_CAR
+      next if group.map(&:source).uniq.size < 2
+      next if group.map { |car| [car.year, car.place_key] }.uniq.size > 1
+
+      mileages = group.map(&:km)
+      next if mileages.max - mileages.min > RELISTED_KM
+
+      group
+    end
   end
 
   # One seller advertising one car twice: the same title, the same money, the
@@ -214,6 +244,32 @@ class Car < ApplicationRecord
     return false if prices.min.to_i.zero?
 
     (prices.max.to_f / prices.min - VAT).abs <= VAT_SPREAD
+  end
+
+  # The Pure is the cheap Buzz: 59 kWh where the Pro has 79, and 125 kW where
+  # the Pro has 150. Its ad rarely states a battery, so hide_small_batteries!
+  # never sees it, but the graph does: priced against Pros it looks like the
+  # steal of the year. Every one of the 23 in here sat above the whole fleet's
+  # ninth decile of bargain, the cheapest at 8679 where the decile was 9365.
+  #
+  # Neither half would do on its own. "Pure" turns up in paint names, and a car
+  # can honestly be PURE_BARGAIN under the going rate. Together they are as
+  # certain as this gets while the seller says nothing about the battery.
+  PURE = /\bpure\b/i
+  PURE_BARGAIN = 8_000
+
+  def self.hide_pures!
+    hidden = 0
+
+    on_offer.each do |car|
+      next unless car.version.to_s.match?(PURE)
+      next unless car.bargain_eur.to_i >= PURE_BARGAIN
+
+      car.update_columns(visible: false, hidden_by: "pure model")
+      hidden += 1
+    end
+
+    hidden
   end
 
   # Hides the cars whose ad names a battery smaller than the model asks for.
@@ -338,6 +394,48 @@ class Car < ApplicationRecord
   # What two listings for one car have to agree on. Build month is out: some
   # sites only know the year. So is the wording of the location: one names a
   # postcode and the next the town, so both are resolved to the same place.
+  # A car registered this month would divide by nearly nothing.
+  MIN_AGE_IN_YEARS = 0.25
+
+  # How hard it has been driven for its age: what the graph colours by.
+  def km_per_year
+    return nil if km.nil? || year.nil?
+
+    (km / [(Date.current - year).to_f / 365.25, MIN_AGE_IN_YEARS].max).round
+  end
+
+  # The photo at a size worth looking at. What the scrapers store is whatever
+  # the search page showed -- AutoScout24 hands out a 250x188 thumbnail, and
+  # 12gebrauchtwagen wraps a 1280x960 one in a proxy that shrinks it.
+  def large_image_url
+    return nil if unwrapped_image_url.nil?
+
+    unwrapped_image_url.sub(%r{/\d+x\d+\.(webp|jpg|jpeg|png)\z}, '/1024x768.\1')
+  end
+
+  # 12gebrauchtwagen serves its pictures through a proxy, and what it wraps for
+  # a car it found on AutoScout24 is AutoScout24's own picture. Unwrapping it
+  # is what makes the two comparable.
+  def unwrapped_image_url
+    return nil if image_url.blank?
+
+    image_url[%r{/v7/(.+?)(?:\?|\z)}, 1].then { |inner| inner ? CGI.unescape(inner) : image_url }
+  end
+
+  # AutoScout24 files its pictures under the advert they belong to, so the first
+  # half of listing-images/<advert>_<picture> is the advert's own id. Two
+  # listings whose photographs sit in the same folder are the same advert, even
+  # when the two sites picked a different picture out of it.
+  #
+  # Still only ever taken as corroboration, never as proof: a site that has no
+  # picture for a car can hand out a placeholder, and that placeholder would
+  # tie together every car it was given to.
+  def photo_key
+    return nil if unwrapped_image_url.nil?
+
+    unwrapped_image_url.split("?").first[%r{listing-images/([0-9a-f-]+)_}, 1]
+  end
+
   # The battery as the ad states it, in kWh, or nil when it says nothing.
   # Sellers quote the gross and the net capacity of the same pack -- 86 and 79
   # are one and the same battery -- so read it as "about this big".
