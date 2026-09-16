@@ -90,9 +90,9 @@ round: 491 of 3354 rows were re-arrivals, hidden again as duplicates the moment
 they landed. Now they are recognised and refreshed instead, url and all.
 
 Mileage is part of the fingerprint on purpose. Without it, six different cars
-from one seller sharing a generic title collapsed into one. That does mean a
-seller who updates the odometer creates a new row; `Car.merge_relisted!` sweeps
-those up, keeping the visible one and carrying over any note.
+from one seller sharing a generic title collapsed into one. `Car.merge_relisted!`
+sweeps up rows that share a fingerprint exactly -- the same listing under a new
+url -- keeping the visible one and carrying over any note.
 
 A scraper stops after `MAX_PAGES` pages as a brake, so raise that (or pass
 `scrape(max_pages: 200)`) if a model has more listings than that.
@@ -215,6 +215,20 @@ place, and their prices are within `Car::PRICE_SPREAD` of each other. They also
 have to come from different sites -- there are dealers with several similar
 cars on one site, whose listings match on all of that without being the same
 car.
+
+A seller advertising one car twice is a second case, and the url and the
+fingerprint both miss it: the two ads have their own ids, their own
+photographs, and an odometer that has moved on between them. `Car.relisted`
+catches those on the same site, the same year, the same town, the same title
+to the character, the same money, and a mileage within `Car::RELISTED_KM` of
+each other -- the taxi that turned this up read 10800 on one ad and 11500 on
+the other.
+
+That last condition is what makes it safe. Dealers do keep several alike cars:
+one in Kiel has three under the one title, 12500 km apart, and one in
+Gelsenkirchen two that are 42000 km apart. An identical title on its own would
+have thrown those away. The newest reading survives -- the ad seen most
+recently, and of those the one with the most on the clock.
 
 One exception to the price having to match: when two listings are exactly
 `Car::VAT` apart, that difference is the VAT. The Dutch trade quotes a

@@ -32,6 +32,15 @@ class Car < ApplicationRecord
   VAT = 1.21
   VAT_SPREAD = 0.015
 
+  # A seller who re-advertises a car writes the same title and asks the same
+  # money, but the odometer has moved on: the one you spotted was the same
+  # taxi at 10800 and 11500 km. How far apart two of those may be.
+  #
+  # Absolute rather than a percentage, because dealers do keep several alike
+  # cars -- one in Kiel has three under one title, 12500 km apart -- and it is
+  # that distance which tells them from a car listed twice.
+  RELISTED_KM = 1_500
+
   # What it costs to get a car onto Dutch plates, on top of the asking price.
   #
   # 1700 is what Das Import quotes all-in for fetching a car from Germany --
@@ -146,13 +155,36 @@ class Car < ApplicationRecord
                group.min_by { |car| [car.eur, car.direct_link? ? 0 : 1] }
              end
 
-      (group - [keep]).each do |car|
-        car.update_columns(visible: false)
-        hidden += 1
-      end
+      hidden += hide_all_but(keep, group)
+    end
+
+    relisted.each do |group|
+      # The freshest reading of the same car: the advert that has been seen
+      # most recently, and of those the one with the most on the clock.
+      hidden += hide_all_but(group.max_by { |car| [car.seen_at || Time.at(0), car.km] }, group)
     end
 
     hidden
+  end
+
+  def self.hide_all_but(keep, group)
+    (group - [keep]).each { |car| car.update_columns(visible: false) }.size
+  end
+
+  # One seller advertising one car twice: the same title, the same money, the
+  # same town, and the odometer a few hundred kilometres further on.
+  def self.relisted
+    on_offer.where.not(km: nil).where.not(location: nil).where.not(version: [nil, ""])
+            .group_by { |car| [car.source, car.year&.year, car.place_key, car.version.to_s.downcase.gsub(/[^a-z0-9]+/, " ").strip] }
+            .filter_map do |key, group|
+      next if key.any?(&:nil?) || group.size < 2
+      next unless one_price?(group.map(&:eur))
+
+      mileages = group.map(&:km)
+      next if mileages.max - mileages.min > RELISTED_KM
+
+      group
+    end
   end
 
   # Two listings are for one car when they ask the same, or when they ask the
