@@ -48,7 +48,7 @@
         <% end %>
       </div>
 
-      <div class="small">
+      <div class="small figures">
         <%= car.year.strftime("%Y-%m") %> &middot;
         <%= number_with_delimiter car.km %> km<%= " · #{number_with_delimiter car.distance_km} km away" if car.distance_km %>
       </div>
@@ -112,6 +112,8 @@
     gap: 6px;
     margin-top: 4px;
     font-size: 14px;
+    font-family: var(--figures);
+    font-variant-numeric: tabular-nums;
   }
   .photo .away {
     margin-left: auto;

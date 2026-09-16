@@ -22,6 +22,18 @@
   --muted: #666;
   --line: #e2e2e2;
   --link: #0057b8;
+
+  /* Albert Sans has no tabular figures, and its 1 is 306 units wide against
+     635 for its 8, so a column of prices or dates wobbles from row to row.
+     Figtree does have them, at the same cap height (70%) and x-height (50%) as
+     Albert Sans, so numbers set in it line up without reading as another font.
+     Anything that stacks figures gets .figures. */
+  --figures: "Figtree", "Albert Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.figures {
+  font-family: var(--figures);
+  font-variant-numeric: tabular-nums;
 }
 
 body {

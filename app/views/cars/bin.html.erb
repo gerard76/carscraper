@@ -19,7 +19,7 @@
           <%= button_to "Put back", unhide_car_path(car), method: :patch, class: "restore" %>
         </div>
 
-        <div class="small">
+        <div class="small figures">
           <%= car.year.strftime("%Y-%m") %> &middot;
           <%= number_with_delimiter car.km %> km<%= " · #{number_with_delimiter car.distance_km} km away" if car.distance_km %>
         </div>

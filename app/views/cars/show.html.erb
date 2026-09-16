@@ -1,48 +1,199 @@
-<%= link_to '< back', :back %>
-<div class="car-details">
-  <h2><%= @car.type %> - <%= @car.version %></h2>
-  <p><%= @car.year %> - <%= @car.km %>km - €<%= @car.eur %></p>
-  <% if @car.import_costs > 0 %>
-    <p>€<%= @car.landed_eur %> with an estimated €<%= @car.import_costs %> to import it from <%= @car.country.to_s.upcase %></p>
-  <% end %>
-  <% if @car.distance_km %>
-    <p><%= @car.distance_km %> km away, in <%= @car.location %></p>
-  <% end %>
-  <p><%= link_to @car.url, @car.url, target: "_blank" %></p>
-</div>
+<p class="count"><%= link_to "&larr; back".html_safe, :back %></p>
 
-<div class="car-visibility-form">
-  <%= form_for @car do |f| %>
-    <div class="form-group">
+<div class="car">
+  <div class="car-photo">
+    <% if @car.large_image_url %>
+      <%# The listing's own photograph, at the biggest size the site serves. %>
+      <%= image_tag @car.large_image_url, alt: @car.version.to_s, referrerpolicy: "no-referrer" %>
+    <% else %>
+      <span class="missing">no photo</span>
+    <% end %>
+  </div>
 
-      <%= f.label :comments %>
-      <%= f.text_area :comments %>
+  <div class="car-facts">
+    <h1><%= @car.type %></h1>
+    <p class="version"><%= @car.version %></p>
 
-      <%= f.label :visible %>
-      <%= f.check_box :visible %>
-    </div>
-    <div class="form-actions">
-      <%= f.submit "Update" %>
-    </div>
-  <% end %>
+    <table class="facts">
+      <tr>
+        <th>Price</th>
+        <td>
+          <strong><%= number_to_currency @car.landed_eur, unit: "€", precision: 0 %></strong>
+          <% if @car.import_costs > 0 %>
+            <span class="note">
+              <%= number_to_currency @car.eur, unit: "€", precision: 0 %> asked,
+              plus <%= number_to_currency @car.import_costs, unit: "€", precision: 0 %> to get it here
+            </span>
+          <% end %>
+        </td>
+      </tr>
+
+      <% if @car.bargain_eur %>
+        <tr>
+          <th>Against the going rate</th>
+          <td>
+            <span class="<%= @car.bargain_eur.positive? ? "cheap" : "dear" %>">
+              <%= number_to_currency @car.bargain_eur, unit: "€", precision: 0, format: @car.bargain_eur.positive? ? "+%u%n" : "%u%n" %>
+            </span>
+            <span class="note">
+              cars of this age and mileage ask
+              <%= number_to_currency @car.landed_eur + @car.bargain_eur, unit: "€", precision: 0 %>
+            </span>
+          </td>
+        </tr>
+      <% end %>
+
+      <tr>
+        <th>Built</th>
+        <td><%= @car.year.strftime("%B %Y") %></td>
+      </tr>
+
+      <tr>
+        <th>Mileage</th>
+        <td>
+          <%= number_with_delimiter @car.km %> km
+          <% if (per_year = @car.km_per_year) %>
+            <span class="note"><%= number_with_delimiter per_year %> km a year</span>
+          <% end %>
+        </td>
+      </tr>
+
+      <% if @car.battery_kwh %>
+        <tr>
+          <th>Battery</th>
+          <td><%= @car.battery_kwh %> kWh <span class="note">as the ad states it</span></td>
+        </tr>
+      <% end %>
+
+      <tr>
+        <th>Where</th>
+        <td>
+          <%= @car.location.presence || @car.country.to_s.upcase %>
+          <% if @car.distance_km %>
+            <span class="note"><%= number_with_delimiter @car.distance_km %> km from home, as the crow flies</span>
+          <% end %>
+        </td>
+      </tr>
+
+      <tr>
+        <th>Found on</th>
+        <td>
+          <%# The listing on the site it came from, in a tab of its own. %>
+          <%= link_to @car.url, target: "_blank", rel: "noopener", title: "Open this listing on #{@car.source}" do %>
+            <%= @car.source %>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <path d="M15 3h6v6" />
+              <path d="M10 14 21 3" />
+            </svg>
+          <% end %>
+          <span class="note">last seen <%= @car.seen_at ? "#{time_ago_in_words(@car.seen_at)} ago" : "not this round" %></span>
+        </td>
+      </tr>
+    </table>
+
+    <%= form_for @car, html: { class: "car-notes" } do |f| %>
+      <div class="filter">
+        <%= f.label :comments, "Your notes" %>
+        <%= f.text_area :comments, rows: 3 %>
+      </div>
+
+      <div class="filter actions">
+        <%= f.label :visible do %>
+          <%= f.check_box :visible %> Show on the pages
+        <% end %>
+        <%= f.submit "Save" %>
+      </div>
+    <% end %>
+  </div>
 </div>
 
 <style>
-  .car-details h2 {
-    margin-bottom: 10px;
+  .car {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+    align-items: start;
   }
-  .car-details p {
-    margin: 5px 0;
+  .car-photo {
+    flex: 1 1 380px;
+    max-width: 620px;
   }
-  .car-visibility-form {
-    margin-top: 20px;
-    padding: 10px;
-    border-top: 1px solid #ccc;
+  .car-photo img, .car-photo .missing {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: #eee;
+    border-radius: 8px;
   }
-  .form-group {
-    margin-bottom: 10px;
+  .car-photo .missing {
+    display: grid;
+    place-items: center;
+    color: #999;
   }
-  .form-actions {
-    margin-top: 10px;
+  .car-facts {
+    flex: 1 1 380px;
+  }
+  .car-facts h1 {
+    margin: 0;
+  }
+  .car-facts .version {
+    margin: 2px 0 14px;
+    color: #444;
+  }
+  table.facts {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  table.facts td {
+    font-family: var(--figures);
+    font-variant-numeric: tabular-nums;
+  }
+  table.facts th, table.facts td {
+    text-align: left;
+    vertical-align: top;
+    padding: 7px 0;
+    border-bottom: 1px solid #eee;
+  }
+  table.facts th {
+    width: 11em;
+    font-weight: 500;
+    color: #666;
+  }
+  table.facts .note {
+    display: block;
+    color: #888;
+    font-size: 12px;
+  }
+  table.facts .cheap { color: #0a0; font-weight: 600; }
+  table.facts .dear  { color: #a00; font-weight: 600; }
+  table.facts svg {
+    vertical-align: -2px;
+  }
+  .car-notes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: end;
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: #fafafa;
+    border: 1px solid #e2e2e2;
+    border-radius: 8px;
+  }
+  .car-notes .filter {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .car-notes textarea {
+    width: 28em;
+    max-width: 100%;
+  }
+  .car-notes .actions {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
   }
 </style>

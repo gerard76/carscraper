@@ -30,10 +30,12 @@
         <td class="right"><%= car.year.strftime("%Y-%m") %></td>
         <td class="right"><%= number_with_delimiter car.km %></td>
         <td class="right">
-          <%= number_to_currency car.landed_eur, unit: "€", precision: 0 %>
+          <%# The note goes in front of the price: the column is right aligned,
+              so anything after it pushes the number out of line with the rest. %>
           <% if car.import_costs > 0 %>
             <span class="import" title="<%= number_to_currency car.eur, unit: "€", precision: 0 %> plus <%= number_to_currency car.import_costs, unit: "€", precision: 0 %> to import it">incl. import</span>
           <% end %>
+          <%= number_to_currency car.landed_eur, unit: "€", precision: 0 %>
         </td>
         <td class="right">
           <%# How much less it asks than comparable cars of its age and
@@ -83,6 +85,11 @@
   table.cars .right, table.cars th.right {
     text-align: right;
   }
+  /* Figures in Figtree so they line up down the column -- see --figures. */
+  table.cars td.right {
+    font-family: var(--figures);
+    font-variant-numeric: tabular-nums;
+  }
   table.cars tr:hover td {
     background: #f4f4f4;
   }
@@ -101,6 +108,7 @@
   table.cars .import {
     color: #888;
     font-size: 11px;
+    white-space: nowrap;
   }
   table.cars svg {
     vertical-align: middle;

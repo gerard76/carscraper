@@ -8,10 +8,11 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
-    <%# Albert Sans, as on evkenniscentrum.nl. Falls back to the system sans
-        when there is no network. %>
+    <%# Albert Sans, as on evkenniscentrum.nl, with Figtree alongside it for the
+        columns of figures -- see --figures in application.css. Both fall back
+        to the system sans when there is no network. %>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <%= stylesheet_link_tag "https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&display=swap", media: "all" %>
+    <%= stylesheet_link_tag "https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Figtree:wght@400;500;600&display=swap", media: "all" %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
   </head>
 
