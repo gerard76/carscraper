@@ -15,6 +15,15 @@ class Scrapers::FinnNo < Scrapers::Base
   CURRENCY  = "NOK".freeze
   MAX_PAGES = 20
 
+  # Norway taxes a van (varebil) far lower than a passenger car, so two thirds
+  # of the Buzzes on finn are registered as one: the Cargo, but also ordinary
+  # Buzzes with the rear seats taken out, and even the odd 6 or 7 seater that
+  # was put on commercial plates. Their asking prices are quoted without the
+  # 25% VAT, which makes them useless to compare against. finn can filter on
+  # the tax class, so ask it for passenger cars only -- id 1 of the
+  # "Avgiftsklasse" filter, where the van is 2.
+  PASSENGER_CAR = "1".freeze
+
   SPECS = /\A(\d{4})\D{1,3}(?:([\d][\d.[[:space:]]]*?)[[:space:]]*km\b)?/
   ITEM  = %r{/item/(\d+)}
 
@@ -58,7 +67,12 @@ class Scrapers::FinnNo < Scrapers::Base
   private
 
   def page_url(page)
-    query = { "q" => "#{model.make} #{model.model}", "sort" => "PUBLISHED_DESC", "page" => page }
+    query = {
+      "q"                  => "#{model.make} #{model.model}",
+      "registration_class" => PASSENGER_CAR,
+      "sort"               => "PUBLISHED_DESC",
+      "page"               => page,
+    }
 
     "#{BASE_URL}?#{URI.encode_www_form(query)}"
   end
