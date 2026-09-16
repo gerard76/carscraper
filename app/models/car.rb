@@ -181,13 +181,14 @@ class Car < ApplicationRecord
   end
 
   def self.hide_all_but(keep, group, reason)
-    # A star beats the price: if one of these is the one you marked, that is
-    # the one that stays.
-    keep = group.detect(&:favourite) || keep
+    gone = (group - [keep]).reject(&:hidden_by_hand?)
 
-    (group - [keep]).reject(&:hidden_by_hand?)
-                    .each { |car| car.update_columns(visible: false, hidden_by: reason) }
-                    .size
+    # The cheapest listing is the one that stays, star or no star -- but a star
+    # is about the car and not about the advert, so it moves to the one that
+    # stays rather than disappearing with the one that goes.
+    keep.update_columns(favourite: true) if gone.any?(&:favourite) && !keep.favourite
+
+    gone.each { |car| car.update_columns(visible: false, hidden_by: reason) }.size
   end
 
   def hidden_by_hand?

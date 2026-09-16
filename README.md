@@ -33,9 +33,11 @@ came from.
 
 The star in front of a row -- and in the corner of a photo, and next to the
 heading on a car's own page -- marks one worth coming back to. `Starred only`
-in the filters then shows nothing else. A star also settles an argument: it is
-the one kept when two listings turn out to be the same car, and no rule takes
-a starred car away, not a battery that is too small and not a Pure.
+in the filters then shows nothing else. When two listings turn out to be the
+same car the cheapest still wins, but the star moves over to it: it marks the
+car, not the advert. Rules about the car itself do leave a starred one alone --
+a battery that is too small, a Pure -- because marking one is a decision and a
+rule does not overrule a decision.
 
 # Get started
 
