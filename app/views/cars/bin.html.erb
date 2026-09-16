@@ -1,0 +1,100 @@
+<p style="color: green"><%= notice %></p>
+
+<h1>The bin</h1>
+
+<p>
+  <%= link_to "Graph", cars_path %> &middot;
+  <%= link_to "Table", table_cars_path %> &middot;
+  <%= link_to "Photos", photos_cars_path %>
+</p>
+
+<% if @cars.any? %>
+  <p><%= pluralize(@cars.size, "car") %> you clicked away. Put one back and it returns to all three pages.</p>
+
+  <div class="photos">
+    <% @cars.each do |car| %>
+      <div class="photo">
+        <%= link_to car do %>
+          <% if car.image_url.present? %>
+            <%= image_tag car.image_url, alt: car.version.to_s, loading: "lazy", referrerpolicy: "no-referrer" %>
+          <% else %>
+            <span class="missing">no photo</span>
+          <% end %>
+        <% end %>
+
+        <div class="facts">
+          <strong><%= number_to_currency car.landed_eur, unit: "€", precision: 0 %></strong>
+          <%= button_to "Put back", unhide_car_path(car), method: :patch, class: "restore" %>
+        </div>
+
+        <div class="small">
+          <%= car.year.strftime("%Y-%m") %> &middot;
+          <%= number_with_delimiter car.km %> km<%= " · #{number_with_delimiter car.distance_km} km away" if car.distance_km %>
+        </div>
+
+        <div class="small title" title="<%= car.version %>"><%= car.version.presence || car.type %></div>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <p>Empty. Nothing here but what you put here.</p>
+<% end %>
+
+<% if @by_rule.any? %>
+  <p class="by-rule">
+    Hidden by a rule rather than by you, and not in here:
+    <%= @by_rule.sort_by { |_, n| -n }.map { |reason, count| "#{count} #{reason || 'no reason recorded'}" }.to_sentence %>.
+  </p>
+<% end %>
+
+<style>
+  .photos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px;
+    padding: 8px 0;
+  }
+  .photo img, .photo .missing {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: #eee;
+    border-radius: 4px;
+    filter: grayscale(0.6);
+  }
+  .photo .missing {
+    display: grid;
+    place-items: center;
+    color: #999;
+    font-size: 12px;
+  }
+  .photo .facts {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 14px;
+  }
+  .photo .restore {
+    margin-left: auto;
+    font-size: 12px;
+    padding: 2px 8px;
+  }
+  .photo .small {
+    font-size: 12px;
+    color: #555;
+  }
+  .photo .title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .by-rule {
+    color: #666;
+    font-size: 13px;
+    border-top: 1px solid #e2e2e2;
+    padding-top: 10px;
+    margin-top: 20px;
+  }
+</style>

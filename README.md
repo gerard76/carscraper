@@ -68,6 +68,18 @@ end
 | `Scrapers::Gaspedaal` | gaspedaal.nl | NL -- an aggregator over Marktplaats, the ANWB, dealer sites and a few dozen more |
 | `Scrapers::FinnNo` | finn.no | NO, prices in kroner |
 
+Every photo has a cross in its corner: one click and the car is off all three
+pages. `/cars/bin` has those back, with a button each, and nothing else in it.
+
+That is what `hidden_by` is for. A car can be off the pages because you put it
+there (`Car::BY_HAND`) or because a rule did -- listed on two sites, advertised
+twice, as new, battery too small -- and the two must not be mixed up. The bin
+would be a heap of duplicates rather than a list of decisions, and worse, a
+rule would overwrite a decision. So the rules skip a car you hid yourself, and
+hiding one of a pair by hand leaves its twin on the pages, since there is no
+longer a duplicate to hide. The bin page names the counts hidden by rule, which
+only the console can bring back -- on purpose.
+
 A car is on the pages when two things hold: you have not clicked it away
 (`visible`) and a scraper has seen it on a site lately (`Car.listed`, within
 `Car::SEEN_WINDOW`). The two are kept apart on purpose -- one is your decision,

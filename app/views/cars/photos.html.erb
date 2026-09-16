@@ -3,6 +3,7 @@
 <p>
   <%= link_to "Graph", cars_path(q: search_query) %> &middot;
   <%= link_to "Table", table_cars_path(q: search_query) %> &middot;
+  <%= link_to "Bin", bin_cars_path %> &middot;
   <%= pluralize(@cars.size, "car") %>
 </p>
 
@@ -21,6 +22,10 @@
 <div class="photos">
   <% @cars.each do |car| %>
     <div class="photo">
+      <%# One click and it is gone from every page; the bin has it back. %>
+      <%= button_to hide_car_path(car), method: :patch, class: "dismiss",
+            title: "Put this one away", aria: { label: "Put this one away" } do %>&times;<% end %>
+
       <%= link_to car do %>
         <% if car.image_url.present? %>
           <%# Straight from the site that has the car, the way the browser
@@ -64,6 +69,33 @@
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
     gap: 14px;
     padding: 8px 0;
+  }
+  .photo {
+    position: relative;
+  }
+  .photo .dismiss {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 1;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    color: #333;
+    font-size: 16px;
+    line-height: 22px;
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .photo:hover .dismiss, .photo .dismiss:focus {
+    opacity: 1;
+  }
+  .photo .dismiss:hover {
+    background: #c00;
+    color: #fff;
   }
   .photo img, .photo .missing {
     display: block;

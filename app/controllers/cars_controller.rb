@@ -1,6 +1,6 @@
 class CarsController < ApplicationController
 
-  before_action :load_car, only: [:show, :update]
+  before_action :load_car, only: [:show, :update, :hide, :unhide]
 
   # The filter as it came in, as a plain hash: strong parameters refuses to
   # hand an unpermitted one to a url helper, and the graph and the table link
@@ -33,6 +33,26 @@ class CarsController < ApplicationController
     @q = Car.ransack(search_params)
     @q.sorts = "bargain_eur desc" if @q.sorts.empty?
     @cars = @q.result.on_offer.includes(:model)
+  end
+
+  # What you clicked away. Kept apart from what a rule hid -- the duplicates,
+  # the factory-new, the batteries that are too small -- because that is a heap
+  # and this is a decision.
+  def bin
+    @cars = Car.hidden_by_hand.includes(:model).order(updated_at: :desc)
+    @by_rule = Car.hidden_by_rule.group(:hidden_by).count
+  end
+
+  def hide
+    @car.update_columns(visible: false, hidden_by: Car::BY_HAND)
+
+    redirect_back fallback_location: photos_cars_path, notice: "Put away. It is in the bin."
+  end
+
+  def unhide
+    @car.update_columns(visible: true, hidden_by: nil)
+
+    redirect_back fallback_location: bin_cars_path, notice: "Back on the pages."
   end
 
   def show

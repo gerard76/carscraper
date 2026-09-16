@@ -81,9 +81,16 @@ class Car < ApplicationRecord
   before_validation :set_distance
   before_validation :set_fingerprint
 
+  # Why a car is not on the pages. Nil while it is. BY_HAND is the one that
+  # matters: you clicked it away, and no rule of mine may overrule that or
+  # bury it among its own leavings.
+  BY_HAND = "you".freeze
+
   ### SCOPES:
   # Yours: a car you have clicked away stays away.
   scope :visible,   -> { where(visible: true) }
+  scope :hidden_by_hand, -> { where(visible: false, hidden_by: BY_HAND) }
+  scope :hidden_by_rule, -> { where(visible: false).where.not(hidden_by: BY_HAND) }
 
   # Theirs: a listing that is sold disappears from the search pages, so a
   # scraper stops stamping it. 12gebrauchtwagen's links go 410 Gone within
@@ -155,20 +162,26 @@ class Car < ApplicationRecord
                group.min_by { |car| [car.eur, car.direct_link? ? 0 : 1] }
              end
 
-      hidden += hide_all_but(keep, group)
+      hidden += hide_all_but(keep, group, "listed on two sites")
     end
 
     relisted.each do |group|
       # The freshest reading of the same car: the advert that has been seen
       # most recently, and of those the one with the most on the clock.
-      hidden += hide_all_but(group.max_by { |car| [car.seen_at || Time.at(0), car.km] }, group)
+      hidden += hide_all_but(group.max_by { |car| [car.seen_at || Time.at(0), car.km] }, group, "advertised twice")
     end
 
     hidden
   end
 
-  def self.hide_all_but(keep, group)
-    (group - [keep]).each { |car| car.update_columns(visible: false) }.size
+  def self.hide_all_but(keep, group, reason)
+    (group - [keep]).reject(&:hidden_by_hand?)
+                    .each { |car| car.update_columns(visible: false, hidden_by: reason) }
+                    .size
+  end
+
+  def hidden_by_hand?
+    hidden_by == BY_HAND
   end
 
   # One seller advertising one car twice: the same title, the same money, the
@@ -217,7 +230,7 @@ class Car < ApplicationRecord
       stated = car.battery_kwh
       next if stated.nil? || stated >= minimum
 
-      car.update_columns(visible: false)
+      car.update_columns(visible: false, hidden_by: "battery too small")
       hidden += 1
     end
 
@@ -434,7 +447,10 @@ class Car < ApplicationRecord
   # New cars are kept but left out of the graph. Only on create, so one that
   # is switched back on by hand stays on.
   def hide_when_as_good_as_new
-    self.visible = false if km && km <= AS_NEW_KM
+    return unless km && km <= AS_NEW_KM
+
+    self.visible  = false
+    self.hidden_by = "as new"
   end
 
   def set_fingerprint
