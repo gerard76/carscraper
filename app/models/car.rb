@@ -507,6 +507,14 @@ class Car < ApplicationRecord
     @type ||= model.type
   end
 
+  # What to call the car in a list. The seller's own title is the useful thing,
+  # but 92 listings carry none at all and one AutoScout24 advert has "." for a
+  # title, so anything without a letter or a digit in it falls back to the make
+  # and model.
+  def title
+    version.to_s.match?(/[[:alnum:]]/) ? version : type
+  end
+
   def available?
     response = HTTParty.head(url)
     response.code == 200

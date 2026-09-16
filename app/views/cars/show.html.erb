@@ -4,7 +4,7 @@
   <div class="car-photo">
     <% if @car.large_image_url %>
       <%# The listing's own photograph, at the biggest size the site serves. %>
-      <%= image_tag @car.large_image_url, alt: @car.version.to_s, referrerpolicy: "no-referrer" %>
+      <%= image_tag @car.large_image_url, alt: @car.title, referrerpolicy: "no-referrer" %>
     <% else %>
       <span class="missing">no photo</span>
     <% end %>
@@ -12,7 +12,10 @@
 
   <div class="car-facts">
     <h1><%= @car.type %></h1>
-    <p class="version"><%= @car.version %></p>
+    <%# Only when the seller wrote one: the heading already says what it is. %>
+    <% if @car.title != @car.type %>
+      <p class="version"><%= @car.title %></p>
+    <% end %>
 
     <table class="facts">
       <tr>

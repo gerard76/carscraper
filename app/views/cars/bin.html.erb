@@ -8,7 +8,7 @@
       <div class="photo">
         <%= link_to car do %>
           <% if car.image_url.present? %>
-            <%= image_tag car.image_url, alt: car.version.to_s, loading: "lazy", referrerpolicy: "no-referrer" %>
+            <%= image_tag car.image_url, alt: car.title, loading: "lazy", referrerpolicy: "no-referrer" %>
           <% else %>
             <span class="missing">no photo</span>
           <% end %>
@@ -24,7 +24,7 @@
           <%= number_with_delimiter car.km %> km<%= " · #{number_with_delimiter car.distance_km} km away" if car.distance_km %>
         </div>
 
-        <div class="small title" title="<%= car.version %>"><%= car.version.presence || car.type %></div>
+        <div class="small title" title="<%= car.title %>"><%= car.title %></div>
       </div>
     <% end %>
   </div>

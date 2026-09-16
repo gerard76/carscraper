@@ -85,7 +85,7 @@ class CarsController < ApplicationController
       distance: car.distance_km,
       bargain: car.bargain_eur,
       km: car.km,
-      version: car.version,
+      version: car.title,
       type: car.type,
       comments: car.comments
     }
