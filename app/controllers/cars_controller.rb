@@ -2,11 +2,6 @@ class CarsController < ApplicationController
 
   before_action :load_car, only: [:show, :update, :hide, :unhide]
 
-  # The filter as it came in, as a plain hash: strong parameters refuses to
-  # hand an unpermitted one to a url helper, and the graph and the table link
-  # to each other keeping whatever is filled in.
-  helper_method :search_query
-
   def index
     @q    = Car.ransack(search_params)
     @cars = @q.result.on_offer.includes(:model).order(:year)
@@ -159,10 +154,6 @@ class CarsController < ApplicationController
     return nil if car.km.nil? || car.year.nil?
 
     car.km / [(Date.current - car.year).to_f / 365.25, MIN_AGE_IN_YEARS].max
-  end
-
-  def search_query
-    request.query_parameters[:q]
   end
 
   def search_params

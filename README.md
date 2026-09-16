@@ -68,6 +68,12 @@ end
 | `Scrapers::Gaspedaal` | gaspedaal.nl | NL -- an aggregator over Marktplaats, the ANWB, dealer sites and a few dozen more |
 | `Scrapers::FinnNo` | finn.no | NO, prices in kroner |
 
+The four pages -- graph, table, photos, bin -- sit in one menu at the top of
+every page, with the current one marked, and the links carry whatever the
+search form is filtering on from one view to the next. The filters themselves
+sit in a card above it, a label over each field, wrapping into as many rows as
+the window needs, with a Clear link once something is filled in.
+
 Every photo has a cross in its corner: one click and the car is off all three
 pages. `/cars/bin` has those back, with a button each, and nothing else in it.
 

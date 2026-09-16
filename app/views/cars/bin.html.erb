@@ -1,12 +1,4 @@
-<p style="color: green"><%= notice %></p>
-
 <h1>The bin</h1>
-
-<p>
-  <%= link_to "Graph", cars_path %> &middot;
-  <%= link_to "Table", table_cars_path %> &middot;
-  <%= link_to "Photos", photos_cars_path %>
-</p>
 
 <% if @cars.any? %>
   <p><%= pluralize(@cars.size, "car") %> you clicked away. Put one back and it returns to all three pages.</p>

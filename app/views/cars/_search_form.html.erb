@@ -1,34 +1,54 @@
-<%= search_form_for @q, url: local_assigns.fetch(:url, cars_path) do |f| %>
-  <%= f.label :models %>
-  <%= f.select :model_id_in,
-    options_from_collection_for_select(Model.all, :id, :type, @q.model_id_in),
-    {include_blank: "Any"}, { multiple: true, size: 1} %>
+<%= search_form_for @q, url: local_assigns.fetch(:url, cars_path), html: { class: "filters" } do |f| %>
+  <div class="filter">
+    <%= f.label :models %>
+    <%= f.select :model_id_in,
+      options_from_collection_for_select(Model.all, :id, :type, @q.model_id_in),
+      { include_blank: "Any" }, { multiple: true, size: 1 } %>
+  </div>
 
   <%# Bargain compares a car to every other car, trim and all, so narrowing to
       one trim first is what makes that number mean something. %>
-  <%= f.label :version_cont, "Title contains" %>
-  <%= f.search_field :version_cont %>
+  <div class="filter">
+    <%= f.label :version_cont, "Title contains" %>
+    <%= f.search_field :version_cont %>
+  </div>
 
-  <%= f.label :version_not_cont, "Title excludes" %>
-  <%= f.search_field :version_not_cont %>
+  <div class="filter">
+    <%= f.label :version_not_cont, "Title excludes" %>
+    <%= f.search_field :version_not_cont %>
+  </div>
 
-  <label for="q_landed_eur_lteq">Eur max (incl. import)</label>
-  <%= f.search_field :landed_eur_lteq %>
+  <div class="filter">
+    <%= f.label :landed_eur_lteq, "Eur max" %>
+    <%= f.search_field :landed_eur_lteq, placeholder: "incl. import" %>
+  </div>
 
-  <%= f.label :km_max %>
-  <%= f.search_field :km_lteq %>
+  <div class="filter">
+    <%= f.label :km_lteq, "Km max" %>
+    <%= f.search_field :km_lteq %>
+  </div>
 
-  <label for="q_distance_km_lteq">Km from home max</label>
-  <%= f.search_field :distance_km_lteq %>
+  <div class="filter">
+    <%= f.label :distance_km_lteq, "Km from home" %>
+    <%= f.search_field :distance_km_lteq, placeholder: "max" %>
+  </div>
 
-  <label for="q_year_min">Year from</label>
-  <input type="text" name="q[year_min]" id="q_year_min" value="<%= params.dig(:q, :year_min) %>">
+  <div class="filter">
+    <label for="q_year_min">Year from</label>
+    <input type="text" name="q[year_min]" id="q_year_min" value="<%= params.dig(:q, :year_min) %>">
+  </div>
 
-  <%= f.label :country %>
-  <%= f.select :country_eq,
-        options_for_select([["Austria","a"],["Spain","e"],["Germany","d"],["Belgium","b"],["Luxembourg","l"],["France","f"],["Netherlands","nl"],["Norway","no"]], @q.country_eq),
-        include_blank: "Any" %>
+  <div class="filter">
+    <%= f.label :country_eq, "Country" %>
+    <%= f.select :country_eq,
+          options_for_select([["Austria", "a"], ["Spain", "e"], ["Germany", "d"], ["Belgium", "b"], ["Luxembourg", "l"], ["France", "f"], ["Netherlands", "nl"], ["Norway", "no"]], @q.country_eq),
+          include_blank: "Any" %>
+  </div>
 
-  <%= f.submit %>
-
+  <div class="filter actions">
+    <%= f.submit "Search" %>
+    <% if search_query.present? %>
+      <%= link_to "Clear", local_assigns.fetch(:url, cars_path), class: "clear" %>
+    <% end %>
+  </div>
 <% end %>

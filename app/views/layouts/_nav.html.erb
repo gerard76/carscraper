@@ -1,0 +1,14 @@
+<%# One menu, the same on every page, carrying the filter along. %>
+<nav class="menu">
+  <% pages = [
+       ["Graph",  cars_path(q: search_query),        controller_name == "cars" && action_name == "index"],
+       ["Table",  table_cars_path(q: search_query),  action_name == "table"],
+       ["Photos", photos_cars_path(q: search_query), action_name == "photos"],
+       ["Bin",    bin_cars_path,                     action_name == "bin"],
+       ["Models", models_path,                       controller_name == "models"]
+     ] %>
+
+  <% pages.each do |label, path, current| %>
+    <%= link_to label, path, class: "menu-item#{' current' if current}", aria: { current: ("page" if current) } %>
+  <% end %>
+</nav>

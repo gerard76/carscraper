@@ -1,11 +1,6 @@
 <%= render 'search_form', url: photos_cars_path %>
 
-<p>
-  <%= link_to "Graph", cars_path(q: search_query) %> &middot;
-  <%= link_to "Table", table_cars_path(q: search_query) %> &middot;
-  <%= link_to "Bin", bin_cars_path %> &middot;
-  <%= pluralize(@cars.size, "car") %>
-</p>
+<p class="count"><%= pluralize(@cars.size, "car") %></p>
 
 <p class="sorting">
   <%# A grid has no column headers to click, so the same sorts live here. %>
