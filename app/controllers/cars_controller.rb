@@ -35,7 +35,6 @@ class CarsController < ApplicationController
   # and this is a decision.
   def bin
     @cars = Car.hidden_by_hand.includes(:model).order(updated_at: :desc)
-    @by_rule = Car.hidden_by_rule.group(:hidden_by).count
   end
 
   def hide
