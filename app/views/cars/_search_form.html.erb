@@ -45,6 +45,13 @@
           include_blank: "Any" %>
   </div>
 
+  <%# Ticked, nothing but the starred ones. Unticked it sends nothing at all
+      (include_hidden would otherwise send "0" and ask for the rest). %>
+  <div class="filter tick">
+    <%= f.label :favourite_eq, "Starred only" %>
+    <%= f.check_box :favourite_eq, { include_hidden: false }, "true" %>
+  </div>
+
   <div class="filter actions">
     <%= f.submit "Search" %>
     <% if search_query.present? %>

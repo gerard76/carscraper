@@ -31,6 +31,29 @@
   --figures: "Figtree", "Albert Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+/* The star that marks a car worth coming back to. button_to wraps it in a
+   form, which has to stay inline or it breaks a table row in half. */
+.star-form {
+  display: inline;
+}
+
+.star {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #b9b9b9;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.star.on {
+  color: #e0a400;
+}
+
+.star:hover {
+  color: #e0a400;
+}
+
 .figures {
   font-family: var(--figures);
   font-variant-numeric: tabular-nums;
@@ -193,6 +216,20 @@ main {
   flex-direction: row;
   align-items: center;
   gap: 10px;
+}
+
+/* A checkbox does not want to stretch to the width of a text field, and its
+   label reads better on the same line. */
+.filters .tick {
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-bottom: 6px;
+}
+.filters .tick input {
+  width: auto;
+  margin: 0;
 }
 
 .filters .clear {

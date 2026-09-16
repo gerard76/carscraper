@@ -1,6 +1,6 @@
 class CarsController < ApplicationController
 
-  before_action :load_car, only: [:show, :update, :hide, :unhide]
+  before_action :load_car, only: [:show, :update, :hide, :unhide, :favourite]
 
   def index
     @q    = Car.ransack(search_params)
@@ -44,6 +44,13 @@ class CarsController < ApplicationController
     @car.update_columns(visible: true, hidden_by: nil)
 
     redirect_back fallback_location: bin_cars_path, notice: "Back on the pages."
+  end
+
+  # The same button on and off again. No notice: the star says it itself.
+  def favourite
+    @car.update_columns(favourite: !@car.favourite)
+
+    redirect_back fallback_location: photos_cars_path
   end
 
   def show

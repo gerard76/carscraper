@@ -181,6 +181,10 @@ class Car < ApplicationRecord
   end
 
   def self.hide_all_but(keep, group, reason)
+    # A star beats the price: if one of these is the one you marked, that is
+    # the one that stays.
+    keep = group.detect(&:favourite) || keep
+
     (group - [keep]).reject(&:hidden_by_hand?)
                     .each { |car| car.update_columns(visible: false, hidden_by: reason) }
                     .size
@@ -262,6 +266,7 @@ class Car < ApplicationRecord
     hidden = 0
 
     on_offer.each do |car|
+      next if car.favourite
       next unless car.version.to_s.match?(PURE)
       next unless car.bargain_eur.to_i >= PURE_BARGAIN
 
@@ -280,6 +285,8 @@ class Car < ApplicationRecord
     hidden = 0
 
     on_offer.includes(:model).each do |car|
+      next if car.favourite
+
       minimum = car.model.min_kwh.to_i
       next if minimum.zero?
 
@@ -379,7 +386,7 @@ class Car < ApplicationRecord
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    ["country", "created_at", "currency", "data", "distance_km", "eur", "id", "id_value", "bargain_eur", "km", "landed_eur", "location", "model_id", "price", "updated_at", "url", "version", "visible", "year"]
+    ["country", "created_at", "currency", "data", "distance_km", "eur", "favourite", "id", "id_value", "bargain_eur", "km", "landed_eur", "location", "model_id", "price", "updated_at", "url", "version", "visible", "year"]
   end
 
   # Instance methods:

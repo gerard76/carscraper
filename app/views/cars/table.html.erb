@@ -5,6 +5,7 @@
 <table class="cars">
   <thead>
     <tr>
+      <th class="starred"><%= sort_link(@q, :favourite, "★") %></th>
       <th><%= sort_link(@q, :version, "Title") %></th>
       <th class="right"><%= sort_link(@q, :year, "Built") %></th>
       <th class="right"><%= sort_link(@q, :km, "Km") %></th>
@@ -19,6 +20,7 @@
   <tbody>
     <% @cars.each do |car| %>
       <tr>
+        <td class="starred"><%= render "star", car: car %></td>
         <td class="title">
           <%# The ad's own title. The model is the same on every row -- it is
               what you searched for -- so it only shows when it is all there is.
@@ -94,6 +96,11 @@
     background: #f4f4f4;
   }
   /* Nine in ten titles fit in 52 characters; the longest in here runs to 722. */
+  table.cars .starred {
+    width: 1.6em;
+    text-align: center;
+    padding-right: 0;
+  }
   table.cars td.title {
     max-width: 52ch;
     overflow: hidden;

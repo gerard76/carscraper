@@ -14,6 +14,9 @@ Rails.application.routes.draw do
       # One click to put a car away, and one to get it back.
       patch :hide
       patch :unhide
+
+      # One click to star a car, and the same one to unstar it.
+      patch :favourite
     end
 
     collection do

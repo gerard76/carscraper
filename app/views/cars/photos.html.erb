@@ -17,6 +17,8 @@
 <div class="photos">
   <% @cars.each do |car| %>
     <div class="photo">
+      <%= render "star", car: car %>
+
       <%# One click and it is gone from every page; the bin has it back. %>
       <%= button_to hide_car_path(car), method: :patch, class: "dismiss",
             title: "Put this one away", aria: { label: "Put this one away" } do %>&times;<% end %>
@@ -67,6 +69,27 @@
   }
   .photo {
     position: relative;
+  }
+  .photo .star-form {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    z-index: 1;
+  }
+  .photo .star {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+  }
+  /* A star that is on stays visible; an empty one only turns up on hover, the
+     same way the cross does. */
+  .photo .star:not(.on) {
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .photo:hover .star, .photo .star:focus {
+    opacity: 1;
   }
   .photo .dismiss {
     position: absolute;

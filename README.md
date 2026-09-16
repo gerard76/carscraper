@@ -31,6 +31,12 @@ filtering on. The title links to the car's own page, where you can hide it or
 leave a note; the icon at the end of the row opens the listing on the site it
 came from.
 
+The star in front of a row -- and in the corner of a photo, and next to the
+heading on a car's own page -- marks one worth coming back to. `Starred only`
+in the filters then shows nothing else. A star also settles an argument: it is
+the one kept when two listings turn out to be the same car, and no rule takes
+a starred car away, not a battery that is too small and not a Pure.
+
 # Get started
 
 Create you first model: `Model.create(make: 'Fiat', model: 'Ducato')`

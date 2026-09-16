@@ -11,7 +11,7 @@
   </div>
 
   <div class="car-facts">
-    <h1><%= @car.type %></h1>
+    <h1><%= render "star", car: @car %> <%= @car.type %></h1>
     <%# Only when the seller wrote one: the heading already says what it is. %>
     <% if @car.title != @car.type %>
       <p class="version"><%= @car.title %></p>
@@ -140,6 +140,11 @@
   }
   .car-facts h1 {
     margin: 0;
+  }
+  .car-facts h1 .star svg {
+    width: 22px;
+    height: 22px;
+    vertical-align: -1px;
   }
   .car-facts .version {
     margin: 2px 0 14px;
