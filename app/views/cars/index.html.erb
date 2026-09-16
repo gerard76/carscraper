@@ -39,8 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const option = {
     title: {
-      text: 'Car Prices by Year',
-      subtext: 'Price includes an estimate of what it costs to import the car. Under the line and green is cheap for its build year without having been driven hard.'
+      text: 'Car Prices by Year'
     },
     legend: {
       show: unmeasured.length > 0,
@@ -48,8 +47,8 @@ document.addEventListener("DOMContentLoaded", () => {
       right: 10,
       top: 0
     },
-    // Room at the top so the y axis name clears the subtitle.
-    grid: { top: 90 },
+    // Room at the top so the y axis name clears the title.
+    grid: { top: 60 },
     tooltip: {
       trigger: 'item',
       formatter: function(params) {
