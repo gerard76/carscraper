@@ -379,7 +379,7 @@ Encrypt for a certificate it cannot be given and the site would sit on 502.
 **The secrets**, all of which live in the credentials and nowhere else:
 
 ```
-bin/rails credentials:edit
+bin/rails credentials:edit     # or: mise run edcred
 ```
 
 ```yaml
@@ -405,9 +405,10 @@ each one read out of those credentials by `.kamal/read-secret` at deploy time
 and handed to the container as an environment variable. So the app on the
 server reads none of that file itself and is never given the key.
 
-The key is `config/master.key`, which is not in git and is the only copy: put
-it in 1Password. Without it nothing can be deployed or read back, and
-`pre-build` refuses to build if it ever turns up in git.
+The key is `config/master.key`, sitting next to them and not in git. Without it
+the credentials cannot be opened and nothing can be deployed, so it wants to be
+in a backup somewhere -- and `pre-build` refuses to build if it ever turns up
+in git, because this repository is public.
 
 **The data**, because the database starts empty and the graph needs cars:
 

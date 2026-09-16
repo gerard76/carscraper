@@ -15,7 +15,7 @@ set -eo pipefail
 # backtrace.
 if [ ! -f config/master.key ] && [ -z "$RAILS_MASTER_KEY" ]; then
   echo "✗ config/master.key is not here, so none of the secrets can be read." >&2
-  echo "  It is not in git on purpose. Restore it from 1Password, or pass it as RAILS_MASTER_KEY." >&2
+  echo "  It is not in git on purpose. Put it back, or pass it as RAILS_MASTER_KEY." >&2
   exit 1
 fi
 

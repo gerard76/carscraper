@@ -16,24 +16,7 @@ run = [{ tasks = ["server"] }]
 ## CREDENTIALS
 
 [tasks.edcred]
-description = "Edit Rails credentials (default env: production)"
-# Define a positional arg named "env" with default "production"
-usage = '''
-arg "env" "Rails environment to edit" default="production"
-'''
-# Use bash so we can do a little logic and command substitution
-shell = "bash -euo pipefail -c"
-run = """
-ENV="${usage_env}"
-EDITOR="vi"
-
-if [[ "$ENV" == "production" ]]; then
-  # Derive APP_NAME from current dir and uppercase it
-  APP_NAME="$(basename "$PWD" | tr '[:lower:]' '[:upper:]')"
-  # Read the master key from 1Password and export it for Rails
-  export RAILS_MASTER_KEY="$(op read "op://Production/${APP_NAME}/MASTER_KEY")"
-  RAILS_ENV=production bundle exec rails credentials:edit -e production
-else
-  RAILS_ENV="$ENV" bundle exec rails credentials:edit -e "$ENV"
-fi
-"""
+description = "Edit the Rails credentials"
+# Every secret this project has is in config/credentials.yml.enc, opened by
+# config/master.key, which sits next to it and is not in git.
+run = 'EDITOR="${EDITOR:-vi}" bundle exec rails credentials:edit'
