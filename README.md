@@ -344,3 +344,77 @@ cargurus.com and `broommarked.no` redirects to tv2.no/broom. `autotrader.nl`
 still works but resells AutoScout24's stock, so it returns listings we
 already have. `bilweb.se` (Sweden, prices in kroner, mileage in *mil* of
 10 km) is scrapeable but had no ID. Buzz at all.
+# On the server
+
+Deployed with kamal to the same droplet as the other projects, at
+https://carscraper.diamondbay.nl. Anyone with the link can look; every click
+that changes something -- crossing a car away, putting one back, a note, the
+models scaffold -- asks for one shared password.
+
+```
+bin/kamal setup     first time: installs docker, boots postgres, deploys
+bin/kamal deploy    every time after that
+bin/kamal rollback  back to the previous version
+bin/kamal logs      follow them
+bin/kamal console   a rails console in the running container
+bin/kamal psql      a psql in the accessory
+```
+
+## What it needs once
+
+**An A record** for `carscraper.diamondbay.nl` pointing at the droplet
+(146.185.130.81). The domain has a wildcard that goes somewhere else, so the
+name resolves today and resolves *wrong*: `pre-connect` refuses to deploy until
+it points at the right machine, because kamal-proxy would otherwise ask Let's
+Encrypt for a certificate it cannot be given and the site would sit on 502.
+
+**`.kamal/secrets.local`**, which is not in git and is the only copy of these
+values -- put it in 1Password as well. `.kamal/secrets.local.sample` lists what
+goes in it; `SECRET_KEY_BASE`, the database password, the click password and the
+home coordinates are already filled in. The two that are not are the
+DigitalOcean registry token and the name it goes with. `pre-connect` names
+anything still empty before the deploy touches the server.
+
+**The data**, because the database starts empty and the graph needs cars:
+
+```
+bin/kamal accessory boot postgres
+ssh -fN -L 5433:127.0.0.1:5432 deployer@146.185.130.81
+pg_dump --no-owner --no-privileges carscrape | psql -h localhost -p 5433 -U carscraper carscraper_production
+```
+
+That carries the postcodes over too, which is the slow part of a fresh start
+(`Postcode.import!` downloads 20375 rows and only needs doing once).
+
+## Scraping stays here
+
+The sites are friendlier to a home address than to a data centre, so keep
+running `bin/rails cars:scrape` on this machine, against the database on the
+droplet, through that same tunnel:
+
+```
+ssh -fN -L 5433:127.0.0.1:5432 deployer@146.185.130.81
+DATABASE_URL="postgres://carscraper:<password>@localhost:5433/carscraper_production" bin/rails cars:scrape
+```
+
+`bin/kamal scrape` runs it on the droplet instead, which works but is asking
+for a block.
+
+## The hooks
+
+All nine of kamal's hooks are in `.kamal/hooks`, and each one says at the top
+what it is for. Three of them only announce what is happening; the rest check
+something that has actually gone wrong somewhere: an empty secret (docker
+answers "flag needs an argument: 'p' in -p"), a DNS record pointing at the
+wrong server, a dirty checkout shipping code that matches no commit, a private
+file creeping into a public repository, a migration running against the image
+the server already had rather than the one being deployed, a deploy that exits
+0 having changed nothing, and a proxy reboot taking every other site on the
+droplet down with it.
+
+Two of them can be argued with:
+
+```
+ALLOW_DIRTY_TREE=1 bin/kamal deploy           ship uncommitted changes anyway
+CONFIRM_PROXY_REBOOT=1 bin/kamal proxy reboot  yes, take the whole droplet down
+```
