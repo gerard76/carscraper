@@ -515,6 +515,14 @@ class Car < ApplicationRecord
     @type ||= model.type
   end
 
+  # How long it has been in front of you: days since the first scrape that
+  # found it. Not how long it has been for sale -- a car that turns up in the
+  # very first scrape of a site has been on there for who knows how long -- but
+  # from then on it is exactly the thing worth sorting on: what is new.
+  def days_online
+    (Date.current - created_at.to_date).to_i
+  end
+
   # What to call the car in a list. The seller's own title is the useful thing,
   # but 92 listings carry none at all and one AutoScout24 advert has "." for a
   # title, so anything without a letter or a digit in it falls back to the make

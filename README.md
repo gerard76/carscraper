@@ -26,8 +26,12 @@ is kept in the session and shared between the two pages, so the table and the
 photos agree without being told twice.
 
 `/cars/table` has the same cars as a table instead, sortable by distance,
-price, mileage, build date, title or place, keeping whatever the search form is
-filtering on. The title links to the car's own page, where you can hide it or
+price, mileage, build date, bargain, star, and how new it is, keeping whatever
+the search form is filtering on. `New` counts the days since the scrape that
+first found the car -- not how long it has been for sale, since everything in
+the very first scrape of a site had been up for who knows how long, but from
+then on it is exactly what you want to sort on. Newest first on the first
+click. The title links to the car's own page, where you can hide it or
 leave a note; the icon at the end of the row opens the listing on the site it
 came from.
 

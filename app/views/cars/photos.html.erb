@@ -10,8 +10,7 @@
   <%= sort_link(@q, :km, "km") %> &middot;
   <%= sort_link(@q, :year, "built") %> &middot;
   <%= sort_link(@q, :distance_km, "distance") %> &middot;
-  <%= sort_link(@q, :location, "where") %> &middot;
-  <%= sort_link(@q, :version, "title") %>
+  <%= sort_link(@q, :created_at, "new", default_order: :desc) %>
 </p>
 
 <div class="photos">
@@ -53,6 +52,10 @@
       <div class="small figures">
         <%= car.year.strftime("%Y-%m") %> &middot;
         <%= number_with_delimiter car.km %> km<%= " · #{number_with_delimiter car.distance_km} km away" if car.distance_km %>
+        <% if car.days_online < 3 %>
+          <%# Only while it is actually news. %>
+          &middot; <span class="fresh"><%= car.days_online.zero? ? "today" : "#{car.days_online}d" %></span>
+        <% end %>
       </div>
 
       <div class="small title" title="<%= car.title %>"><%= car.title %></div>
@@ -128,6 +131,10 @@
     place-items: center;
     color: #999;
     font-size: 12px;
+  }
+  .photo .fresh {
+    color: #0a7;
+    font-weight: 600;
   }
   .photo .facts {
     display: flex;

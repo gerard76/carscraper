@@ -6,13 +6,17 @@
   <thead>
     <tr>
       <th class="starred"><%= sort_link(@q, :favourite, "★") %></th>
-      <th><%= sort_link(@q, :version, "Title") %></th>
+      <th>Title</th>
       <th class="right"><%= sort_link(@q, :year, "Built") %></th>
       <th class="right"><%= sort_link(@q, :km, "Km") %></th>
       <th class="right"><%= sort_link(@q, :landed_eur, "Price") %></th>
       <th class="right"><%= sort_link(@q, :bargain_eur, "Bargain") %></th>
       <th class="right"><%= sort_link(@q, :distance_km, "Distance") %></th>
-      <th><%= sort_link(@q, :location, "Where") %></th>
+      <%# Newest first on the first click: that is what you want from it. %>
+      <th class="right" title="Days since the scrape that first found it">
+        <%= sort_link(@q, :created_at, "New", default_order: :desc) %>
+      </th>
+      <th>Where</th>
       <th></th>
     </tr>
   </thead>
@@ -50,6 +54,9 @@
           <% end %>
         </td>
         <td class="right"><%= "#{number_with_delimiter car.distance_km} km" if car.distance_km %></td>
+        <td class="right" title="First seen <%= car.created_at.to_date.strftime("%-d %B") %>">
+          <%= car.days_online.zero? ? "today" : "#{car.days_online}d" %>
+        </td>
         <td><%= car.location %></td>
         <td>
           <%# The listing itself, on the site it came from. %>
