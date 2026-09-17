@@ -1,6 +1,9 @@
 class CarsController < ApplicationController
 
   before_action :load_car, only: [:show, :update, :hide, :unhide, :favourite]
+  before_action :remember_listing, only: [:index, :table, :photos, :bin]
+
+  helper_method :listing_path
 
   def index
     @q    = Car.ransack(search_params)
@@ -77,6 +80,22 @@ class CarsController < ApplicationController
 
   def load_car
     @car = Car.find(params[:id])
+  end
+
+  # The list you were last looking at, filter and sort and all, so that "back"
+  # on a car's own page goes where you came from.
+  #
+  # The referer cannot answer this. Starring a car posts from its page and
+  # lands on it again, so from then on the referer *is* that page and back
+  # points at itself -- which is what it did until this was here. Remembering
+  # the list instead survives that round trip, and any number of them, and it
+  # keeps table and graph apart rather than sending everyone to the photos.
+  def remember_listing
+    session[:listing] = request.fullpath
+  end
+
+  def listing_path
+    session[:listing].presence || photos_cars_path
   end
 
   def point(car)
