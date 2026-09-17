@@ -441,10 +441,12 @@ else -- so the web container cannot enqueue a scrape of its own.
 
 `Scrape` is the whole of it, and `bin/rails cars:scrape` is the same class from
 the command line. It has one guard worth knowing about: a source that is
-blocked or has changed its markup returns nothing, and `remove_vanished!`
-would then delete every car that source had. So when a round has seen fewer
-than half the cars already in the database, it says so and deletes nothing
-(`Scrape::MOST_OF_THEM`).
+blocked or has changed its markup returns nothing, and the listings it had
+would then all look gone. So a source's cars are only removed when this round
+saw at least half of what that source already had (`Scrape::MOST_OF_THEM`),
+and the count is kept per source -- the sources fail one at a time, and a count
+over the whole database would let a working site vouch for one nobody could
+reach.
 
 ## What the sites see of us
 
@@ -489,18 +491,36 @@ of the droplet -- shows the sites' own pictures rather than six hundred broken
 ones, and the next scrape fetches what is missing. It costs one stat per car,
 about a millisecond over a whole page.
 
-## When the droplet gets blocked
+## The droplet is blocked, and this is what that looks like
 
-The removal guard above is the thing to watch, because the droplet scrapes from
-a data centre address and the sites are friendlier to a home one. If the pages
-start emptying out, run it from here instead:
+Measured on the first scheduled round, 17 September 2026:
+
+| | requests | |
+| --- | --- | --- |
+| 12gebrauchtwagen | 50 | fifty pages, right to the last one |
+| AutoScout24 | 4 | **HTTP 403**, one per country, inside 150 ms |
+| gaspedaal | 2 | fine |
+| AutoTrack | 1 | **HTTP 403** |
+
+So two of the four turn a data centre address away at the door, and between
+them they carry half the cars. The guard held -- "left 792 autoscout24.nl
+listings that look gone alone" -- and the pictures still came down fine, which
+says the block is on the listing pages and not on their image servers.
+
+What keeps those two fresh is a round from this machine, which is not blocked:
+
+```
+mise run scrape:production
+```
 
 ```
 mise run scrape:production
 ```
 
 That opens the tunnel if it is not open already and runs the same scrape
-against the droplet's database, from this machine.
+against the droplet's database, from this machine. The twice-daily round on the
+droplet still does the other two, so between them nothing goes stale for longer
+than you leave it.
 
 `bin/kamal scrape` runs it on the droplet instead, which works but is asking
 for a block.

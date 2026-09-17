@@ -6,8 +6,13 @@
 class Scrape
   # A source that has been blocked, or whose markup has changed, returns
   # nothing at all -- and remove_vanished! would then delete every car it had.
-  # So the removal only happens when the round has seen most of what was
-  # already here.
+  # So a source's listings are only removed when this round saw most of what
+  # that source already had.
+  #
+  # Per source, because the sources fail one at a time: from the droplet
+  # AutoScout24 and AutoTrack answer 403 while 12gebrauchtwagen hands over
+  # fifty pages, and a count over the whole database would let 12gebrauchtwagen
+  # vouch for a site nobody could reach.
   MOST_OF_THEM = 0.5
 
   def self.call(...)
@@ -34,7 +39,11 @@ class Scrape
     fit = tidy_up(started)
 
     # After the tidying up, so nothing is fetched for a car that was just
-    # hidden as a duplicate or thrown away as gone.
+    # hidden as a duplicate or thrown away as gone. That does mean a battery
+    # only Details knows about is not judged by hide_small_batteries! until
+    # the next round, which is a round's patience against a few hundred
+    # requests spent on cars we were about to drop.
+    Details.call(report: report)
     Photos.call(report: report)
 
     fit
@@ -71,14 +80,21 @@ class Scrape
   end
 
   def remove_vanished(started)
-    seen  = Car.where(seen_at: started..).count
-    total = Car.count
+    by_source = Car.all.group_by(&:source)
+    seen      = Car.where(seen_at: started..).group_by(&:source).transform_values(&:size)
 
-    if seen < total * MOST_OF_THEM
-      report.call "left the #{Car.vanished.count} listings that look gone alone: this round saw " \
-                  "only #{seen} of #{total} cars, so it is the scrape that is broken, not the sites"
-    else
-      report.call "removed #{Car.remove_vanished!} listings that are no longer on the sites"
+    by_source.each do |source, cars|
+      vanished = cars.select { |car| Car.vanished.exists?(car.id) }
+      next if vanished.empty?
+
+      if seen.fetch(source, 0) < cars.size * MOST_OF_THEM
+        report.call "left #{vanished.size} #{source} #{"listing".pluralize(vanished.size)} that look gone alone: " \
+                    "this round saw only #{seen.fetch(source, 0)} of its #{cars.size}, so it is the scrape " \
+                    "that is broken there, not the site"
+      else
+        vanished.each(&:destroy)
+        report.call "removed #{vanished.size} #{source} #{"listing".pluralize(vanished.size)} that are no longer on the site"
+      end
     end
   end
 end
