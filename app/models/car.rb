@@ -444,8 +444,17 @@ class Car < ApplicationRecord
     Digest::SHA256.hexdigest(unwrapped_image_url)[0, 16]
   end
 
+  # The name in the column is only half of it: the file has to be there too.
+  # A database restored onto a machine without the pictures -- this laptop,
+  # carrying a dump of the droplet -- would otherwise show six hundred broken
+  # images and never fetch them, because the column says they are already
+  # here. Checking costs one stat per car, and it means a wiped volume heals
+  # itself on the next scrape.
   def photo_stored?
-    photo.present? && photo_digest.present? && photo.start_with?(photo_digest)
+    return false if photo.blank? || photo_digest.blank?
+    return false unless photo.start_with?(photo_digest)
+
+    File.exist?(Photos::DIRECTORY.join(photo))
   end
 
   # AutoScout24 files its pictures under the advert they belong to, so the first

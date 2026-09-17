@@ -473,8 +473,21 @@ that is one request for one car, and not worth keeping a second copy of every
 photograph for.
 
 `Photos` also sweeps: a file no car points at any more is deleted, so the
-directory follows the cars rather than growing forever. On the server it is a
-named docker volume (`config/deploy.yml`), because it has to outlive a deploy.
+directory follows the cars rather than growing forever.
+
+On the server the directory is a named docker volume (`config/deploy.yml`), so
+it outlives a deploy: a deploy replaces containers, and the volume is not one.
+Docker fills a new volume from the directory in the image, which is why
+`public/photos/.keep` ships -- that is where the owner comes from, and without
+it the rails user could not write. Both roles mount the same volume: the job
+container writes, the web container serves.
+
+Nothing about the name in the database is trusted on its own, either. A car
+counts as having its own copy only when the file is actually there, so a
+database that has been restored somewhere else -- this laptop, holding a dump
+of the droplet -- shows the sites' own pictures rather than six hundred broken
+ones, and the next scrape fetches what is missing. It costs one stat per car,
+about a millisecond over a whole page.
 
 ## When the droplet gets blocked
 
