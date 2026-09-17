@@ -27,6 +27,19 @@ servers:
       clear:
         GOOD_JOB_ENABLE_CRON: 1
 
+# How long kamal waits for a new container to answer. Its own default is 30s
+# and a deploy went over it: the droplet has 2 GB and no swap, and a deploy is
+# the one moment two copies of this app are up at once -- the new one booting
+# beside the old one still serving. With ~130 MB to spare that boot crawls,
+# and Puma reached "Listening on 0.0.0.0:3000" a few seconds after the proxy
+# had given up on it.
+#
+# Nothing was broken by that: the old container kept the site, and kamal
+# refused to send traffic to one that never answered. But the deploy fails,
+# and it fails more often the fuller the box gets. More patience here is the
+# cheap half of the fix; the other half is `free -m` on the droplet.
+deploy_timeout: 90
+
 # kamal-proxy terminates TLS with a Let's Encrypt certificate, which it can
 # only get once carscraper.diamondbay.nl resolves to the server above.
 # Thruster listens on 80 inside the container.

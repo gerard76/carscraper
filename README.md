@@ -428,6 +428,23 @@ bin/kamal console   a rails console in the running container
 bin/kamal psql      a psql in the accessory
 ```
 
+The droplet is 2 GB with no swap and it is shared with trading-bot, lidlcoupons
+and ahbonus -- nine containers between them, and around 130 MB free. That is
+enough to run on and thin to deploy on, because a deploy is the one moment two
+copies of this app are up at once: kamal boots the new web container beside the
+old one and only retires the old one when the new one answers.
+
+Under that pressure the new one boots slowly. Three deploys in a row took 10,
+17, and more than 30 seconds to answer, and the third went over kamal's default
+timeout and failed -- Puma reached "Listening on 0.0.0.0:3000" a few seconds
+after the proxy had stopped asking. Nothing broke: the old container kept
+serving and kamal will not send traffic to one that never answered. But the
+deploy fails, and it fails more often as the box fills.
+
+`proxy.deploy_timeout` is 90 seconds for that reason. It buys room, it does not
+make room: when a deploy fails again, `free -m` on the droplet is the thing to
+look at, and `docker stats --no-stream` says who is holding it.
+
 ## What it needs once
 
 **An A record** for `carscraper.diamondbay.nl` pointing at the droplet
