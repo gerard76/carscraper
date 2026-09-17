@@ -18,6 +18,25 @@
     <%= f.search_field :version_not_cont %>
   </div>
 
+  <%# Read off the listing's own page rather than guessed from its title, so
+      these only offer the counts that are actually in front of you. Blank on a
+      car means the advert never said, not that it has none. %>
+  <div class="filter">
+    <%= f.label :seats_eq, "Seats" %>
+    <%= f.select :seats_eq,
+          options_for_select(Car.on_offer.distinct.pluck(:seats).compact.sort, @q.seats_eq),
+          include_blank: "Any" %>
+  </div>
+
+  <%# One battery per generation, so this is the wheelbase in disguise: on the
+      ID. Buzz 77 and 79 are the short one and 86 is the long one. %>
+  <div class="filter">
+    <%= f.label :kwh_eq, "Battery kWh" %>
+    <%= f.select :kwh_eq,
+          options_for_select(Car.on_offer.distinct.pluck(:kwh).compact.sort, @q.kwh_eq),
+          include_blank: "Any" %>
+  </div>
+
   <div class="filter">
     <%= f.label :landed_eur_lteq, "Eur max" %>
     <%= f.search_field :landed_eur_lteq, placeholder: "incl. import" %>

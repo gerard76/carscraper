@@ -14,6 +14,15 @@ class Scrapers::Base
   # "7-zits", "6p.". Norwegian ads in particular shorten it to a bare "3s".
   SEATS = /\b(\d)\s*-?\s*(?:p\.|pers(?:onen|oons)?|zit(?:s|ter|plaatsen)?|sitze(?:r)?|seter|seater|s)\b/i
 
+  # The battery, as "86 kWh", "79kWh" or "79,0 kWh". Whether that is the gross
+  # or the net figure is the seller's choice and they make both; Car.usable_kwh
+  # sorts that out.
+  #
+  # Not a slash after it: "0,00 kWh/100 km" is what the car uses, not what it
+  # holds, and without this the energy label on a listing reads as a battery
+  # of nought.
+  BATTERY = %r{(\d{2,3})(?:[.,]\d)?\s*kwh\b(?!\s*/)}i
+
   DELAY     = 3
   MAX_PAGES = 40
 
@@ -74,6 +83,11 @@ class Scrapers::Base
     car.year     = year
     car.price    = price
 
+    # Whatever the ad happens to say. Most say nothing, and nothing is what
+    # they get: a blank here means "not stated", never "none".
+    car.seats = seats_in(exclude_on || version)
+    car.kwh   = battery_in(exclude_on || version)
+
     # The same listing can come back under a new url -- 12gebrauchtwagen's
     # redirect rotates its offer_id -- so it is looked up by what it is, not
     # by where it lives today.
@@ -109,6 +123,12 @@ class Scrapers::Base
     stored.version  = fresh.version if fresh.version.present?
     stored.location = fresh.location if fresh.location.present? && stored.location.blank?
     stored.image_url = fresh.image_url if fresh.image_url.present?
+
+    # Only ever filled in, never wiped: Details reads these off the listing's
+    # own page, which knows far more than the search card, and a re-scrape of
+    # that card must not throw its answer away.
+    stored.seats = fresh.seats if fresh.seats.present?
+    stored.kwh   = fresh.kwh   if fresh.kwh.present?
 
     return :known unless stored.changed?
 
@@ -152,9 +172,19 @@ class Scrapers::Base
   def too_few_seats?(text)
     minimum = model.min_seats.to_i
     return false if minimum.zero?
-    return false unless (seats = text.to_s[SEATS, 1])
+    return false unless (seats = seats_in(text))
 
-    seats.to_i < minimum
+    seats < minimum
+  end
+
+  def seats_in(text)
+    text.to_s[SEATS, 1]&.to_i
+  end
+
+  # The net capacity, so that the two ways of quoting one pack -- 84 kWh gross
+  # and 79 net are the same battery -- do not read as two different cars.
+  def battery_in(text)
+    Car.usable_kwh(text.to_s[BATTERY, 1]&.to_i)
   end
 
   # Guards against a site quietly dropping our filter and handing back its

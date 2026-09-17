@@ -134,10 +134,12 @@ Sites tend to park a different car in a model's category -- an ID. Buzz Cargo
 under ID. Buzz, say. Set `exclude_versions` on the model to drop those:
 `Model.first.update(exclude_versions: 'ID.3, ID.4, Cargo')`.
 
-`min_kwh` throws out a battery smaller than you want. It only judges an ad
-that names one -- 149 of 1366 do -- so a Pure that keeps quiet about its 59 kWh
-stays. Set to 77 it caught eight, one of them titled "Pro 58KWh", which no
-amount of filtering on trim names would have found.
+`min_kwh` throws out a battery smaller than you want. It only judges a car we
+have a battery for, so a Pure that keeps quiet about its 59 kWh stays. It used
+to read the title and nothing else -- 149 of 1366 named one -- and now it reads
+the `kwh` column below, which the listing pages fill in as well, so it judges
+a good deal more of them. Set to 77 it caught eight, one of them titled
+"Pro 58KWh", which no amount of filtering on trim names would have found.
 
 `min_seats` catches the ones that never say "Cargo". None of the sites takes a
 seat count in its url that we can use: AutoScout24 has one, but it also drops
@@ -148,6 +150,51 @@ is read from the ad text instead ("7-s", "6-Sitzer", "3 seter", and the bare
 "3s" Norwegian sellers use). A listing that names no seat count is kept, so
 this thins the cargo vans out rather than guaranteeing none get through. Cars
 already stored are not re-checked when you change `min_seats`.
+
+## Seats and battery
+
+Both are columns now -- `cars.seats` and `cars.kwh` -- and both are filters on
+the search form. Blank on a car means the advert never said, never that it has
+none.
+
+They matter more than they look. On an ID. Buzz the battery *is* the wheelbase:
+one pack per generation, so 77 and 79 are the short one and 86 is the long one.
+And the short one comes as a five seater (2/3) or a six seater (2/2/2), where
+the long one adds a seven seater (2/3/2). Wanting a six seater on a short
+wheelbase is a perfectly ordinary thing to want and nothing on a search page
+lets you ask for it.
+
+Reading it out of the title is not enough. Of 647 listings, 67 said anything
+about seats -- one in ten. So `Details` opens the listing's own page, where
+AutoScout24 carries `numberOfSeats` as a real field, and fills in what the
+card could not say: 526 of its 541 cars, and 544 of the 647 altogether. That
+took short six seaters from 4 to 20. It runs at the end of a scrape next to
+`Photos`, one page per car and once per car, and on its own with
+`bin/rails cars:details`. Only AutoScout24: four fifths of the cars come from
+there and it is the only one of the four whose detail page we know how to read.
+
+The battery is not a field anywhere, so it is read off three things in turn:
+the seller's title, then a *labelled* capacity in the description
+("Hochvolt-Batterie 91 kWh (brutto)", "Nutzbare Batteriekapazität: 79,0kWh"),
+and failing both, every capacity the text mentions -- but only when they all
+come to the same pack.
+
+That last condition is the whole trick. A few lines above the specification
+sits the disclaimer on bidirectional charging, "nur in Verbindung mit
+Hochvolt-Batterien 79 kWh und 86 kWh", which names two packs the car may not
+have; simply taking the first kWh in the description filed seven long
+wheelbase cars as short ones, four of them seven seaters, which cannot be
+short at all. Two different capacities means it is the disclaimer talking.
+
+`Car::BATTERY_PACKS` then writes every gross figure down as its net one --
+82 to 77, 84 to 79, 91 to 86 -- because sellers quote both and do not say
+which, and one car reading as 84 in one advert and 79 in the next makes the
+filter useless. Add a model with another battery and its gross figures belong
+in that table; change the table and `Car.renormalise_kwh!` works the stored
+cars out again, the way `Car.recalculate_eur!` does for a new exchange rate.
+`Car::PLAUSIBLE_KWH` throws out what was never a battery: the energy label's
+"0,00 kWh/100 km" arrived as a pack of nought until the pattern learned to
+refuse a slash after the unit.
 
 ## Is it a good price
 

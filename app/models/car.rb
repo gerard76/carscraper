@@ -278,6 +278,56 @@ class Car < ApplicationRecord
     hidden
   end
 
+  # One battery, two numbers: sellers quote the gross capacity of the pack and
+  # they quote the net capacity you can actually use, and they do not say
+  # which. Left alone, the same car reads as 84 kWh in one ad and 79 in the
+  # next, and no filter can tell a short wheelbase from a long one.
+  #
+  # So every gross figure is written down as its net one. For the ID. Buzz
+  # that leaves three packs, and they are exactly the three generations:
+  #
+  #   77  the 2022-2024 car, short wheelbase only
+  #   79  the 2024 update, short wheelbase
+  #   86  the long wheelbase
+  #
+  # Add a model with another battery and its gross figures belong here too;
+  # anything not listed is passed through as it was advertised, on the grounds
+  # that a number we do not recognise is better than a wrong one.
+  BATTERY_PACKS = {
+    58 => 59,  # Pure, a seller a kilowatt-hour shy
+    63 => 59,  # Pure, gross
+    82 => 77,
+    84 => 79,
+    87 => 86,  # a seller rounding the long wheelbase's 86 the wrong way
+    91 => 86,
+  }.freeze
+
+  # No car this side of a milk float has a pack outside this, so anything that
+  # lands here from outside it was never a battery: a consumption figure, a
+  # charger rating, a number out of the financing table.
+  PLAUSIBLE_KWH = (20..250).freeze
+
+  def self.usable_kwh(stated)
+    return nil if stated.nil?
+    return nil unless PLAUSIBLE_KWH.cover?(stated)
+
+    BATTERY_PACKS.fetch(stated, stated)
+  end
+
+  # Adding a pack to the table above leaves every car already stored on the
+  # old answer, the same way changing NOK_PER_EUR does. This works them out
+  # again; it is safe to run twice, because the table maps a gross figure to
+  # a net one and a net one to itself. Returns the number it changed.
+  def self.renormalise_kwh!
+    where.not(kwh: nil).count do |car|
+      corrected = usable_kwh(car.kwh)
+      next false if corrected == car.kwh
+
+      car.update_columns(kwh: corrected)
+      true
+    end
+  end
+
   # Hides the cars whose ad names a battery smaller than the model asks for.
   # Only those: a car that does not state its battery is not judged, the same
   # way min_seats leaves a listing alone when it names no seat count. Belongs
@@ -387,7 +437,7 @@ class Car < ApplicationRecord
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    ["country", "created_at", "currency", "data", "distance_km", "eur", "favourite", "id", "id_value", "bargain_eur", "km", "landed_eur", "location", "model_id", "price", "updated_at", "url", "version", "visible", "year"]
+    ["country", "created_at", "currency", "data", "distance_km", "eur", "favourite", "id", "id_value", "bargain_eur", "km", "kwh", "landed_eur", "location", "model_id", "price", "seats", "updated_at", "url", "version", "visible", "year"]
   end
 
   # Instance methods:
@@ -471,11 +521,10 @@ class Car < ApplicationRecord
     unwrapped_image_url.split("?").first[%r{listing-images/([0-9a-f-]+)_}, 1]
   end
 
-  # The battery as the ad states it, in kWh, or nil when it says nothing.
-  # Sellers quote the gross and the net capacity of the same pack -- 86 and 79
-  # are one and the same battery -- so read it as "about this big".
+  # The battery in kWh, or nil when nothing we have seen says. Scraped into
+  # the column; the version is still read for the rows that predate it.
   def battery_kwh
-    version.to_s[/(\d{2,3})\s*kwh\b/i, 1]&.to_i
+    kwh || self.class.usable_kwh(version.to_s[Scrapers::Base::BATTERY, 1]&.to_i)
   end
 
   # What makes this listing this listing, whatever url it happens to carry
