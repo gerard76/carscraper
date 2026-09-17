@@ -34,9 +34,22 @@ shell = "bash -euo pipefail -c"
 # Without this, the site empties itself out: Car.on_offer only counts a car
 # that has been seen in the last three days.
 run = """
-if ! nc -z localhost 5433 2>/dev/null; then
+# Asking postgres rather than the socket. `nc -z` only proves something has
+# 5433 open here, and an ssh whose far end has died still holds it -- which is
+# how a run once sailed past this check and got "connection refused" from
+# postgres a moment later, with nothing in the output to say the tunnel had
+# never been opened.
+if ! pg_isready -h localhost -p 5433 -q 2>/dev/null; then
   echo "Opening the tunnel to the droplet..."
-  ssh -fN -L 5433:127.0.0.1:5433 deployer@146.185.130.81
+
+  # ExitOnForwardFailure, or ssh goes to the background perfectly happily when
+  # a stale tunnel still holds the port, returns 0, and the scrape falls over
+  # later for a reason that looks like the database is down.
+  if ! ssh -o ExitOnForwardFailure=yes -fN -L 5433:127.0.0.1:5433 deployer@146.185.130.81; then
+    echo "✗ The tunnel would not open. If that says 'Address already in use', an older" >&2
+    echo "  one is still holding the port: pkill -f 'ssh -fN -L 5433' and try again." >&2
+    exit 1
+  fi
 fi
 
 export DATABASE_URL="postgres://carscraper:$(.kamal/read-secret database.password)@localhost:5433/carscraper_production"

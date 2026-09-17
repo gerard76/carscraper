@@ -573,6 +573,13 @@ mise run scrape:production
 mise run scrape:production
 ```
 
+Whether it is open already is decided by asking postgres, not by asking the
+socket: an ssh whose far end has died still holds port 5433 here, and `nc -z`
+is satisfied by that. A round once sailed past the check on a tunnel like
+that and fell over on "connection refused" a moment later, looking for all the
+world like the database was down. If the tunnel cannot be opened because an
+older one still has the port, `pkill -f 'ssh -fN -L 5433'` and go again.
+
 That opens the tunnel if it is not open already and runs the same scrape
 against the droplet's database, from this machine. It is the code in this
 directory doing the work, so it stops first if a migration here has not been
