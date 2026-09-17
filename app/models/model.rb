@@ -4,9 +4,19 @@ class Model < ApplicationRecord
   has_many :cars,
     dependent: :destroy
 
+  # Makes that go by a shorter name when the room is tight.
+  SHORT_MAKES = { "volkswagen" => "VW" }.freeze
+
   ### INSTANCE METHODS:
   def type
     "#{make} #{model}"
+  end
+
+  # The same thing for a filter box. "Volkswagen ID-Buzz" is most of the width
+  # of the models select on its own, and that select shares a row with nine
+  # other filters.
+  def short_type
+    "#{SHORT_MAKES.fetch(make.to_s.downcase, make)} #{model}"
   end
 
   # Sellers regularly park a different car in this model's category on

@@ -2,7 +2,7 @@
   <div class="filter">
     <%= f.label :models %>
     <%= f.select :model_id_in,
-      options_from_collection_for_select(Model.all, :id, :type, @q.model_id_in),
+      options_from_collection_for_select(Model.all, :id, :short_type, @q.model_id_in),
       { include_blank: "Any" }, { multiple: true, size: 1 } %>
   </div>
 
