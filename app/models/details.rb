@@ -23,6 +23,19 @@ class Details
   MOST_PER_ROUND = 300
   DELAY = 1.0
 
+  # When to stop knocking. From the droplet AutoScout24 answers 403 to every
+  # listing page -- see "The droplet is blocked" in the README -- so the
+  # twice-daily round there would work through three hundred refusals and fill
+  # in nothing, which is pointless on our side and rude on theirs.
+  #
+  # This many in a row with nothing in between ends the round. One 403 among
+  # answers is a listing that has been taken down; five in a row is the door.
+  REFUSALS_BEFORE_GIVING_UP = 5
+
+  # What a closed door looks like: 403 outright, or 429 asking us to slow down
+  # further than a round has patience for.
+  REFUSED = [403, 429].freeze
+
   # Where the whole listing sits, as JSON, on every AutoScout24 advert.
   DATA = "script#__NEXT_DATA__".freeze
 
@@ -82,10 +95,26 @@ class Details
 
     report.call "reading #{wanted.size} listing #{"page".pluralize(wanted.size)} for seats and battery..."
 
-    filled = wanted.count do |car|
-      found = read(car)
+    filled   = 0
+    refusals = 0
+
+    wanted.each do |car|
+      case read(car)
+      when :refused
+        refusals += 1
+        if refusals >= REFUSALS_BEFORE_GIVING_UP
+          report.call "  #{HOST} turned us away #{refusals} times running, so that is the door and not the listings. " \
+                      "Leaving the rest; run this from a machine it answers."
+          break
+        end
+      when true
+        refusals = 0
+        filled += 1
+      else
+        refusals = 0
+      end
+
       sleep DELAY
-      found
     end
 
     report.call "filled in #{filled} of them"
@@ -101,7 +130,9 @@ class Details
   end
 
   def read(car)
-    listing = fetch(car) or return false
+    listing = fetch(car)
+    return listing if listing == :refused
+    return false if listing.nil?
 
     vehicle = listing["vehicle"] || {}
 
@@ -140,6 +171,7 @@ class Details
     response = HTTParty.get(car.url,
                             headers: { "User-Agent" => Scrapers::Base::USER_AGENT },
                             timeout: 20)
+    return :refused if REFUSED.include?(response.code)
     return nil unless response.code == 200
 
     script = Nokogiri::HTML(response.body).at_css(DATA) or return nil

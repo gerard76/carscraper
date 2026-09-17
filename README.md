@@ -173,6 +173,15 @@ took short six seaters from 4 to 20. It runs at the end of a scrape next to
 `bin/rails cars:details`. Only AutoScout24: four fifths of the cars come from
 there and it is the only one of the four whose detail page we know how to read.
 
+Which means it only works from a machine AutoScout24 answers. From the droplet
+every listing page is a 403 (see "The droplet is blocked" below), so the
+twice-daily round there fills in nothing; what fills these in is
+`mise run scrape:production` from this machine, the same round that keeps
+AutoScout24 and AutoTrack fresh at all. `REFUSALS_BEFORE_GIVING_UP` stops the
+droplet working through three hundred refusals to find that out -- five in a
+row and it leaves the rest, because one 403 among answers is a listing taken
+down and five in a row is the door.
+
 The battery is not a field anywhere, so it is read off three things in turn:
 the seller's title, then a *labelled* capacity in the description
 ("Hochvolt-Batterie 91 kWh (brutto)", "Nutzbare Batteriekapazität: 79,0kWh"),
