@@ -518,7 +518,10 @@ mise run scrape:production
 ```
 
 That opens the tunnel if it is not open already and runs the same scrape
-against the droplet's database, from this machine. The twice-daily round on the
+against the droplet's database, from this machine. It is the code in this
+directory doing the work, so it stops first if a migration here has not been
+deployed there -- otherwise the crash arrives halfway through a scrape,
+"undefined method 'seats='", with a few hundred listings already written. The twice-daily round on the
 droplet still does the other two, so between them nothing goes stale for longer
 than you leave it.
 

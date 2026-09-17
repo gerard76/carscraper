@@ -40,5 +40,20 @@ if ! nc -z localhost 5433 2>/dev/null; then
 fi
 
 export DATABASE_URL="postgres://carscraper:$(.kamal/read-secret database.password)@localhost:5433/carscraper_production"
-RAILS_ENV=production bundle exec rails cars:scrape
+export RAILS_ENV=production
+
+# This runs the code in THIS directory against the droplet's database, so a
+# migration that has not been deployed yet is a crash halfway through a scrape
+# -- "undefined method 'seats='", with a few hundred listings already written.
+# Better to hear it before the first request.
+bundle exec rails runner '
+  context = ActiveRecord::Base.connection_pool.migration_context
+  if context.needs_migration?
+    ran = context.get_all_versions
+    behind = context.migrations.reject { |m| ran.include?(m.version) }.map(&:name).join(", ")
+    abort("The droplet is behind this checkout: #{behind} is not deployed there. bin/kamal deploy first.")
+  end
+'
+
+bundle exec rails cars:scrape
 """
