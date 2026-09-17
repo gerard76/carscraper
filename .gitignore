@@ -31,6 +31,11 @@
 
 /public/assets
 
+# Our own copies of the listing photographs. The directory ships (docker mounts
+# a volume over it), the pictures do not -- see app/models/photos.rb.
+/public/photos/*
+!/public/photos/.keep
+
 # Ignore master key for decrypting credentials and more. It opens every
 # secret this project has, it is not in git and it is the only copy -- see
 # .kamal/read-secret.

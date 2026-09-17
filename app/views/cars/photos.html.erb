@@ -24,10 +24,10 @@
 
       <%= link_to car do %>
         <% if car.image_url.present? %>
-          <%# Straight from the site that has the car, the way the browser
-              would load it there. loading=lazy keeps a thousand of them from
-              arriving at once. %>
-          <%= image_tag car.image_url, alt: car.title, loading: "lazy", referrerpolicy: "no-referrer" %>
+          <%# Our own copy (see Photos), so opening this page does not ask six
+              hundred pictures of the sites all over again. loading=lazy keeps
+              a thousand of them from arriving at once. %>
+          <%= image_tag car.photo_url, alt: car.title, loading: "lazy", referrerpolicy: "no-referrer" %>
         <% else %>
           <span class="missing">no photo</span>
         <% end %>

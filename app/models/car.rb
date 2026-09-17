@@ -430,6 +430,24 @@ class Car < ApplicationRecord
     image_url[%r{/v7/(.+?)(?:\?|\z)}, 1].then { |inner| inner ? CGI.unescape(inner) : image_url }
   end
 
+  # The picture the pages show: our own copy when we have one, and the site's
+  # own until then, so a car that arrived a minute ago still has a photograph.
+  def photo_url
+    photo_stored? ? "#{Photos::PATH}/#{photo}" : image_url
+  end
+
+  # Named after the url it came from, so a listing that swaps its picture gets
+  # a new file rather than a stale one.
+  def photo_digest
+    return nil if unwrapped_image_url.nil?
+
+    Digest::SHA256.hexdigest(unwrapped_image_url)[0, 16]
+  end
+
+  def photo_stored?
+    photo.present? && photo_digest.present? && photo.start_with?(photo_digest)
+  end
+
   # AutoScout24 files its pictures under the advert they belong to, so the first
   # half of listing-images/<advert>_<picture> is the advert's own id. Two
   # listings whose photographs sit in the same folder are the same advert, even

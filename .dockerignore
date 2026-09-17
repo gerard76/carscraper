@@ -34,3 +34,9 @@
 # is no JS build step), so it has to be part of the build context.
 /node_modules/
 /public/assets
+
+# Our own copies of the listing photographs: the directory has to be in the
+# image so docker can mount a volume over it with the right owner, the
+# pictures themselves belong to the server and not to the image.
+/public/photos/*
+!/public/photos/.keep

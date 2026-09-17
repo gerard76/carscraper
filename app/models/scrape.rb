@@ -31,7 +31,13 @@ class Scrape
       end
     end
 
-    tidy_up(started)
+    fit = tidy_up(started)
+
+    # After the tidying up, so nothing is fetched for a car that was just
+    # hidden as a duplicate or thrown away as gone.
+    Photos.call(report: report)
+
+    fit
   end
 
   private

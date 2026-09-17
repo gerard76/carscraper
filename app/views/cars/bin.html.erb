@@ -8,7 +8,7 @@
       <div class="photo">
         <%= link_to car do %>
           <% if car.image_url.present? %>
-            <%= image_tag car.image_url, alt: car.title, loading: "lazy", referrerpolicy: "no-referrer" %>
+            <%= image_tag car.photo_url, alt: car.title, loading: "lazy", referrerpolicy: "no-referrer" %>
           <% else %>
             <span class="missing">no photo</span>
           <% end %>

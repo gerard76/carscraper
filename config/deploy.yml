@@ -85,6 +85,14 @@ aliases:
 # one, so a page loaded a second before the switch keeps working.
 asset_path: /rails/public/assets
 
+# Our own copies of the listing photographs -- roughly 4 MB for six hundred
+# cars -- which have to outlive a deploy. A named volume rather than a path on
+# the host, so docker copies the directory's owner out of the image and the
+# rails user can write to it. Both roles mount it: the job writes, the web
+# serves.
+volumes:
+  - "carscraper-photos:/rails/public/photos"
+
 accessories:
   postgres:
     image: postgres:18-alpine

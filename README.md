@@ -17,8 +17,8 @@ percentile of what is on screen, so a single absurd listing cannot flatten it.
 A car whose seller left the odometer empty cannot be placed on that scale and
 is drawn as a grey ring.
 
-`/cars/photos` is the same cars as a wall of photographs. The picture is the
-first one from the listing, loaded from the site that has the car. A grid has
+`/cars/photos` is the same cars as a wall of photographs: the first picture
+from each listing, kept here rather than hot-linked -- see `Photos`. A grid has
 no column headers to click, so the same sorts sit above it as links.
 
 Both open cheapest first, and then on whatever you last sorted on: the choice
@@ -446,9 +446,41 @@ would then delete every car that source had. So when a round has seen fewer
 than half the cars already in the database, it says so and deletes nothing
 (`Scrape::MOST_OF_THEM`).
 
-That guard is also the thing to watch, because the droplet scrapes from a data
-centre address and the sites are friendlier to a home one. If the pages start
-emptying out, run it from here instead:
+## What the sites see of us
+
+Only result pages -- there are no detail pages to fetch, the cards carry
+everything -- one request at a time, three seconds apart
+(`Scrapers::Base::DELAY`). A round is roughly 15 pages of AutoScout24 (100
+listings a page, but four countries and a page each to find the end), 36 of
+12gebrauchtwagen at around 20 a page, 3 of AutoTrack, and 2 of gaspedaal, whose
+whole result set sits on one page behind a lookup of the model's slug. Call it
+60 requests, twice a day, in two three-minute bursts. One person opening the
+same searches in a browser pulls more than that in scripts and adverts alone.
+
+The ceiling is higher than the average, worth knowing: if a site changes its
+markup and the "no more results" check stops working, each scraper runs to
+`MAX_PAGES` -- 40 a country for AutoScout24, 80 for 12gebrauchtwagen -- so
+about 560 requests in a day rather than 120.
+
+The photographs used to be the heavy part, and not from the scraping: every
+view of `/cars/photos` asked their servers for six hundred pictures. `Photos`
+fetches each card picture once -- a fifth of a second apart, at most 500 in a
+round -- into `public/photos`, named after a digest of the url it came from, so
+a listing that swaps its picture gets a new file and the browser cannot serve a
+stale one. Six hundred cards come to about 4 MB, which Thruster serves without
+troubling Rails. What is still theirs is the big picture on a car's own page:
+that is one request for one car, and not worth keeping a second copy of every
+photograph for.
+
+`Photos` also sweeps: a file no car points at any more is deleted, so the
+directory follows the cars rather than growing forever. On the server it is a
+named docker volume (`config/deploy.yml`), because it has to outlive a deploy.
+
+## When the droplet gets blocked
+
+The removal guard above is the thing to watch, because the droplet scrapes from
+a data centre address and the sites are friendlier to a home one. If the pages
+start emptying out, run it from here instead:
 
 ```
 mise run scrape:production
