@@ -31,7 +31,7 @@ the search form is filtering on. `New` counts the days since the scrape that
 first found the car -- not how long it has been for sale, since everything in
 the very first scrape of a site had been up for who knows how long, but from
 then on it is exactly what you want to sort on. Newest first on the first
-click. The title links to the car's own page, where you can hide it or
+click. The title links to the car's own page, where you can bin it or
 leave a note; the icon at the end of the row opens the listing on the site it
 came from.
 

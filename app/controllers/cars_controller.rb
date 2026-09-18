@@ -60,12 +60,7 @@ class CarsController < ApplicationController
   end
 
   def update
-    # Unticking the box here is the same decision as clicking the cross on a
-    # photo, so it leaves the same reason behind and lands in the same bin.
     changes = car_params.to_h
-    if changes.key?("visible")
-      changes["hidden_by"] = changes["visible"] == "1" ? nil : Car::BY_HAND
-    end
 
     # The star on a car's own page is a submit button of this form rather than
     # a form of its own, so that pressing it keeps the note you were halfway
@@ -80,7 +75,7 @@ class CarsController < ApplicationController
   private
 
   def car_params
-    params.require(:car).permit(:visible, :comments)
+    params.require(:car).permit(:comments)
   end
 
   def load_car
