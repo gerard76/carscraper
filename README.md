@@ -585,7 +585,11 @@ a listing that swaps its picture gets a new file and the browser cannot serve a
 stale one. Six hundred cards come to about 4 MB, which Thruster serves without
 troubling Rails. What is still theirs is the big picture on a car's own page:
 that is one request for one car, and not worth keeping a second copy of every
-photograph for.
+photograph for -- but our own copy sits behind it as a fallback, because a
+remote picture can go without notice. Car 1670's did: AutoScout24 answered 404
+on every size it used to serve for that image, including the one we had
+originally fetched, while our smaller copy of the same photograph sat here
+unused.
 
 `Photos` also sweeps: a file no car points at any more is deleted, so the
 directory follows the cars rather than growing forever.
