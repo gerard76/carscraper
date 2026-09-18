@@ -344,6 +344,29 @@ to the character, the same money, and a mileage within `Car::RELISTED_KM` of
 each other -- the taxi that turned this up read 10800 on one ad and 11500 on
 the other.
 
+A third case is the same listing back under a different title, which is a
+harder problem than it sounds: the title is part of `Car#identity`, so when
+12gebrauchtwagen rewrote its titles on 18 September -- "(+NAVI) Bluetooth"
+became "(+NAVI) LED", and plenty were simply cut shorter -- 576 cars returned
+as new rows instead of refreshing the ones already here, and 29 of them stood
+beside their older selves on the pages. `Car.relisted` is blind to those,
+because it asks for the same title to the character.
+
+`Car.retitled` asks for everything else instead, and asks for it exactly: the
+same site, the same build month, the same price to the euro, the same odometer
+reading to the kilometre, the same town. Two different cars from one dealer do
+not match all five. Of the 14 groups it found, not one had two titles that
+agreed, and every pair was plainly one car -- "Pro LR lang | AHK | LED | NAVI |
+ACC |" against "86 kWh 210 kW ENERGY LR 5 Türen", both 49370 euro at 16174 km
+in Plattling. The copy that still has a picture stays.
+
+The old rows clean themselves up: their titles are gone from the site, so
+nothing stamps them again and `remove_vanished!` takes them after three days.
+Leaving the title out of `identity` altogether would stop the churn at the
+source, but the title is the only thing that tells two alike cars at one dealer
+apart -- the price and the mileage both move -- so the row is the cheaper
+price to pay.
+
 That last condition is what makes it safe. Dealers do keep several alike cars:
 one in Kiel has three under the one title, 12500 km apart, and one in
 Gelsenkirchen two that are 42000 km apart. An identical title on its own would

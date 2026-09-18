@@ -175,6 +175,14 @@ class Car < ApplicationRecord
       hidden += hide_all_but(keep, group, "same photograph")
     end
 
+    retitled.each do |group|
+      # Both adverts are equally fresh, so keep the one that still has a
+      # picture, and of those the one seen most recently.
+      keep = group.max_by { |car| [car.image_url.present? ? 1 : 0, car.seen_at || Time.at(0), car.id] }
+
+      hidden += hide_all_but(keep, group, "advertised twice")
+    end
+
     relisted.each do |group|
       # The freshest reading of the same car: the advert that has been seen
       # most recently, and of those the one with the most on the clock.
@@ -218,6 +226,30 @@ class Car < ApplicationRecord
 
       mileages = group.map(&:km)
       next if mileages.max - mileages.min > RELISTED_KM
+
+      group
+    end
+  end
+
+  # The same listing back under a different title. 12gebrauchtwagen rewrites
+  # them -- "(+NAVI) Bluetooth" became "(+NAVI) LED", and plenty were simply
+  # cut shorter -- and the title is part of Car#identity, so the car returns as
+  # a new row instead of refreshing the old one. 576 arrived in one round on 18
+  # September 2026, and 29 of them were sitting beside their older selves.
+  #
+  # relisted cannot see these: it asks for the same title to the character,
+  # which is the one thing that changed. So this asks for everything else, and
+  # asks for it exactly -- the same site, the same build month, the same price
+  # to the euro, the same odometer reading to the kilometre, the same town. Two
+  # different cars from one dealer do not match all five; of the 14 groups this
+  # found, not one had two titles that agreed, and every pair was plainly one
+  # car ("Pro LR lang | AHK | LED | NAVI | ACC |" against "86 kWh 210 kW
+  # ENERGY LR 5 Türen", both 49370 euro at 16174 km in Plattling).
+  def self.retitled
+    on_offer.where.not(km: nil).where.not(location: nil)
+            .group_by { |car| [car.source, car.year, car.km, car.place_key, car.eur] }
+            .filter_map do |key, group|
+      next if key.any?(&:nil?) || group.size < 2
 
       group
     end
