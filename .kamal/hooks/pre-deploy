@@ -24,7 +24,23 @@ set -eo pipefail
 # length of the boot. An add_column is safe there; a remove or a rename is not.
 #
 # ALLOW_DESTRUCTIVE_MIGRATION=1 says the deployed code no longer touches it.
-added=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- db/migrate 2>/dev/null || true)
+#
+# The comparison is against WHAT THE SERVER IS RUNNING, not HEAD~1: this
+# started life as a one-commit diff and that let a column drop sail straight
+# past, because by the time the deploy came round the migration sat three
+# commits back. If the running version cannot be read the check is skipped
+# with a warning rather than blocking -- a guard that fails closed on its own
+# plumbing is worse than what it prevents.
+running=$(bin/kamal app version 2>/dev/null |
+          grep -Ev '^App Host:|^\s*(INFO|DEBUG|ERROR)|^\s*$' | tail -n 1 | tr -d '[:space:]') || true
+
+if [ -z "$running" ] || ! git cat-file -e "$running^{commit}" 2>/dev/null; then
+  echo "⚠️  Could not read the running version, so the destructive-migration check was skipped."
+  added=""
+else
+  added=$(git diff --name-only --diff-filter=A "$running" HEAD -- db/migrate 2>/dev/null || true)
+fi
+
 if [ -z "$ALLOW_DESTRUCTIVE_MIGRATION" ] && [ -n "$added" ]; then
   destructive=$(grep -lE '^[[:space:]]*(remove_column|rename_column|drop_table|rename_table)' $added || true)
   if [ -n "$destructive" ]; then
