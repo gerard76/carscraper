@@ -87,19 +87,23 @@ class Car < ApplicationRecord
   BY_HAND = "you".freeze
 
   ### SCOPES:
-  # Yours: a car you have clicked away stays away.
-  scope :visible,   -> { where(visible: true) }
-  scope :hidden_by_hand, -> { where(visible: false, hidden_by: BY_HAND) }
-  scope :hidden_by_rule, -> { where(visible: false).where.not(hidden_by: BY_HAND) }
+  # Yours: a car you have put in the bin stays there. hidden_by carries the
+  # reason and is the whole truth -- there was a `visible` boolean beside it
+  # saying the same thing in reverse, and two columns that must agree are one
+  # column and a bug waiting.
+  scope :binned,    -> { where.not(hidden_by: nil) }
+  scope :shown,     -> { where(hidden_by: nil) }
+  scope :hidden_by_hand, -> { where(hidden_by: BY_HAND) }
+  scope :hidden_by_rule, -> { binned.where.not(hidden_by: BY_HAND) }
 
   # Theirs: a listing that is sold disappears from the search pages, so a
   # scraper stops stamping it. 12gebrauchtwagen's links go 410 Gone within
-  # days. Kept apart from `visible` on purpose -- one is your decision, the
+  # days. Kept apart from the bin on purpose -- one is your decision, the
   # other is the market's -- so a listing that briefly drops off a page and
   # comes back needs no undoing.
   SEEN_WINDOW = 3.days
   scope :listed,    -> { where(seen_at: SEEN_WINDOW.ago..) }
-  scope :on_offer,  -> { visible.listed }
+  scope :on_offer,  -> { shown.listed }
 
   ### DELEGATIONS:
   delegate :make, to: :model
@@ -148,7 +152,7 @@ class Car < ApplicationRecord
   # come from different sites. That last one matters: a dealer with several
   # similar cars on one site is not a duplicate, and there are such dealers.
   #
-  # The cheapest of the set stays visible and the rest are hidden, so they
+  # The cheapest of the set stays and the rest are binned, so they
   # stay hidden through the next scrape -- except where the difference is the
   # VAT, and then the price you would actually pay stays. Returns the number
   # hidden.
@@ -188,7 +192,7 @@ class Car < ApplicationRecord
     # stays rather than disappearing with the one that goes.
     keep.update_columns(favourite: true) if gone.any?(&:favourite) && !keep.favourite
 
-    gone.each { |car| car.update_columns(visible: false, hidden_by: reason) }.size
+    gone.each { |car| car.update_columns(hidden_by: reason) }.size
   end
 
   def hidden_by_hand?
@@ -271,7 +275,7 @@ class Car < ApplicationRecord
       next unless car.version.to_s.match?(PURE)
       next unless car.bargain_eur.to_i >= PURE_BARGAIN
 
-      car.update_columns(visible: false, hidden_by: "pure model")
+      car.update_columns(hidden_by: "pure model")
       hidden += 1
     end
 
@@ -344,7 +348,7 @@ class Car < ApplicationRecord
       stated = car.battery_kwh
       next if stated.nil? || stated >= minimum
 
-      car.update_columns(visible: false, hidden_by: "battery too small")
+      car.update_columns(hidden_by: "battery too small")
       hidden += 1
     end
 
@@ -367,7 +371,7 @@ class Car < ApplicationRecord
   end
 
   # Rows that are the same listing re-arrived under a new url. Keeps the one
-  # that is visible, or the oldest when none is, and carries over any note.
+  # that is not binned, or the oldest when all are, and carries over any note.
   # Returns the number of rows removed.
   def self.merge_relisted!
     removed = 0
@@ -375,7 +379,7 @@ class Car < ApplicationRecord
     where.not(fingerprint: nil).group_by(&:fingerprint).each do |_, group|
       next if group.size < 2
 
-      keep = group.find(&:visible?) || group.min_by(&:id)
+      keep = group.find(&:shown?) || group.min_by(&:id)
       note = group.filter_map { |car| car.comments.presence }.first
       keep.update_columns(comments: note) if note && keep.comments.blank?
 
@@ -437,7 +441,7 @@ class Car < ApplicationRecord
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    ["country", "created_at", "currency", "data", "distance_km", "eur", "favourite", "id", "id_value", "bargain_eur", "km", "kwh", "landed_eur", "location", "model_id", "price", "seats", "updated_at", "url", "version", "visible", "year"]
+    ["country", "created_at", "currency", "data", "distance_km", "eur", "favourite", "id", "id_value", "bargain_eur", "km", "kwh", "landed_eur", "location", "model_id", "price", "seats", "updated_at", "url", "version", "year"]
   end
 
   # Instance methods:
@@ -482,6 +486,15 @@ class Car < ApplicationRecord
 
   # The picture the pages show: our own copy when we have one, and the site's
   # own until then, so a car that arrived a minute ago still has a photograph.
+  # In the bin, or on the pages. hidden_by says which, and why.
+  def binned?
+    hidden_by.present?
+  end
+
+  def shown?
+    hidden_by.nil?
+  end
+
   def photo_url
     photo_stored? ? "#{Photos::PATH}/#{photo}" : image_url
   end
@@ -647,7 +660,6 @@ class Car < ApplicationRecord
   def hide_when_as_good_as_new
     return unless km && km <= AS_NEW_KM
 
-    self.visible  = false
     self.hidden_by = "as new"
   end
 

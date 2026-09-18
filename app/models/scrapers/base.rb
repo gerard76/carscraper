@@ -108,7 +108,7 @@ class Scrapers::Base
   # A listing we already have. The seller may have dropped the price since, or
   # the car may have driven on, and a stale price is worse than no price on a
   # graph you read for bargains. Only what the site owns is touched: whether a
-  # car is visible, and any note on it, are yours.
+  # car is in the bin, and any note on it, are yours.
   def refresh(fresh, stored = nil)
     stored ||= Car.find_by(url: fresh.url)
     return :known if stored.nil?

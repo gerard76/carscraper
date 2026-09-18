@@ -22,7 +22,7 @@
         this is also the only place a car that a RULE put away can be brought
         back, since the bin only holds what you crossed off yourself. %>
     <p class="car-state">
-      <% if @car.visible %>
+      <% if @car.shown? %>
         <%= button_to hide_car_path(@car), method: :patch, class: "bin-it",
               title: "Put this one in the bin" do %>
           <span class="cross" aria-hidden="true">&times;</span> Put it in the bin

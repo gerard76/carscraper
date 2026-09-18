@@ -102,7 +102,7 @@ longer a duplicate to hide. What a rule hid needs the console to bring back,
 on purpose.
 
 A car is on the pages when two things hold: you have not clicked it away
-(`visible`) and a scraper has seen it on a site lately (`Car.listed`, within
+(`Car.shown`, nothing in `hidden_by`) and a scraper has seen it on a site lately (`Car.listed`, within
 `Car::SEEN_WINDOW`). The two are kept apart on purpose -- one is your decision,
 the other is the market's.
 
@@ -125,7 +125,7 @@ they landed. Now they are recognised and refreshed instead, url and all.
 Mileage is part of the fingerprint on purpose. Without it, six different cars
 from one seller sharing a generic title collapsed into one. `Car.merge_relisted!`
 sweeps up rows that share a fingerprint exactly -- the same listing under a new
-url -- keeping the visible one and carrying over any note.
+url -- keeping the one that is not binned and carrying over any note.
 
 A scraper stops after `MAX_PAGES` pages as a brake, so raise that (or pass
 `scrape(max_pages: 200)`) if a model has more listings than that.
@@ -308,11 +308,25 @@ finds Hengelo. `Car#location` holds whichever came with the listing and
 as a town, whose postcodes are averaged into its middle. finn.no is left out --
 Norway is too far to drive to anyway.
 
+## In the bin, or on the pages
+
+One column says it: `hidden_by`, which is either nil or the reason -- `you`,
+`as new`, `listed on two sites`, `advertised twice`, `same photograph`,
+`battery too small`, `pure model`. `Car.shown` is the ones with no reason,
+`Car.binned` the rest, and `Car.hidden_by_hand` versus `Car.hidden_by_rule`
+tells your decisions from the rules'.
+
+There used to be a `visible` boolean beside it saying the same thing in
+reverse, which is two columns that have to agree -- and the page had a
+"Show on the pages" tick that was on by default, so you binned a car by
+taking a tick away. Both are gone. Neither database had a single row where
+the two disagreed, which is luck rather than design.
+
 ## The same car twice
 
 12gebrauchtwagen carries a lot of what AutoScout24 already has, so one car
 turns up as two listings and counts twice, in the graph and in the trend line.
-`Car.hide_duplicates!` sets all but the cheapest of a set to not visible, which
+`Car.hide_duplicates!` puts all but the cheapest of a set in the bin, which
 is where they stay: a later scrape leaves listings it already has alone. Worth
 running after a scrape.
 
@@ -386,7 +400,7 @@ that do.
 ## New cars, and other currencies
 
 A car at or below `Car::AS_NEW_KM` (100) has delivery mileage, so it is stored
-but starts with `visible` off and stays out of the graph. That only happens
+but starts out binned and stays out of the graph. That only happens
 when it is first scraped -- switch one back on by hand and it stays on.
 
 Prices in kroner are converted with `Car::NOK_PER_EUR` and `Car::SEK_PER_EUR`.

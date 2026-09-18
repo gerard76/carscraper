@@ -38,13 +38,13 @@ class CarsController < ApplicationController
   end
 
   def hide
-    @car.update_columns(visible: false, hidden_by: Car::BY_HAND)
+    @car.update_columns(hidden_by: Car::BY_HAND)
 
     redirect_back fallback_location: photos_cars_path, notice: "Put away. It is in the bin."
   end
 
   def unhide
-    @car.update_columns(visible: true, hidden_by: nil)
+    @car.update_columns(hidden_by: nil)
 
     redirect_back fallback_location: bin_cars_path, notice: "Back on the pages."
   end

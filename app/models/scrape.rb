@@ -74,7 +74,7 @@ class Scrape
 
     fit = Car.recalculate_bargains!
     report.call "worked the bargains out again: #{fit.coefficients.inspect}"
-    report.call "#{Car.visible.count} cars visible of #{Car.count}"
+    report.call "#{Car.shown.count} cars on the pages of #{Car.count}"
 
     fit
   end
