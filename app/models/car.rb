@@ -43,9 +43,19 @@ class Car < ApplicationRecord
 
   # What it costs to get a car onto Dutch plates, on top of the asking price.
   #
-  # 1700 is what Das Import quotes all-in for fetching a car from Germany --
-  # their service, transport, the RDW fees and the registration -- and the same
-  # goes for Belgium and Luxembourg, which are no further away.
+  # 1700 is Das Import's standard package, all-in: purchase handling, all-risk
+  # transport on a trailer, the RDW inspection, the BPM declaration, the plates
+  # and the storage. 1699,99 including VAT at the time of writing.
+  #
+  # They quote the same package for Belgium, so that one is their number too
+  # rather than a guess -- with their own caveat attached: "omdat de Belgische
+  # markt echter een net iets andere markt is dan de Duitse markt waar wij
+  # voornamelijk in actief zijn, vragen wij u altijd eerst even overleg te
+  # plegen". So treat it as the right order of magnitude and ring them before
+  # you count on it to the euro.
+  #
+  # Luxembourg is the one that is still an assumption: no quote, just a country
+  # that is no further away.
   #
   # There is no tax to add on top of it: a fully electric car owes no BPM.
   # That is what makes one flat figure enough. A Cargo on grey plates is a

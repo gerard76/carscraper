@@ -77,6 +77,38 @@ class Postcode < ApplicationRecord
     code.to_s.scan(/\d/).join
   end
 
+  # Which country a location is in, as the scrapers' own country codes, or nil
+  # when no table we have has that postcode.
+  #
+  # An aggregator files every listing under its own country: 12gebrauchtwagen
+  # is German, so a seller in Willemstad arrived here as German and had 1700
+  # euro of import costs added to a car that was already in the country. The
+  # postcode is better evidence than the site's letterhead.
+  def self.country_of(location)
+    code = digits(location)
+    return nil if code.blank?
+
+    found = where(code: code).distinct.pluck(:country)
+    return site_code(found.first) if found.one?
+    return nil if found.empty?
+
+    # Four digits is Belgium and Luxembourg alike, so the town decides.
+    key = place_key(town_in(location))
+    site_code(where(code: code, place_key: key).pick(:country)) if key.present?
+  end
+
+  # "8830 Hooglede" -> "Hooglede", "4797SG Willemstad" -> "Willemstad". The
+  # postcode leads and the town follows, letters of a Dutch one included.
+  def self.town_in(location)
+    location.to_s.sub(/\A\s*\d[\d\s]*([A-Za-z]{2}\b)?\s*/, "").strip
+  end
+
+  def self.site_code(iso)
+    return nil if iso.blank?
+
+    ISO_CODES.key(iso.to_s.upcase) || iso.to_s.downcase
+  end
+
   def self.iso_code(country)
     ISO_CODES.fetch(country.to_s.strip.downcase, country.to_s.strip.upcase)
   end

@@ -79,16 +79,23 @@ class Scrapers::GebrauchtwagenDe < Scrapers::Base
       return
     end
 
+    location = squish(card.at_css(".offer-card-location")&.text)
+
     save_car(
       url:        card["href"],
-      location:   squish(card.at_css(".offer-card-location")&.text),
+      location:   location,
       image:      card.at_css("img")&.[]("src"),
       version:    strip_make_and_model(title),
       exclude_on: title,
       price:      price,
       km:         pills.find { |pill| pill.match?(MILEAGE) },
       year:       year,
-      country:    COUNTRY,
+      # This is a German site, but it searches mobile.de and heycar and those
+      # carry sellers who are not: a Willemstad car came in as German and was
+      # charged 1700 euro to fetch from a country it was already in. Believe
+      # the postcode over the letterhead, and fall back to the site when no
+      # table we have recognises it.
+      country:    Postcode.country_of(location) || COUNTRY,
       currency:   "EUR",
     )
   end
