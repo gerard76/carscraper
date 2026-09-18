@@ -550,7 +550,10 @@ started with `GOOD_JOB_ENABLE_CRON=1` acts on it -- the job role, and nothing
 else -- so the web container cannot enqueue a scrape of its own.
 
 `Scrape` is the whole of it, and `bin/rails cars:scrape` is the same class from
-the command line. It has one guard worth knowing about: a source that is
+the command line. `bin/rails cars:tidy` is the tidying up on its own, for when
+a duplicate has to be found again without asking the sites anything --
+`bin/kamal tidy` runs it on the droplet. It removes nothing: what looks gone
+can only be judged by a round that has just been past the sites. It has one guard worth knowing about: a source that is
 blocked or has changed its markup returns nothing, and the listings it had
 would then all look gone. So a source's cars are only removed when this round
 saw at least half of what that source already had (`Scrape::MOST_OF_THEM`),

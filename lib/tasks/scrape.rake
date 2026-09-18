@@ -5,6 +5,13 @@ namespace :cars do
     # file: rake reads its task files before Rails is loaded.
     Scrape.call(report: method(:puts))
   end
+
+  desc "Find the duplicates and the trims you do not want, without scraping"
+  task tidy: :environment do
+    # Asks the sites nothing. Removes nothing either: what looks gone can only
+    # be judged by a round that has just been past the sites.
+    Scrape.new(report: method(:puts)).tidy_up
+  end
 end
 
 namespace :cars do

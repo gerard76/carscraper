@@ -93,6 +93,8 @@ aliases:
   # tunnel (README.md): the sites are friendlier to a home address than to a
   # data centre.
   scrape: app exec "bin/rails cars:scrape"
+  # Find the duplicates again without asking the sites anything.
+  tidy: app exec --roles=job "bin/rails cars:tidy"
 
 # Lets a deploy hand the previous version's fingerprinted assets to the new
 # one, so a page loaded a second before the switch keeps working.

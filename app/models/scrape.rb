@@ -36,7 +36,7 @@ class Scrape
       end
     end
 
-    fit = tidy_up(started)
+    fit = tidy_up(since: started)
 
     # After the tidying up, so nothing is fetched for a car that was just
     # hidden as a duplicate or thrown away as gone. That does mean a battery
@@ -49,22 +49,16 @@ class Scrape
     fit
   end
 
-  private
-
-  attr_reader :report
-
-  # Left out on purpose: finn.no. Norway is too far to drive to.
-  def scrapers
-    [Scrapers::Autoscout24, Scrapers::GebrauchtwagenDe, Scrapers::Autotrack, Scrapers::Gaspedaal]
-  end
-
-  def tidy_up(started)
+  # The tidying up on its own, for when something has to be found again without
+  # asking the sites anything: `bin/rails cars:tidy`. Without `since:` nothing
+  # is removed -- that decision needs to know what a round has just seen.
+  def tidy_up(since: nil)
     report.call "== tidying up =="
     report.call "merged away #{Car.merge_relisted!} rows that were the same listing twice"
     report.call "hid #{Car.hide_duplicates!} listings that were already here"
     report.call "hid #{Car.hide_small_batteries!} listings whose battery is too small"
 
-    remove_vanished(started)
+    remove_vanished(since) if since
 
     # Twice around: the Pure is spotted by how far under the line it sits, and
     # taking a couple of dozen of them out moves the line the rest are judged
@@ -77,6 +71,15 @@ class Scrape
     report.call "#{Car.shown.count} cars on the pages of #{Car.count}"
 
     fit
+  end
+
+  private
+
+  attr_reader :report
+
+  # Left out on purpose: finn.no. Norway is too far to drive to.
+  def scrapers
+    [Scrapers::Autoscout24, Scrapers::GebrauchtwagenDe, Scrapers::Autotrack, Scrapers::Gaspedaal]
   end
 
   def remove_vanished(started)
