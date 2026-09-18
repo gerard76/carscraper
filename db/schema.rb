@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_072316) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -39,7 +39,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_100000) do
     t.datetime "updated_at", null: false
     t.string "url"
     t.string "version"
-    t.boolean "visible", default: true
     t.date "year"
     t.index ["bargain_eur"], name: "index_cars_on_bargain_eur"
     t.index ["fingerprint"], name: "index_cars_on_fingerprint"
