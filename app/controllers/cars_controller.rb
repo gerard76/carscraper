@@ -62,14 +62,26 @@ class CarsController < ApplicationController
   def update
     changes = car_params.to_h
 
-    # The star on a car's own page is a submit button of this form rather than
-    # a form of its own, so that pressing it keeps the note you were halfway
-    # through instead of reloading the page out from under you.
+    # The star and the bin on a car's own page are submit buttons of the notes
+    # form rather than forms of their own, so that pressing one keeps the note
+    # you were halfway through instead of reloading the page out from under
+    # you. Which is also why they land here and not in #hide and #unhide --
+    # those are for the cross on a photo, where there is no note to lose.
     changes["favourite"] = !@car.favourite if params[:toggle_favourite]
+    changes["hidden_by"] = Car::BY_HAND if params[:bin]
+    changes["hidden_by"] = nil if params[:unbin]
 
     @car.update(changes)
 
-    redirect_back fallback_location: cars_path(q: session[:q]), notice: "Saved."
+    notice = if params[:bin]
+               "In the bin."
+             elsif params[:unbin]
+               "Back on the pages."
+             else
+               "Saved."
+             end
+
+    redirect_back fallback_location: cars_path(q: session[:q]), notice: notice
   end
 
   private

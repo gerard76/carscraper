@@ -17,23 +17,11 @@
       <p class="version"><%= @car.title %></p>
     <% end %>
 
-    <%# Keep or bin, the same decision as the cross on a photo. Outside the
-        notes form below, because a form cannot sit inside another one -- and
-        this is also the only place a car that a RULE put away can be brought
-        back, since the bin only holds what you crossed off yourself. %>
-    <p class="car-state">
-      <% if @car.shown? %>
-        <%= button_to hide_car_path(@car), method: :patch, class: "bin-it",
-              title: "Put this one in the bin" do %>
-          <span class="cross" aria-hidden="true">&times;</span> Put it in the bin
-        <% end %>
-      <% else %>
-        <span class="binned">
-          <%= @car.hidden_by_hand? ? "You put this one in the bin." : "A rule put this one away: #{@car.hidden_by}." %>
-        </span>
-        <%= button_to "Put back", unhide_car_path(@car), method: :patch, class: "restore" %>
-      <% end %>
-    </p>
+    <%# Only worth a line when it is out of sight, and then only to say why --
+        the button to do something about it sits next to Save. %>
+    <% if @car.binned? %>
+      <p class="car-state">In the bin<%= ": #{@car.hidden_by}" unless @car.hidden_by_hand? %></p>
+    <% end %>
 
     <table class="facts">
       <tr>
@@ -122,6 +110,16 @@
 
       <div class="filter actions">
         <%= f.submit "Save" %>
+
+        <%# Submit buttons of this same form rather than forms of their own,
+            so the note you were typing is saved along with the decision. %>
+        <% if @car.binned? %>
+          <%= button_tag "Put back", type: "submit", name: "unbin", value: "1", class: "restore" %>
+        <% else %>
+          <%= button_tag "&times;".html_safe, type: "submit", name: "bin", value: "1",
+                class: "bin-it", title: "Put this one in the bin",
+                aria: { label: "Put this one in the bin" } %>
+        <% end %>
       </div>
     <% end %>
   </div>
@@ -196,30 +194,22 @@
     vertical-align: -2px;
   }
   .car-state {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    margin: 0 0 14px;
-  }
-  .car-state form {
-    display: inline;
-  }
-  .car-state .bin-it, .car-state .restore {
-    font-size: 13px;
-    padding: 4px 10px;
-  }
-  .car-state .cross {
-    font-size: 15px;
-    line-height: 1;
-  }
-  .car-state .bin-it:hover {
-    border-color: #c00;
-    color: #c00;
-  }
-  .car-state .binned {
+    margin: -8px 0 14px;
     color: var(--muted);
     font-size: 13px;
+  }
+  .car-notes .bin-it {
+    width: 30px;
+    padding: 0;
+    border: none;
+    background: #c00;
+    color: #fff;
+    font-size: 17px;
+    line-height: 28px;
+    cursor: pointer;
+  }
+  .car-notes .bin-it:hover {
+    background: #a00;
   }
   .car-notes {
     display: flex;
