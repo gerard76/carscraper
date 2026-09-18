@@ -11,7 +11,7 @@
   </div>
 
   <div class="car-facts">
-    <h1><%= render "star", car: @car %> <%= @car.type %></h1>
+    <h1><%= render "star", car: @car, form: "car-notes" %> <%= @car.type %></h1>
     <%# Only when the seller wrote one: the heading already says what it is. %>
     <% if @car.title != @car.type %>
       <p class="version"><%= @car.title %></p>
@@ -95,7 +95,8 @@
       </tr>
     </table>
 
-    <%= form_for @car, html: { class: "car-notes" } do |f| %>
+    <%# Named, because the star up in the heading submits this form too. %>
+    <%= form_for @car, html: { id: "car-notes", class: "car-notes" } do |f| %>
       <div class="filter">
         <%= f.label :comments, "Your notes" %>
         <%= f.text_area :comments, rows: 3 %>

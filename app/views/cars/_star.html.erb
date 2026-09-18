@@ -1,11 +1,26 @@
 <%# One click to mark a car worth coming back to, and the same click to
-    unmark it. The filters can then show nothing else. %>
+    unmark it. The filters can then show nothing else.
+
+    On a list the star is a form of its own: there is nothing else on the row
+    to save. On a car's own page it sits above a note you may be halfway
+    through typing, and a form of its own would post, redirect, and hand you
+    back the page with the note gone -- so pass `form:` there and the star
+    becomes a submit button of that form instead, saving the lot. %>
 <% label = car.favourite ? "Take the star off" : "Star this one" %>
-<%= button_to favourite_car_path(car), method: :patch, form_class: "star-form",
-      class: "star#{" on" if car.favourite}", title: label, aria: { label: label } do %>
+<% attributes = { class: "star#{" on" if car.favourite}", title: label, aria: { label: label } } %>
+
+<% icon = capture do %>
   <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"
        fill="<%= car.favourite ? "currentColor" : "none" %>"
        stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
     <path d="M12 3.6l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6-4.3-4.2 6-.9z" />
   </svg>
+<% end %>
+
+<% if (form = local_assigns[:form]) %>
+  <%= button_tag icon, type: "submit", form: form, name: "toggle_favourite", value: "1", **attributes %>
+<% else %>
+  <%= button_to favourite_car_path(car), method: :patch, form_class: "star-form", **attributes do %>
+    <%= icon %>
+  <% end %>
 <% end %>

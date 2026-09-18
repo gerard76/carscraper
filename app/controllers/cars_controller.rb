@@ -67,6 +67,11 @@ class CarsController < ApplicationController
       changes["hidden_by"] = changes["visible"] == "1" ? nil : Car::BY_HAND
     end
 
+    # The star on a car's own page is a submit button of this form rather than
+    # a form of its own, so that pressing it keeps the note you were halfway
+    # through instead of reloading the page out from under you.
+    changes["favourite"] = !@car.favourite if params[:toggle_favourite]
+
     @car.update(changes)
 
     redirect_back fallback_location: cars_path(q: session[:q]), notice: "Saved."
