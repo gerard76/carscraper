@@ -18,17 +18,23 @@
       car means the advert never said, not that it has none. %>
   <div class="filter">
     <%= f.label :seats_eq, "Seats" %>
-    <%= f.select :seats_eq,
-          options_for_select(Car.on_offer.distinct.pluck(:seats).compact.sort, @q.seats_eq),
+    <%= f.select :seats_eq, options_for_select(stated_options(:seats), chosen(:seats)),
           include_blank: "Any" %>
   </div>
 
-  <%# One battery per generation, so this is the wheelbase in disguise: on the
-      ID. Buzz 77 and 79 are the short one and 86 is the long one. %>
   <div class="filter">
     <%= f.label :kwh_eq, "Battery kWh" %>
-    <%= f.select :kwh_eq,
-          options_for_select(Car.on_offer.distinct.pluck(:kwh).compact.sort, @q.kwh_eq),
+    <%= f.select :kwh_eq, options_for_select(stated_options(:kwh), chosen(:kwh)),
+          include_blank: "Any" %>
+  </div>
+
+  <%# What the battery used to stand in for, asked directly: two in five titles
+      say "langer Radstand", LR or LWB, and 168 of those name no battery at
+      all. See Car.wheelbase_in. %>
+  <div class="filter">
+    <%= f.label :wheelbase_eq, "Wheelbase" %>
+    <%= f.select :wheelbase_eq,
+          options_for_select(stated_options(:wheelbase, labels: { "long" => "Long", "short" => "Short" }), chosen(:wheelbase)),
           include_blank: "Any" %>
   </div>
 

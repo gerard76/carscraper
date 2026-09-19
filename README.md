@@ -205,6 +205,33 @@ cars out again, the way `Car.recalculate_eur!` does for a new exchange rate.
 "0,00 kWh/100 km" arrived as a pack of nought until the pattern learned to
 refuse a slash after the unit.
 
+## What the advert does not say
+
+A rule never judges a car on something its advert did not mention: `min_kwh`
+only looks at an ad that names a battery, `min_seats` keeps a listing that
+names no seat count. The filters used to break that promise quietly -- `Seats`
+and `Battery kWh` asked for a value with `=`, so picking 86 dropped every car
+that says nothing without a word about it, and three in five say nothing.
+
+So every select that reads a field the sellers only sometimes fill in ends with
+`Not stated (612)`: the cars that are silent, and how many of them there are.
+It is a question you can now ask instead of a set you cannot see.
+
+`Wheelbase` is the other half of that. The battery was standing in for it --
+"77 and 79 are the short one, 86 is the long one" -- but that is a fact about
+this year's range rather than about the car, and the title usually says it
+outright, because German sellers write "langer Radstand", LR or LWB to sell it.
+`Car.wheelbase_in` reads that into a column of its own: two in five titles say
+so, as many as name a battery, and 168 of them name a wheelbase while naming no
+battery at all, which takes the two together from 41% of the cars to 63%.
+
+Where both are there they agree: of the cars on offer, 101 long ones also said
+86 kWh and not one said 77 or 79; 59 short ones said 77 or 79 against a single
+86. Six seaters are the exception worth knowing about -- six of them call
+themselves short ("Pro KR AHK Klima Navi 6-Sitzer"), which is either a seller's
+slip or something about the range I have not understood, so the wheelbase is
+read from the title and never inferred from the seat count.
+
 ## Is it a good price
 
 `Car#bargain_eur` says how much less a car asks than comparable cars of its

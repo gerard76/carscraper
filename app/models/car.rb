@@ -89,6 +89,7 @@ class Car < ApplicationRecord
   before_validation :set_eur
   before_validation :hide_when_as_good_as_new, on: :create
   before_validation :set_distance
+  before_validation :set_wheelbase
   before_validation :set_fingerprint
 
   # Why a car is not on the pages. Nil while it is. BY_HAND is the one that
@@ -483,7 +484,7 @@ class Car < ApplicationRecord
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    ["country", "created_at", "currency", "data", "distance_km", "eur", "favourite", "id", "id_value", "bargain_eur", "km", "kwh", "landed_eur", "location", "model_id", "price", "seats", "updated_at", "url", "version", "year"]
+    ["country", "created_at", "currency", "data", "distance_km", "eur", "favourite", "id", "id_value", "bargain_eur", "km", "kwh", "landed_eur", "location", "model_id", "price", "seats", "updated_at", "url", "version", "wheelbase", "year"]
   end
 
   # Instance methods:
@@ -574,6 +575,28 @@ class Car < ApplicationRecord
     return nil if unwrapped_image_url.nil?
 
     unwrapped_image_url.split("?").first[%r{listing-images/([0-9a-f-]+)_}, 1]
+  end
+
+  # Long or short, out of the seller's own title, or nil when it says neither.
+  #
+  # German sellers write it because it sells: "langer Radstand", or LR, or LWB;
+  # the short one is KR, SWB or "kurzer Radstand". Two in five titles say so,
+  # which is as many as name a battery, and the two hardly ever disagree --
+  # over the cars on offer, 101 long ones also said 86 kWh and not one said 77
+  # or 79, while 59 short ones said 77 or 79 against a single 86.
+  #
+  # Worth its own column rather than reading the battery as a stand-in for it:
+  # one battery per wheelbase per generation is true today and is not a fact
+  # about the car, and 168 cars name a wheelbase while naming no battery at
+  # all. Long first, because a title that says both means the long one.
+  LONG_WHEELBASE  = /\b(lwb|lr|langer\s+radstand|lange?\s+wielbasis|long\s+wheel)/i
+  SHORT_WHEELBASE = /\b(swb|kr|kurzer\s+radstand|korte?\s+wielbasis|short\s+wheel)/i
+
+  def self.wheelbase_in(text)
+    return "long"  if text.to_s.match?(LONG_WHEELBASE)
+    return "short" if text.to_s.match?(SHORT_WHEELBASE)
+
+    nil
   end
 
   # The battery in kWh, or nil when nothing we have seen says. Scraped into
@@ -703,6 +726,10 @@ class Car < ApplicationRecord
     return unless km && km <= AS_NEW_KM
 
     self.hidden_by = "as new"
+  end
+
+  def set_wheelbase
+    self.wheelbase = self.class.wheelbase_in(version)
   end
 
   def set_fingerprint

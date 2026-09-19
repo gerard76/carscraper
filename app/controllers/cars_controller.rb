@@ -208,6 +208,16 @@ class CarsController < ApplicationController
 
     q = params[:q].dup
 
+    # "Not stated" is a different question from a value, and ransack asks it
+    # under another name: a car that says nothing about its battery is not a
+    # car that says zero.
+    %w[kwh seats wheelbase].each do |field|
+      next unless q["#{field}_eq"] == CarsHelper::NOT_STATED
+
+      q.delete("#{field}_eq")
+      q["#{field}_null"] = true
+    end
+
     if q[:year_min].present?
       year_start = Date.new(q.delete(:year_min).to_i, 1, 1)
       q[:year_gteq] = year_start
