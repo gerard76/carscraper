@@ -668,9 +668,27 @@ again for something it already told us. Left out: the fifteen kilobytes of loan
 offers, the tracking parameters, and `vehicle.rawData`, which is the same facts
 again in the site's own shorthand.
 
-Only for pages read from now on, and only AutoScout24, which is the one site
-whose detail page this knows how to read -- and only from a machine it answers,
+Only for pages read from now on, and only from a machine AutoScout24 answers,
 which is not the droplet.
+
+12gebrauchtwagen has no readable page of its own -- every one of its links is
+`/c/partner?offer_id=...`, a redirect to whoever actually has the car -- but
+three out of four of those land on AutoScout24, which is a page this already
+knows. Of a sample of twelve: nine AutoScout24, two mobile.de (403 to anyone,
+us included) and one dealer's own site. So `Details` follows them, and of the
+first five tried, four read: seats for all four, a battery for two, and the
+colour for each.
+
+That is worth knowing about in requests: a car behind a partner link costs
+three of them rather than one, because the redirect goes through two hops. 454
+such cars are waiting, against 208 direct ones, so a first pass is three rounds
+at `MOST_PER_ROUND`. Each of them is asked once and stamped, including the ones
+that turn out to be mobile.de or a dealer's own site -- a page we could not use
+cost a request all the same.
+
+A refusal only ends a round when it comes from a host we are actually reading.
+mobile.de saying 403 is one listing we cannot have; AutoScout24 saying it five
+times running is the door.
 
 ## The droplet is blocked, and this is what that looks like
 

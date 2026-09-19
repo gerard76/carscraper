@@ -14,7 +14,17 @@
 # Only AutoScout24: it is where four fifths of the cars come from, and it is
 # the only one of the four whose detail page we know how to read.
 class Details
-  HOST = "www.autoscout24.nl".freeze
+  # The site whose advert pages this knows how to read. Its German sister
+  # serves the same application, so the same reader gets the same answer.
+  HOSTS = %w[www.autoscout24.nl www.autoscout24.de].freeze
+
+  # And the way in for a car that is not filed under one of those. A
+  # 12gebrauchtwagen link is a redirect to whoever actually has the car, and
+  # three out of four of them land on AutoScout24 -- so following it costs one
+  # request and reads like any other advert. Of a sample of twelve: nine
+  # AutoScout24, two mobile.de (which answers 403 to anyone) and one dealer's
+  # own site.
+  VIA = "https://www.12gebrauchtwagen.de/c/partner%".freeze
 
   # The first round has a few hundred to read and every round after it has the
   # handful that came in. A second between them -- slower than Photos, because
@@ -103,7 +113,7 @@ class Details
       when :refused
         refusals += 1
         if refusals >= REFUSALS_BEFORE_GIVING_UP
-          report.call "  #{HOST} turned us away #{refusals} times running, so that is the door and not the listings. " \
+          report.call "  turned away #{refusals} times running, so that is the door and not the listings. " \
                       "Leaving the rest; run this from a machine it answers."
           break
         end
@@ -138,15 +148,23 @@ class Details
   RE_READ_AFTER = 30.days
 
   def unread
+    readable = HOSTS.map { |host| "url like 'https://#{host}/%'" }.join(" or ")
+
     Car.on_offer.where(seats: nil).or(Car.on_offer.where(kwh: nil))
-       .where("url like ?", "https://#{HOST}/%")
+       .where("#{readable} or url like ?", VIA)
        .where("details_at is null or details_at < ?", RE_READ_AFTER.ago)
   end
 
   def read(car)
     listing = fetch(car)
     return listing if listing == :refused
-    return false if listing.nil?
+
+    # Fetched and useless -- a dealer's own site, a listing taken down -- is
+    # still a request spent, so it is stamped and not asked again for a month.
+    if listing.nil?
+      car.update_columns(details_at: Time.current)
+      return false
+    end
 
     vehicle = listing["vehicle"] || {}
 
@@ -201,7 +219,15 @@ class Details
     response = HTTParty.get(car.url,
                             headers: { "User-Agent" => Scrapers::Base::USER_AGENT },
                             timeout: 20)
-    return :refused if REFUSED.include?(response.code)
+    # A refusal only counts as the door being shut on us when it comes from the
+    # site we are a guest of. Following a 12gebrauchtwagen link can end up at
+    # mobile.de, which answers 403 to everyone; that is one listing we cannot
+    # read, not a reason to end the round.
+    if REFUSED.include?(response.code)
+      landed = response.request.last_uri.host.to_s
+      return HOSTS.include?(landed) ? :refused : nil
+    end
+
     return nil unless response.code == 200
 
     script = Nokogiri::HTML(response.body).at_css(DATA) or return nil
