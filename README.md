@@ -690,6 +690,15 @@ A refusal only ends a round when it comes from a host we are actually reading.
 mobile.de saying 403 is one listing we cannot have; AutoScout24 saying it five
 times running is the door.
 
+What costs time here is not the pacing. Of 110 cars read in one pass the median
+was 1.3 seconds each -- a second of that our own pause -- but two took 273 and
+196 seconds between them, eight of the ten minutes, both dealers' own sites at
+the end of a partner link. HTTParty's timeout is per hop and starts over on
+every chunk that arrives, so a server answering in a trickle holds the round
+for minutes. `MAX_SECONDS` is a hard ceiling of fifteen seconds on one car,
+redirects included, and a car that hits it is stamped like any other: asked
+once, not again for a month.
+
 ## The droplet is blocked, and this is what that looks like
 
 Measured on the first scheduled round, 17 September 2026:

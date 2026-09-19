@@ -42,6 +42,13 @@ class Details
   # answers is a listing that has been taken down; five in a row is the door.
   REFUSALS_BEFORE_GIVING_UP = 5
 
+  # A hard ceiling on one car, redirects and all. HTTParty's own timeout is per
+  # hop and starts again on every chunk that arrives, so a server that answers
+  # in a trickle holds the round for minutes: of 110 cars read, two took 273
+  # and 196 seconds between them -- eight of the ten minutes -- while the
+  # median was 1.3. Both were dealers' own sites at the end of a partner link.
+  MAX_SECONDS = 15
+
   # What a closed door looks like: 403 outright, or 429 asking us to slow down
   # further than a round has patience for.
   REFUSED = [403, 429].freeze
@@ -216,9 +223,12 @@ class Details
   end
 
   def fetch(car)
-    response = HTTParty.get(car.url,
-                            headers: { "User-Agent" => Scrapers::Base::USER_AGENT },
-                            timeout: 20)
+    response = Timeout.timeout(MAX_SECONDS) do
+      HTTParty.get(car.url,
+                   headers: { "User-Agent" => Scrapers::Base::USER_AGENT },
+                   timeout: 10,
+                   limit: 4)
+    end
     # A refusal only counts as the door being shut on us when it comes from the
     # site we are a guest of. Following a 12gebrauchtwagen link can end up at
     # mobile.de, which answers 403 to everyone; that is one listing we cannot
