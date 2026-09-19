@@ -121,12 +121,20 @@ class Details
     filled
   end
 
-  # A listing whose seat count we do not have yet. A car whose page turns out
-  # not to state one is asked again next round; that is the same bargain
-  # Photos makes with a picture that will not download, and a listing that
-  # answers nothing twice is usually one that is about to be removed anyway.
+  # A listing whose seat count or battery we do not have yet. The seat count
+  # alone left a hole: the page is read for a car that names neither, and the
+  # seat count nearly always comes back, so a car that stated its seats in the
+  # title but not its battery was never asked at all -- 237 of the 583 on offer
+  # from this host, all of them showing up under "Not stated" in the filter
+  # while their own page may well say.
+  #
+  # A car whose page turns out to state neither is asked again next round; that
+  # is the same bargain Photos makes with a picture that will not download, and
+  # a listing that answers nothing twice is usually one that is about to be
+  # removed anyway.
   def unread
-    Car.on_offer.where(seats: nil).where("url like ?", "https://#{HOST}/%")
+    Car.on_offer.where(seats: nil).or(Car.on_offer.where(kwh: nil))
+       .where("url like ?", "https://#{HOST}/%")
   end
 
   def read(car)
