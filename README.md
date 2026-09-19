@@ -652,6 +652,26 @@ of the droplet -- shows the sites' own pictures rather than six hundred broken
 ones, and the next scrape fetches what is missing. It costs one stat per car,
 about a millisecond over a whole page.
 
+## What the listing page said
+
+`Details` keeps the page it read, in the `data` column: the seller's own text
+and the whole `vehicle` block -- `bodyColor`, `powerInKw`,
+`electricRangeWithFallback`, `wheelBase`, the equipment list by category,
+`hadAccident`, `noOfPreviousOwners`, `hasFullServiceHistory`, `upholstery`, and
+a good deal more. About 17 kB a car, so roughly 17 MB for the AutoScout24 half
+of the stock.
+
+It is kept because the request has already been made. Two numbers were all the
+scraper needed, but a question asked next month -- what colour is it, has it
+been in an accident, what is in it -- would otherwise mean asking the site
+again for something it already told us. Left out: the fifteen kilobytes of loan
+offers, the tracking parameters, and `vehicle.rawData`, which is the same facts
+again in the site's own shorthand.
+
+Only for pages read from now on, and only AutoScout24, which is the one site
+whose detail page this knows how to read -- and only from a machine it answers,
+which is not the droplet.
+
 ## The droplet is blocked, and this is what that looks like
 
 Measured on the first scheduled round, 17 September 2026:

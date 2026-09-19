@@ -155,6 +155,21 @@ class Details
 
     changes[:kwh] = battery(vehicle, listing["description"].to_s) if car.kwh.nil?
 
+    # Keep what the page said, not only the two numbers we came for. The
+    # request has been made and the answer is full of things worth asking
+    # later -- wheelBase and bodyColor, the equipment list, whether it has been
+    # in an accident, how many owners, the seller's own text. Reading it again
+    # in a month costs another request; a few kilobytes of json does not.
+    #
+    # Left out: financingAndInsurance (15 kB of loan offers), the tracking
+    # parameters, and vehicle.rawData, which is the same facts again in the
+    # site's own shorthand.
+    changes[:data] = {
+      "read_at"     => Time.current,
+      "description" => listing["description"],
+      "vehicle"     => vehicle.except("rawData")
+    }
+
     changes.compact!
 
     # Stamped whether or not the page told us anything: what it cost was the
