@@ -529,6 +529,23 @@ class Car < ApplicationRecord
 
   # The picture the pages show: our own copy when we have one, and the site's
   # own until then, so a car that arrived a minute ago still has a photograph.
+  # What you have put right by hand.
+  #
+  # The advert is not always the truth: car 1616 says eight seats in
+  # AutoScout24's own structured field, and there are five in its photograph.
+  # An ID. Buzz is built as a five, six or seven seater, so the seller simply
+  # typed the wrong thing -- and without this the next scrape would read that
+  # field again and write the eight straight back.
+  #
+  # Same idea as hidden_by: "you" outranks what a site says.
+  def correct!(field, value)
+    update_columns(field => value, corrections: corrections.merge(field.to_s => value))
+  end
+
+  def corrected?(field)
+    corrections.is_a?(Hash) && corrections.key?(field.to_s)
+  end
+
   # In the bin, or on the pages. hidden_by says which, and why.
   def binned?
     hidden_by.present?

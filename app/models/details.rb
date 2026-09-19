@@ -78,7 +78,23 @@ class Details
   end
 
   def call
-    from_titles + from_pages
+    before = counts
+
+    read = from_titles + from_pages
+    gained = counts.map { |field, after| [field, before[field] - after] }.to_h
+
+    if gained.values.any?(&:positive?)
+      report.call "that is #{gained[:seats]} more seat #{"count".pluralize(gained[:seats])} and #{gained[:kwh]} more #{"battery".pluralize(gained[:kwh])}"
+    end
+
+    read
+  end
+
+  # What is still missing, to say afterwards what the round actually bought --
+  # every page now stores what it said, so "filled in" counts pages read and
+  # not answers gained.
+  def counts
+    { seats: Car.on_offer.where(seats: nil).count, kwh: Car.on_offer.where(kwh: nil).count }
   end
 
   private
@@ -134,7 +150,7 @@ class Details
       sleep DELAY
     end
 
-    report.call "filled in #{filled} of them"
+    report.call "read #{filled} of them"
     filled
   end
 
@@ -160,25 +176,32 @@ class Details
     Car.on_offer.where(seats: nil).or(Car.on_offer.where(kwh: nil))
        .where("#{readable} or url like ?", VIA)
        .where("details_at is null or details_at < ?", RE_READ_AFTER.ago)
+       .where("data->>'refused_by' is null")
   end
 
   def read(car)
+    @landed = @refused_by = nil
     listing = fetch(car)
     return listing if listing == :refused
 
     # Fetched and useless -- a dealer's own site, a listing taken down -- is
     # still a request spent, so it is stamped and not asked again for a month.
     if listing.nil?
-      car.update_columns(details_at: Time.current)
+      # Where it ended up, so the next question about this car -- why have we
+      # nothing on it -- is answerable without asking anyone. A site that
+      # refuses everyone is never asked again, not even after RE_READ_AFTER:
+      # mobile.de will still be refusing everyone next month.
+      car.update_columns(details_at: Time.current,
+                         data: { "read_at" => Time.current, "landed_on" => @landed, "refused_by" => @refused_by }.compact)
       return false
     end
 
     vehicle = listing["vehicle"] || {}
 
     changes = {}
-    changes[:seats] = vehicle["numberOfSeats"]
+    changes[:seats] = vehicle["numberOfSeats"] unless car.corrected?(:seats)
 
-    changes[:kwh] = battery(vehicle, listing["description"].to_s) if car.kwh.nil?
+    changes[:kwh] = battery(vehicle, listing["description"].to_s) if car.kwh.nil? && !car.corrected?(:kwh)
 
     # Keep what the page said, not only the two numbers we came for. The
     # request has been made and the answer is full of things worth asking
@@ -233,9 +256,14 @@ class Details
     # site we are a guest of. Following a 12gebrauchtwagen link can end up at
     # mobile.de, which answers 403 to everyone; that is one listing we cannot
     # read, not a reason to end the round.
+    @landed = response.request.last_uri.host.to_s
+
     if REFUSED.include?(response.code)
-      landed = response.request.last_uri.host.to_s
-      return HOSTS.include?(landed) ? :refused : nil
+      # Our own door being shut, or a site we were only passing through.
+      return :refused if HOSTS.include?(@landed)
+
+      @refused_by = @landed
+      return nil
     end
 
     return nil unless response.code == 200

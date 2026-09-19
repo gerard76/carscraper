@@ -127,8 +127,8 @@ class Scrapers::Base
     # Only ever filled in, never wiped: Details reads these off the listing's
     # own page, which knows far more than the search card, and a re-scrape of
     # that card must not throw its answer away.
-    stored.seats = fresh.seats if fresh.seats.present?
-    stored.kwh   = fresh.kwh   if fresh.kwh.present?
+    stored.seats = fresh.seats if fresh.seats.present? && !stored.corrected?(:seats)
+    stored.kwh   = fresh.kwh   if fresh.kwh.present? && !stored.corrected?(:kwh)
 
     return :known unless stored.changed?
 

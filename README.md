@@ -232,6 +232,23 @@ themselves short ("Pro KR AHK Klima Navi 6-Sitzer"), which is either a seller's
 slip or something about the range I have not understood, so the wheelbase is
 read from the title and never inferred from the seat count.
 
+## When the advert is wrong
+
+Car 1616 says eight seats -- not scraped out of a title, but in AutoScout24's
+own structured field, so the seller typed it. An ID. Buzz is built as a five,
+six or seven seater, and there are five in the photograph.
+
+`Car#correct!` puts such a thing right and remembers that you did:
+
+```ruby
+Car.find(1616).correct!(:seats, 5)
+```
+
+The remembering is the point. Both writers ask first -- the scraper's `refresh`
+and `Details#read` -- so the next round cannot read that field again and write
+the eight straight back. It is the same rule as the bin: `you` outranks what a
+site says.
+
 ## Is it a good price
 
 `Car#bargain_eur` says how much less a car asks than comparable cars of its

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_201810) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_204554) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -18,6 +18,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_201810) do
   create_table "cars", force: :cascade do |t|
     t.integer "bargain_eur"
     t.text "comments"
+    t.json "corrections", default: {}
     t.string "country"
     t.datetime "created_at", null: false
     t.string "currency"
