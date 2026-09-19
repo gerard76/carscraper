@@ -15,10 +15,16 @@ class Photos
   PATH = "/photos".freeze
 
   # The first round has six hundred to fetch and every round after it has the
-  # handful that came in. A fifth of a second between them, in the same spirit
-  # as the pause between scraped pages.
-  MOST_PER_ROUND = 500
-  DELAY = 0.2
+  # handful that came in -- forty on a busy day. Half a second between them and
+  # two hundred at most, so a backlog is spread over days instead of arriving
+  # as five requests a second: the pictures are not urgent and nobody has to
+  # notice us fetching them.
+  MOST_PER_ROUND = 200
+  DELAY = 0.5
+
+  # A picture server that starts saying no is saying it about us, not about
+  # this picture. Same bargain as Details makes with the listing pages.
+  REFUSALS_BEFORE_GIVING_UP = 5
 
   # The extension follows what the bytes actually are, not what the url says:
   # AutoScout24 serves ".jpg/250x188.webp", which is a webp.
@@ -59,22 +65,42 @@ class Photos
 
     report.call "fetching #{wanted.size} #{"photograph".pluralize(wanted.size)}..."
 
-    wanted.count do |car|
-      name = download(car)
-      next false if name.nil?
+    kept     = 0
+    refusals = 0
 
-      previous = car.photo
-      car.update_columns(photo: name)
-      delete_unless_shared(previous) if previous.present? && previous != name
+    wanted.each do |car|
+      name = download(car)
+
+      case name
+      when :refused
+        refusals += 1
+        if refusals >= REFUSALS_BEFORE_GIVING_UP
+          report.call "  turned away #{refusals} times running, so that is us and not the pictures. Leaving the rest."
+          break
+        end
+      when nil
+        refusals = 0
+      else
+        refusals = 0
+        previous = car.photo
+        car.update_columns(photo: name)
+        delete_unless_shared(previous) if previous.present? && previous != name
+        kept += 1
+      end
+
+      # Also after a failure: a run of misses used to go out at full speed,
+      # which is exactly when slowing down matters.
       sleep DELAY
-      true
     end
+
+    kept
   end
 
   def download(car)
     response = HTTParty.get(car.unwrapped_image_url,
                             headers: { "User-Agent" => Scrapers::Base::USER_AGENT },
                             timeout: 15)
+    return :refused if [401, 403, 429].include?(response.code)
     return nil unless response.code == 200
 
     type = TYPES[response.headers["content-type"].to_s.split(";").first.to_s.strip]

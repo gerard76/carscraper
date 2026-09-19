@@ -604,6 +604,23 @@ markup and the "no more results" check stops working, each scraper runs to
 `MAX_PAGES` -- 40 a country for AutoScout24, 80 for 12gebrauchtwagen -- so
 about 560 requests in a day rather than 120.
 
+Everything that leaves this app is paced and capped, and gives up when it is
+told no:
+
+| | between requests | at most per round | stops after |
+| --- | --- | --- | --- |
+| search pages | 3s | 40 pages a country | one page that is not a 200 |
+| listing pages (`Details`) | 1s | 300 | 5 refusals in a row |
+| photographs (`Photos`) | 0.5s | 200 | 5 refusals in a row |
+
+So a round with a full backlog is 560 requests over ten minutes -- one a second
+on average, never two at once -- and an ordinary round is a tenth of that. Two
+rules keep it from turning into repetition: `Details` stamps `details_at`
+whether or not the page told it anything, so a page that does not name a
+battery is not asked again for `RE_READ_AFTER` (a month), and `Photos` sleeps
+after a failure as well as after a success, which is exactly when slowing down
+matters.
+
 The photographs used to be the heavy part, and not from the scraping: every
 view of `/cars/photos` asked their servers for six hundred pictures. `Photos`
 fetches each card picture once -- a fifth of a second apart, at most 500 in a

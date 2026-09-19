@@ -121,20 +121,26 @@ class Details
     filled
   end
 
-  # A listing whose seat count or battery we do not have yet. The seat count
-  # alone left a hole: the page is read for a car that names neither, and the
-  # seat count nearly always comes back, so a car that stated its seats in the
-  # title but not its battery was never asked at all -- 237 of the 583 on offer
-  # from this host, all of them showing up under "Not stated" in the filter
-  # while their own page may well say.
+  # A listing whose seat count or battery we do not have, and whose page we
+  # have not already asked.
   #
-  # A car whose page turns out to state neither is asked again next round; that
-  # is the same bargain Photos makes with a picture that will not download, and
-  # a listing that answers nothing twice is usually one that is about to be
-  # removed anyway.
+  # Both halves were learned the hard way. Picking cars by a missing seat count
+  # alone left a hole -- the page nearly always states the seats, so a car that
+  # named its seats in the title but not its battery was never asked at all,
+  # 236 of the 583 on offer. And then asking those 236 turned up a battery on
+  # only 32 of them, because AutoScout24 mostly does not print one: without
+  # details_at the next round would have asked the other 204 all over again,
+  # twice a day, for nothing. A page that does not say today does not say
+  # tomorrow.
+  #
+  # RE_READ_AFTER is for the listing that is edited later. A refusal is not an
+  # answer, so a blocked round stamps nothing and changes none of this.
+  RE_READ_AFTER = 30.days
+
   def unread
     Car.on_offer.where(seats: nil).or(Car.on_offer.where(kwh: nil))
        .where("url like ?", "https://#{HOST}/%")
+       .where("details_at is null or details_at < ?", RE_READ_AFTER.ago)
   end
 
   def read(car)
@@ -150,10 +156,11 @@ class Details
     changes[:kwh] = battery(vehicle, listing["description"].to_s) if car.kwh.nil?
 
     changes.compact!
-    return false if changes.empty?
 
-    car.update_columns(changes)
-    true
+    # Stamped whether or not the page told us anything: what it cost was the
+    # request, and that is the thing not to spend twice.
+    car.update_columns(changes.merge(details_at: Time.current))
+    changes.any?
   end
 
   # The battery is not a field of its own here, so it is read off three things

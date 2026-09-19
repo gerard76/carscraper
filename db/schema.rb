@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_180829) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_201810) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -22,6 +22,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_180829) do
     t.datetime "created_at", null: false
     t.string "currency"
     t.json "data", default: {}
+    t.datetime "details_at"
     t.integer "distance_km"
     t.integer "eur"
     t.boolean "favourite", default: false, null: false
@@ -42,6 +43,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_180829) do
     t.string "wheelbase"
     t.date "year"
     t.index ["bargain_eur"], name: "index_cars_on_bargain_eur"
+    t.index ["details_at"], name: "index_cars_on_details_at"
     t.index ["fingerprint"], name: "index_cars_on_fingerprint"
     t.index ["hidden_by"], name: "index_cars_on_hidden_by"
     t.index ["kwh"], name: "index_cars_on_kwh"
