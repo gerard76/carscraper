@@ -689,12 +689,21 @@ Only for pages read from now on, and only from a machine AutoScout24 answers,
 which is not the droplet.
 
 12gebrauchtwagen has no readable page of its own -- every one of its links is
-`/c/partner?offer_id=...`, a redirect to whoever actually has the car -- but
-three out of four of those land on AutoScout24, which is a page this already
-knows. Of a sample of twelve: nine AutoScout24, two mobile.de (403 to anyone,
-us included) and one dealer's own site. So `Details` follows them, and of the
-first five tried, four read: seats for all four, a battery for two, and the
-colour for each.
+`/c/partner?offer_id=...`, a redirect to whoever actually has the car -- so
+`Details` follows them. A sample of twelve suggested nine in twelve would land
+on AutoScout24; all 454 of them, tried once each, say otherwise:
+
+| | |
+| --- | --- |
+| suchen.mobile.de | 337 |
+| AutoScout24, page read | 57 |
+| failed before the destination was being recorded | 56 |
+| stayed on 12gebrauchtwagen | 4 |
+
+Three quarters go to mobile.de, which answers 403 to everyone. The sample came
+off the head of the queue and was not the tail. So the honest yield is 57
+pages out of 454 links -- and it cost one request each, once, because a
+destination that refuses everyone is written down and never asked again.
 
 That is worth knowing about in requests: a car behind a partner link costs
 three of them rather than one, because the redirect goes through two hops. 454
