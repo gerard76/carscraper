@@ -282,6 +282,15 @@ long car in the stock claims 77 or 79.
 
 A correction by hand still outranks it.
 
+One trap worth writing down, because it looked like arithmetic and was not.
+Dividing a WLTP range by a WLTP consumption does **not** give the pack: that
+consumption figure is measured at the wall and includes charging losses, so
+the answer comes out about a tenth too high. 443 km at 19,8 kWh/100 km reads
+as 87,7 kWh, which is the 86 -- and the car is a 79 on the short wheelbase,
+as its photographs show plainly. Take the ten per cent off and it lands on 79
+exactly. Range figures are not comparable across sites either: the same 79
+pack is quoted as 443 km on mobile.de and 329 km on AutoScout24.
+
 The motor settles what the registration date cannot, and that is the third and
 fourth rule:
 

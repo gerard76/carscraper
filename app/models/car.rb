@@ -890,6 +890,10 @@ class Car < ApplicationRecord
   end
 
   def set_wheelbase
+    # Read out of the title on every save, so a correction by hand would be
+    # thrown away by the next scrape without this.
+    return if corrected?(:wheelbase)
+
     self.wheelbase = self.class.wheelbase_in(version)
   end
 
