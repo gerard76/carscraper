@@ -262,15 +262,26 @@ Two things about an ID. Buzz are true whatever the advert leaves out, and
   contradicting themselves -- a "Pro 79 kWh" registered in August 2023 and a
   "Pro 58KWh" from May 2024, neither pack existing yet.
 
-Together that filled 299 of the 564 cars whose battery was unknown -- 143 by
-age, 136 by the long wheelbase, 20 by the motor -- and not one of them
+Together that filled 307 of the 564 cars whose battery was unknown -- 143 by
+age, 136 by the long wheelbase, 28 by the motor -- and not one of them
 contradicts its own title.
+
+One thing these rules cannot settle, and it is worth knowing about: "86 kWh"
+in a title is ambiguous. It is the gross figure of the short car's pack (86
+gross, 79 net) and the net figure of the long car's (91 gross, 86 net). A GTX
+advertised as "GTX KR 86 kWh" almost certainly means the short pack, and is
+stored as 86 because the number is taken at face value. That is one car in the
+stock, listed twice.
 
 The motor settles what the registration date cannot, and that is the third and
 fourth rule:
 
 - **150 kW is the car before the facelift, and that had the 77.** 67 cars of
   67 whose advert states a battery.
+- **a GTX is the 250 kW car.** All 56 GTX adverts that state a power say 250,
+  so a GTX that mentions none still dates itself. It settles nothing about the
+  pack on its own -- 117 long GTXs say 86, the short ones say 79 -- so it
+  helps only through the wheelbase, like any other 250 kW car.
 - **210 or 250 kW on the short wheelbase has only come with the 79.** 47 of
   48; the odd one out is an advert contradicting itself -- "210 kW Pro KR 82
   kWh", a facelift motor with the old pack -- and it names its battery, so no

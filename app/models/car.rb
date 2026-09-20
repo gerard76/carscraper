@@ -571,11 +571,19 @@ class Car < ApplicationRecord
   # wheelbase we cannot read, two say 86, and those will be long ones.
   POWER = /\b(1[0-9]{2}|2[0-9]{2})\s*kW\b/i
 
+  # A GTX is the 250 kW car and nothing else: of the GTX adverts that state a
+  # power, all 56 say 250. So a title that says GTX and no kW still dates
+  # itself. What GTX does not settle on its own is the pack -- 117 long ones
+  # all say 86, while the short ones say 79 -- so it only helps through the
+  # wheelbase, like any other 250 kW car.
+  GTX = /\bgtx\b/i
+
   def self.infer_batteries!
     filled = 0
 
     on_offer.where(kwh: nil).find_each do |car|
       power = car.version.to_s[POWER, 1]&.to_i
+      power ||= 250 if car.version.to_s.match?(GTX)
 
       inferred, because =
         if car.wheelbase == "long"
@@ -584,6 +592,7 @@ class Car < ApplicationRecord
           [77, "150 kW is the car before the facelift, and that had the 77"]
         elsif car.wheelbase == "short" && [210, 250].include?(power)
           [79, "#{power} kW on the short wheelbase has only come with the 79"]
+
         elsif car.year && car.year < FACELIFT && !car.version.to_s.match?(PURE)
           [77, "before July 2024 there was only the 77"]
         end
