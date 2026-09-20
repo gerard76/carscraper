@@ -25,4 +25,9 @@ module CarsHelper
   def chosen(field)
     search_query&.dig("#{field}_eq") || (NOT_STATED if search_query&.dig("#{field}_null"))
   end
+
+  # The same, for a select you can pick more than one thing from.
+  def chosen_many(field)
+    Array(search_query&.dig("#{field}_in"))
+  end
 end

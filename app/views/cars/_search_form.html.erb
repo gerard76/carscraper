@@ -16,10 +16,11 @@
   <%# Read off the listing's own page rather than guessed from its title, so
       these only offer the counts that are actually in front of you. Blank on a
       car means the advert never said, not that it has none. %>
+  <%# More than one at a time: six seats or seven are the same question. %>
   <div class="filter">
-    <%= f.label :seats_eq, "Seats" %>
-    <%= f.select :seats_eq, options_for_select(stated_options(:seats), chosen(:seats)),
-          include_blank: "Any" %>
+    <%= f.label :seats_in, "Seats" %>
+    <%= f.select :seats_in, options_for_select(stated_options(:seats), chosen_many(:seats)),
+          { include_blank: "Any" }, { multiple: true, size: 1 } %>
   </div>
 
   <div class="filter">

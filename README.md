@@ -217,6 +217,13 @@ So every select that reads a field the sellers only sometimes fill in ends with
 `Not stated (612)`: the cars that are silent, and how many of them there are.
 It is a question you can now ask instead of a set you cannot see.
 
+`Seats` takes more than one answer at a time, because six seats or seven is one
+question rather than two. "Not stated" can be one of those answers, and it is a
+different predicate -- `seats_null` rather than `seats_in` -- so the controller
+hands ransack the two as a single OR group. That grouping matters: ransack's
+plain `m: or` would have put every other filter in the same OR, and a price
+limit would have stopped meaning anything.
+
 `Wheelbase` is the other half of that. The battery was standing in for it --
 "77 and 79 are the short one, 86 is the long one" -- but that is a fact about
 this year's range rather than about the car, and the title usually says it

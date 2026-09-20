@@ -218,6 +218,21 @@ class CarsController < ApplicationController
       q["#{field}_null"] = true
     end
 
+    # Seats can be picked more than one at a time, and "not stated" may be one
+    # of the picks -- which is a different predicate, so the two are asked as
+    # one OR group. Without the group, ransack's `m` would put every other
+    # filter in the same OR and a price limit would stop meaning anything.
+    chosen = Array(q["seats_in"]).reject(&:blank?)
+    if chosen.delete(CarsHelper::NOT_STATED)
+      q.delete("seats_in")
+
+      q["g"] = if chosen.any?
+                 [{ "m" => "or", "seats_in" => chosen, "seats_null" => "1" }]
+               else
+                 [{ "seats_null" => "1" }]
+               end
+    end
+
     if q[:year_min].present?
       year_start = Date.new(q.delete(:year_min).to_i, 1, 1)
       q[:year_gteq] = year_start
