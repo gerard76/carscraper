@@ -808,6 +808,17 @@ again in the site's own shorthand.
 Only for pages read from now on, and only from a machine AutoScout24 answers,
 which is not the droplet.
 
+The seller's own text is on the car's page, folded up under "What the seller
+wrote" unless it is short -- the median is 4700 characters of German equipment
+names. It is worth reading: the fields have no room for "Nutzbare
+Batteriekapazität: 79,0kWh", "Batteriezustand: 99%", five years of warranty
+left, or what the car cost new, and all four come out of that text.
+
+It is a stranger's html, so the view runs it through the sanitiser with a list
+of tags named by hand and no attributes at all. The sanitiser's own list would
+have kept `a` and `img`, and an image means our page fetching a file from a
+seller's server every time you open a car.
+
 12gebrauchtwagen has no readable page of its own -- every one of its links is
 `/c/partner?offer_id=...`, a redirect to whoever actually has the car -- so
 `Details` follows them. A sample of twelve suggested nine in twelve would land

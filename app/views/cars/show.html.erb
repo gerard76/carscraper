@@ -133,6 +133,26 @@
   </div>
 </div>
 
+<%# What the seller typed, for the cars whose own advert page we have been to.
+    It is where the things no field holds are said -- the battery's state of
+    health, what is left of the warranty, what the car cost new -- and until
+    now it was in the database and nowhere else.
+
+    Folded up unless it is short. The median one is 4700 characters of German
+    equipment names, and the facts above are what you came for. %>
+<% if @car.description %>
+  <details class="seller" <%= "open" if @car.description.length < 800 %>>
+    <summary>
+      What the seller wrote
+      <% if @car.details_at %>
+        <span class="note">read <%= time_ago_in_words(@car.details_at) %> ago</span>
+      <% end %>
+    </summary>
+
+    <div class="seller-text"><%= sellers_words @car.description %></div>
+  </details>
+<% end %>
+
 <style>
   .car {
     display: flex;
@@ -243,5 +263,41 @@
     flex-direction: row;
     align-items: center;
     gap: 12px;
+  }
+  .seller {
+    margin-top: 26px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  .seller summary {
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .seller summary .note {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
+  }
+  /* Their line breaks and ours both: a list where every item ends in a <br />
+     doubles its own spacing, so the list itself is set tight. */
+  .seller-text {
+    max-width: 46em;
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .seller-text ul, .seller-text ol {
+    margin: 0;
+    padding-left: 1.2em;
+  }
+  .seller-text li {
+    margin: 0;
+  }
+  .seller-text table {
+    border-collapse: collapse;
+  }
+  .seller-text td, .seller-text th {
+    text-align: left;
+    padding: 2px 10px 2px 0;
   }
 </style>

@@ -704,6 +704,19 @@ class Car < ApplicationRecord
     data.to_h["kwh_from"] if kwh
   end
 
+  # What the seller wrote, for the cars whose own advert page we have been to.
+  # Details keeps it because the request has already been paid for, and it is
+  # where the things no field holds are said: that the battery is 79 kWh and
+  # measures 99% of new, that there are five years of warranty left, what the
+  # car cost new. Half of it is a bulleted equipment list and the other half is
+  # the dealer's sales pitch.
+  #
+  # Kept exactly as the site served it, which means html, so whatever displays
+  # it has to run it through a sanitiser -- it is a stranger's markup.
+  def description
+    data.to_h["description"].presence
+  end
+
   # What you have put right by hand.
   #
   # The advert is not always the truth: car 1616 says eight seats in

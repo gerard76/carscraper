@@ -26,4 +26,18 @@ module CarsHelper
   def chosen_many(field)
     Array(search_query&.dig("#{field}_in"))
   end
+
+  # The tags a seller's description is allowed to keep. Their advert is their
+  # markup, not ours -- see Car#description -- and it arrives as a bulleted
+  # equipment list with headings in bold, which is all of the meaning in it.
+  #
+  # No attributes at all, which is the point of naming the tags by hand rather
+  # than taking the sanitiser's own list: that one keeps `a` and `img`, and an
+  # image would have our page fetching a file from a stranger's server every
+  # time you open a car.
+  SELLERS_TAGS = %w[p br strong b em i u ul ol li h2 h3 h4 h5 table thead tbody tr th td].freeze
+
+  def sellers_words(html)
+    sanitize(html, tags: SELLERS_TAGS, attributes: [])
+  end
 end
