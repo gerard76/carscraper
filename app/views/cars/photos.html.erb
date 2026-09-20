@@ -23,11 +23,12 @@
             title: "Put this one away", aria: { label: "Put this one away" } do %>&times;<% end %>
 
       <%= link_to car do %>
-        <% if car.image_url.present? %>
+        <% if car.photo_url %>
           <%# Our own copy (see Photos), so opening this page does not ask six
               hundred pictures of the sites all over again. loading=lazy keeps
-              a thousand of them from arriving at once. %>
-          <%= image_tag car.photo_url, alt: car.title, loading: "lazy", referrerpolicy: "no-referrer" %>
+              a thousand of them from arriving at once. A car whose picture has
+              not been fetched yet says so rather than borrowing theirs. %>
+          <%= image_tag car.photo_url, alt: car.title, loading: "lazy" %>
         <% else %>
           <span class="missing">no photo</span>
         <% end %>

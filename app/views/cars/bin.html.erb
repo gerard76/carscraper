@@ -7,8 +7,8 @@
     <% @cars.each do |car| %>
       <div class="photo">
         <%= link_to car do %>
-          <% if car.image_url.present? %>
-            <%= image_tag car.photo_url, alt: car.title, loading: "lazy", referrerpolicy: "no-referrer" %>
+          <% if car.photo_url %>
+            <%= image_tag car.photo_url, alt: car.title, loading: "lazy" %>
           <% else %>
             <span class="missing">no photo</span>
           <% end %>

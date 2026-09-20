@@ -611,13 +611,23 @@ class Car < ApplicationRecord
     (km / [(Date.current - year).to_f / 365.25, MIN_AGE_IN_YEARS].max).round
   end
 
-  # The photo at a size worth looking at. What the scrapers store is whatever
-  # the search page showed -- AutoScout24 hands out a 250x188 thumbnail, and
-  # 12gebrauchtwagen wraps a 1280x960 one in a proxy that shrinks it.
+  # The photo at a size worth looking at, which is only ever asked of the site
+  # by Photos and never by a page of ours.
+  #
+  # What the scrapers store is whatever the search page showed, and that
+  # differs by site: AutoScout24 hands out a 250x188 thumbnail (8 kB), and
+  # 12gebrauchtwagen a 1280x960 one (84 kB). Both name the size in the url, so
+  # asking for another one is a substitution -- upwards only. Rewriting every
+  # size to 1024x768 was handing out a smaller picture than the one already in
+  # hand for the 455 cars that arrive at 1280.
+  BIGGEST = "1024x768".freeze
+  SIZE_IN_URL = %r{/(\d+)x(\d+)\.(webp|jpg|jpeg|png)\z}
+
   def large_image_url
     return nil if unwrapped_image_url.nil?
+    return unwrapped_image_url if unwrapped_image_url[SIZE_IN_URL, 1].to_i >= 1024
 
-    unwrapped_image_url.sub(%r{/\d+x\d+\.(webp|jpg|jpeg|png)\z}, '/1024x768.\1')
+    unwrapped_image_url.sub(SIZE_IN_URL, "/#{BIGGEST}.\\3")
   end
 
   # 12gebrauchtwagen serves its pictures through a proxy, and what it wraps for
@@ -743,16 +753,38 @@ class Car < ApplicationRecord
     hidden_by.nil?
   end
 
+  # The card picture on the wall and in the bin: our own copy, or nothing.
+  #
+  # It used to fall back to the site's own url so that a car scraped a minute
+  # ago still showed something. That is one page of ours asking a seller's
+  # server for a file, which is the thing we do not do -- and it bought little:
+  # Photos runs at the end of the same round that finds the car, so the wait it
+  # covered is minutes.
   def photo_url
-    photo_stored? ? "#{Photos::PATH}/#{photo}" : image_url
+    "#{Photos::PATH}/#{photo}" if photo_stored?
+  end
+
+  # The one on a car's own page: our big copy, with our card copy behind it for
+  # the cars whose big one has not been fetched yet.
+  def large_photo_url
+    return "#{Photos::PATH}/#{large_photo}" if large_photo_stored?
+
+    photo_url
   end
 
   # Named after the url it came from, so a listing that swaps its picture gets
-  # a new file rather than a stale one.
+  # a new file rather than a stale one. The big one hangs off a url of its own,
+  # so the same rule names it and the two cannot collide.
   def photo_digest
     return nil if unwrapped_image_url.nil?
 
     Digest::SHA256.hexdigest(unwrapped_image_url)[0, 16]
+  end
+
+  def large_photo_digest
+    return nil if large_image_url.nil?
+
+    Digest::SHA256.hexdigest(large_image_url)[0, 16]
   end
 
   # The name in the column is only half of it: the file has to be there too.
@@ -762,10 +794,25 @@ class Car < ApplicationRecord
   # here. Checking costs one stat per car, and it means a wiped volume heals
   # itself on the next scrape.
   def photo_stored?
-    return false if photo.blank? || photo_digest.blank?
-    return false unless photo.start_with?(photo_digest)
+    held?(photo, photo_digest)
+  end
 
-    File.exist?(Photos::DIRECTORY.join(photo))
+  def large_photo_stored?
+    held?(large_photo, large_photo_digest)
+  end
+
+  def held?(name, digest)
+    return false if name.blank? || digest.blank?
+    return false unless name.start_with?(digest)
+
+    File.exist?(Photos::DIRECTORY.join(name))
+  end
+
+  # Worth a request only when the site has something bigger than the picture
+  # the card already gave us. For 12gebrauchtwagen it has not: its 1280x960 is
+  # above the size we ask for, so its stored file is the big one.
+  def wants_large_photo?
+    image_url.present? && large_image_url != unwrapped_image_url && !large_photo_stored?
   end
 
   # AutoScout24 files its pictures under the advert they belong to, so the first

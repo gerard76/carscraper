@@ -5,9 +5,16 @@
 # servers for six hundred pictures, every time. This asks them once per car,
 # ever, and the page is served from here after that.
 #
-# Only what the grid needs: a card picture is 250x188 and a few kilobytes. The
-# big one on a car's own page is a single request for a single car, so that one
-# is still theirs.
+# Two sizes, both ours. The card on the wall is whatever the search page
+# showed -- 250x188 and 8 kB from AutoScout24, 1280x960 and 84 kB from
+# 12gebrauchtwagen -- and a car's own page wants something better than a
+# thumbnail, so the big one is fetched here as well and served from here too.
+# A page of ours asks a seller's server for nothing at all; the scrapers ask,
+# once per car, for each size we do not already have.
+#
+# Which is at most one extra request per car, and for the 455 that arrive at
+# 1280x960 it is none: that file is already bigger than the 1024x768 we would
+# ask for.
 class Photos
   DIRECTORY = Rails.root.join("public", "photos")
 
@@ -21,6 +28,14 @@ class Photos
   # notice us fetching them.
   MOST_PER_ROUND = 200
   DELAY = 0.5
+
+  # The two sizes, and where each one is read and written. Card pictures come
+  # first in a round: they are what the wall needs, and a car that arrived this
+  # round has no picture of any size until one is here.
+  SIZES = {
+    card: { url: :unwrapped_image_url, digest: :photo_digest,       column: :photo },
+    big:  { url: :large_image_url,     digest: :large_photo_digest, column: :large_photo }
+  }.freeze
 
   # A picture server that starts saying no is saying it about us, not about
   # this picture. Same bargain as Details makes with the listing pages.
@@ -60,7 +75,7 @@ class Photos
   attr_reader :report, :limit
 
   def fetch_missing
-    wanted = Car.on_offer.where.not(image_url: [nil, ""]).reject(&:photo_stored?).first(limit)
+    wanted = missing
     return 0 if wanted.empty?
 
     report.call "fetching #{wanted.size} #{"photograph".pluralize(wanted.size)}..."
@@ -68,8 +83,8 @@ class Photos
     kept     = 0
     refusals = 0
 
-    wanted.each do |car|
-      name = download(car)
+    wanted.each do |car, size|
+      name = download(car, size)
 
       case name
       when :refused
@@ -82,8 +97,9 @@ class Photos
         refusals = 0
       else
         refusals = 0
-        previous = car.photo
-        car.update_columns(photo: name)
+        column   = SIZES.fetch(size)[:column]
+        previous = car.public_send(column)
+        car.update_columns(column => name)
         delete_unless_shared(previous) if previous.present? && previous != name
         kept += 1
       end
@@ -96,8 +112,20 @@ class Photos
     kept
   end
 
-  def download(car)
-    response = HTTParty.get(car.unwrapped_image_url,
+  # The round's work, card pictures first and the big ones filling whatever is
+  # left of it. A first pass has 562 big ones waiting, so at 200 a round and
+  # two rounds a day it is a day and a half before every car has one -- and
+  # until then its page shows the card picture, not the seller's server.
+  def missing
+    cards = Car.on_offer.where.not(image_url: [nil, ""]).reject(&:photo_stored?).map { |car| [car, :card] }
+    return cards.first(limit) if cards.size >= limit
+
+    big = Car.on_offer.select(&:wants_large_photo?).map { |car| [car, :big] }
+    (cards + big).first(limit)
+  end
+
+  def download(car, size)
+    response = HTTParty.get(car.public_send(SIZES.fetch(size)[:url]),
                             headers: { "User-Agent" => Scrapers::Base::USER_AGENT },
                             timeout: 15)
     return :refused if [401, 403, 429].include?(response.code)
@@ -106,7 +134,7 @@ class Photos
     type = TYPES[response.headers["content-type"].to_s.split(";").first.to_s.strip]
     return nil if type.nil?
 
-    name = "#{car.photo_digest}.#{type}"
+    name = "#{car.public_send(SIZES.fetch(size)[:digest])}.#{type}"
     File.binwrite(DIRECTORY.join(name), response.body)
     name
   rescue HTTParty::Error, SocketError, Timeout::Error, Errno::ECONNRESET, URI::InvalidURIError => e
@@ -117,7 +145,8 @@ class Photos
   # A file no car points at is a car that was removed or whose listing changed
   # its picture.
   def sweep
-    keep = Car.where.not(photo: nil).pluck(:photo).to_set
+    keep = (Car.where.not(photo: nil).pluck(:photo) +
+            Car.where.not(large_photo: nil).pluck(:large_photo)).to_set
 
     Dir.children(DIRECTORY).count do |name|
       next false if name == ".keep" || keep.include?(name)
@@ -128,7 +157,7 @@ class Photos
   end
 
   def delete_unless_shared(name)
-    return if Car.exists?(photo: name)
+    return if Car.exists?(photo: name) || Car.exists?(large_photo: name)
 
     File.delete(DIRECTORY.join(name))
   rescue Errno::ENOENT

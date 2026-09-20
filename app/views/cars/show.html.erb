@@ -2,14 +2,13 @@
 
 <div class="car">
   <div class="car-photo">
-    <% if @car.large_image_url %>
-      <%# The listing's own photograph, at the biggest size the site serves,
-          with our own copy behind it. A remote picture can go without notice:
-          1670's did, and then every size AutoScout24 used to serve for it
-          answered 404 while our smaller copy of the same photograph sat here
-          unused. this.onerror=null so a dead fallback cannot loop. %>
-      <%= image_tag @car.large_image_url, alt: @car.title, referrerpolicy: "no-referrer",
-            onerror: @car.photo_stored? ? "this.onerror=null;this.src='#{@car.photo_url}'" : nil %>
+    <% if @car.large_photo_url %>
+      <%# Our own copy at the biggest size we kept, and nothing of the seller's.
+          It used to be their url with ours behind it as a fallback, which is
+          this page asking their server for a file every time it is opened --
+          and it was also fragile: 1670's picture went 404 at every size while
+          our copy of the same photograph sat here unused. %>
+      <%= image_tag @car.large_photo_url, alt: @car.title %>
     <% else %>
       <span class="missing">no photo</span>
     <% end %>

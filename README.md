@@ -760,17 +760,30 @@ matters.
 
 The photographs used to be the heavy part, and not from the scraping: every
 view of `/cars/photos` asked their servers for six hundred pictures. `Photos`
-fetches each card picture once -- a fifth of a second apart, at most 500 in a
-round -- into `public/photos`, named after a digest of the url it came from, so
-a listing that swaps its picture gets a new file and the browser cannot serve a
-stale one. Six hundred cards come to about 4 MB, which Thruster serves without
-troubling Rails. What is still theirs is the big picture on a car's own page:
-that is one request for one car, and not worth keeping a second copy of every
-photograph for -- but our own copy sits behind it as a fallback, because a
-remote picture can go without notice. Car 1670's did: AutoScout24 answered 404
-on every size it used to serve for that image, including the one we had
-originally fetched, while our smaller copy of the same photograph sat here
-unused.
+fetches each picture once -- half a second apart, at most 200 in a round --
+into `public/photos`, named after a digest of the url it came from, so a
+listing that swaps its picture gets a new file and the browser cannot serve a
+stale one.
+
+Both sizes are ours. **No page of this application asks a seller's server for
+anything**; the scrapers ask, once per car, for each size we do not already
+have. The card on the wall is whatever the search page showed -- 250x188 and
+8 kB from AutoScout24, 1280x960 and 84 kB from 12gebrauchtwagen -- and a car's
+own page wants better than a thumbnail, so the 1024x768 (96 kB) is fetched too.
+One extra request per car, and for the 455 that arrive at 1280x960 it is none:
+what we hold is already bigger than what we would ask for.
+
+That last part is why `large_image_url` only ever substitutes *upwards*. It
+used to rewrite any size in the url to 1024x768, which for those 455 handed out
+a picture smaller than the copy already on disk.
+
+The car page used to show the seller's url with our copy behind it as an
+`onerror` fallback. Two things wrong with that: it is a page of ours fetching
+from their server on every view, and the fallback had already proved necessary
+-- car 1670's picture went 404 at every size AutoScout24 serves, including the
+one we had fetched, while our copy of the same photograph sat here unused. Now
+the copy is simply what is shown, and a car whose picture has not been fetched
+yet says "no photo" rather than borrowing theirs.
 
 `Photos` also sweeps: a file no car points at any more is deleted, so the
 directory follows the cars rather than growing forever.
@@ -785,9 +798,9 @@ container writes, the web container serves.
 Nothing about the name in the database is trusted on its own, either. A car
 counts as having its own copy only when the file is actually there, so a
 database that has been restored somewhere else -- this laptop, holding a dump
-of the droplet -- shows the sites' own pictures rather than six hundred broken
-ones, and the next scrape fetches what is missing. It costs one stat per car,
-about a millisecond over a whole page.
+of the droplet -- says "no photo" rather than showing six hundred broken ones,
+and the next scrape fetches what is missing. It costs one stat per car, about a
+millisecond over a whole page.
 
 ## What the listing page said
 
