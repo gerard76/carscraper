@@ -529,6 +529,52 @@ class Car < ApplicationRecord
 
   # The picture the pages show: our own copy when we have one, and the site's
   # own until then, so a car that arrived a minute ago still has a photograph.
+  # What the range itself makes certain, for the adverts that do not say.
+  #
+  # Two rules, because these are the only two the stock bears out without a
+  # single exception:
+  #
+  #   the long wheelbase has only ever carried the 86 -- 265 cars on offer
+  #   state a battery and all 265 say 86, from July 2024 to today;
+  #
+  #   before July 2024 there was only the 77 -- of 234 cars registered earlier
+  #   that state one, 231 say 77, and the three that disagree are adverts
+  #   contradicting themselves: a "Pro 79 kWh" registered August 2023 and a
+  #   "Pro 58KWh" from May 2024, neither pack existing yet.
+  #
+  # What it deliberately will not do is guess after July 2024. The facelift
+  # arrived that August, but pre-facelift stock kept being registered well
+  # into 2025 -- five cars from April and June 2025 say 77 kWh in their own
+  # titles. A date cannot settle that and the advert can.
+  #
+  # Never over an advert: only a car whose battery is unknown is filled in,
+  # and a later scrape that finds a real figure writes over the inference.
+  FACELIFT = Date.new(2024, 7, 1)
+
+  def self.infer_batteries!
+    filled = 0
+
+    on_offer.where(kwh: nil).find_each do |car|
+      inferred, because =
+        if car.wheelbase == "long"
+          [86, "the long wheelbase has only come with the 86"]
+        elsif car.year && car.year < FACELIFT && !car.version.to_s.match?(PURE)
+          [77, "before July 2024 there was only the 77"]
+        end
+      next if inferred.nil?
+
+      car.update_columns(kwh: inferred, data: car.data.to_h.merge("kwh_from" => because))
+      filled += 1
+    end
+
+    filled
+  end
+
+  # Worked out rather than read off the advert, and said so on the car's page.
+  def inferred_kwh
+    data.to_h["kwh_from"] if kwh
+  end
+
   # What you have put right by hand.
   #
   # The advert is not always the truth: car 1616 says eight seats in

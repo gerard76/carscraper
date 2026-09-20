@@ -250,6 +250,32 @@ The lookahead now asks for `/100` rather than any slash: three cars gained one
 straight away, every future title written that way will too, and the two
 descriptions that really do say kWh/100 km are still ignored.
 
+## What the range makes certain
+
+Two things about an ID. Buzz are true whatever the advert leaves out, and
+`Car.infer_batteries!` fills them in for the cars that say nothing:
+
+- **the long wheelbase has only ever carried the 86.** 265 cars on offer state
+  a battery and all 265 say 86, from July 2024 to today.
+- **before July 2024 there was only the 77.** Of 234 cars registered earlier
+  that state one, 231 say 77. The three that disagree are adverts
+  contradicting themselves -- a "Pro 79 kWh" registered in August 2023 and a
+  "Pro 58KWh" from May 2024, neither pack existing yet.
+
+That filled 279 of the 564 cars whose battery was unknown, and not one of them
+contradicts its own title.
+
+What it will not do is guess after July 2024. The facelift arrived that
+August, but pre-facelift stock kept being registered well into 2025: five cars
+from April and June 2025 say 77 kWh in their own titles. A date cannot settle
+that and the advert can. Power is a better hint there -- 150 kW is the old car
+and 210 the new -- but only a third of titles give one, so it stays a hint.
+
+An inference never sits on top of an advert: only an unknown battery is filled,
+a scrape that finds a real figure writes over it, and the car's own page says
+which it is -- "as the ad states it", or "the long wheelbase has only come with
+the 86".
+
 ## When the advert is wrong
 
 Car 1616 says eight seats -- not scraped out of a title, but in AutoScout24's

@@ -75,7 +75,10 @@
       <% if @car.battery_kwh %>
         <tr>
           <th>Battery</th>
-          <td><%= @car.battery_kwh %> kWh <span class="note">as the ad states it</span></td>
+          <td>
+            <%= @car.battery_kwh %> kWh
+            <span class="note"><%= @car.inferred_kwh || "as the ad states it" %></span>
+          </td>
         </tr>
       <% end %>
 

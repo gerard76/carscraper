@@ -201,7 +201,10 @@ class Details
     changes = {}
     changes[:seats] = vehicle["numberOfSeats"] unless car.corrected?(:seats)
 
-    changes[:kwh] = battery(vehicle, listing["description"].to_s) if car.kwh.nil? && !car.corrected?(:kwh)
+    # An inference is worth less than an advert, so it may be written over.
+    if (car.kwh.nil? || car.inferred_kwh) && !car.corrected?(:kwh)
+      changes[:kwh] = battery(vehicle, listing["description"].to_s)
+    end
 
     # Keep what the page said, not only the two numbers we came for. The
     # request has been made and the answer is full of things worth asking
