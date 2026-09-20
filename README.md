@@ -523,7 +523,11 @@ that do.
 ## New cars, and other currencies
 
 A car at or below `Car::AS_NEW_KM` (100) has delivery mileage, so it is stored
-but starts out binned and stays out of the graph. That only happens
+but starts out binned and stays out of the graph. `Car.show_driven!` puts it
+back when it stops being true: a demonstrator goes on being driven while it is
+advertised, and one was sitting in the bin at 1500 km because the hiding
+happens once and was never looked at again. Only what the rule put away -- a
+car you crossed off yourself stays crossed off. That only happens
 when it is first scraped -- switch one back on by hand and it stays on.
 
 Prices in kroner are converted with `Car::NOK_PER_EUR` and `Car::SEK_PER_EUR`.

@@ -375,6 +375,14 @@ class Car < ApplicationRecord
     end
   end
 
+  # A demonstrator that has been driven since it arrived is not new any more.
+  # The hiding happens once, when the car is first saved, so without this a car
+  # that came in on delivery mileage stays out of sight at 1500 km. Only what
+  # the rule put away: a car you crossed off yourself stays crossed off.
+  def self.show_driven!
+    binned.where(hidden_by: "as new").where("km > ?", AS_NEW_KM).update_all(hidden_by: nil)
+  end
+
   # Hides the cars whose ad names a battery smaller than the model asks for.
   # Only those: a car that does not state its battery is not judged, the same
   # way min_seats leaves a listing alone when it names no seat count. Belongs
