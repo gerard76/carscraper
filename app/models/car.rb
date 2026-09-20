@@ -469,6 +469,37 @@ class Car < ApplicationRecord
     hidden
   end
 
+  # Hides the delivery van. The Cargo is the same car with panels where the
+  # side windows go and nothing behind the front seats, and it does not always
+  # say so: "L1H1 204pk 77kWh RWD / Demonstratieauto" reads like any other
+  # advert unless you know that L1H1 is a body shape. The seat count gives it
+  # away -- the Cargo seats two or three, the Bus five, six or seven -- and now
+  # that the listing pages are read, two cars in three have one.
+  #
+  # It judges the same number the scraper judges titles by, so a van that says
+  # "3-ZITS" in its title never arrives at all and one that only says it on its
+  # own page is put in the bin here. And like hide_small_batteries!, a car that
+  # states no seat count is left alone.
+  #
+  # Four seats is deliberately not too few: the one four seater we have is a
+  # five whose seller did not count the middle seat on the back bench.
+  def self.hide_cargo!
+    hidden = 0
+
+    on_offer.includes(:model).each do |car|
+      next if car.favourite
+
+      minimum = car.model.min_seats.to_i
+      next if minimum.zero?
+      next if car.seats.nil? || car.seats >= minimum
+
+      car.update_columns(hidden_by: "a cargo van")
+      hidden += 1
+    end
+
+    hidden
+  end
+
   # A listing no scraper has seen for SEEN_WINDOW is sold or withdrawn: the
   # link is dead -- 12gebrauchtwagen answers 410 Gone -- so the row goes.
   #

@@ -57,6 +57,7 @@ class Scrape
     report.call "merged away #{Car.merge_relisted!} rows that were the same listing twice"
     report.call "hid #{Car.hide_duplicates!} listings that were already here"
     report.call "hid #{Car.hide_small_batteries!} listings whose battery is too small"
+    report.call "hid #{Car.hide_cargo!} listings that are the van without the seats"
 
     report.call "put #{Car.show_driven!} cars back that are no longer factory new"
     report.call "read #{Car.settle_gross_batteries!} batteries as the gross figure they are"

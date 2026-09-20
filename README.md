@@ -148,8 +148,15 @@ an ID. Buzz, genuine passenger versions among them -- and AutoTrack's seats
 facet drops the make/model filter when you combine the two. So the seat count
 is read from the ad text instead ("7-s", "6-Sitzer", "3 seter", and the bare
 "3s" Norwegian sellers use). A listing that names no seat count is kept, so
-this thins the cargo vans out rather than guaranteeing none get through. Cars
-already stored are not re-checked when you change `min_seats`.
+this thins the cargo vans out rather than guaranteeing none get through.
+
+That was the whole of it while the title was the only place a seat count could
+come from. Now that the listing pages are read, two cars in three have a seat
+count of their own, and `Car.hide_cargo!` judges the stored number the same way
+after every scrape -- so a van that says nothing in its title but three seats
+on its own page is put in the bin instead of sitting between the buses. Set to
+4, because the one four seater we have is a five: the seller did not count the
+middle seat on the back bench.
 
 ## Seats and battery
 
@@ -448,7 +455,7 @@ Norway is too far to drive to anyway.
 
 One column says it: `hidden_by`, which is either nil or the reason -- `you`,
 `as new`, `listed on two sites`, `advertised twice`, `same photograph`,
-`battery too small`, `pure model`. `Car.shown` is the ones with no reason,
+`battery too small`, `pure model`, `a cargo van`. `Car.shown` is the ones with no reason,
 `Car.binned` the rest, and `Car.hidden_by_hand` versus `Car.hidden_by_rule`
 tells your decisions from the rules'.
 
