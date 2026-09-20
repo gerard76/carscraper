@@ -803,7 +803,14 @@ world like the database was down. If the tunnel cannot be opened because an
 older one still has the port, `pkill -f 'ssh -fN -L 5433'` and go again.
 
 That opens the tunnel if it is not open already and runs the same scrape
-against the droplet's database, from this machine. It is the code in this
+against the droplet's database, from this machine.
+
+`config/launchd/nl.diamondbay.carscraper.scrape.plist` does it daily at half
+past eight without being asked -- the file says how to install it. Once a day
+is enough, because `Car::SEEN_WINDOW` is three days and launchd runs a missed
+job when the laptop next wakes. Without it, AutoScout24's 582 cars and
+AutoTrack's 30 drop off the pages three days after the last run you did by
+hand: they stay in the database, but nobody sees them. It is the code in this
 directory doing the work, so it stops first if a migration here has not been
 deployed there -- otherwise the crash arrives halfway through a scrape,
 "undefined method 'seats='", with a few hundred listings already written. The twice-daily round on the
