@@ -186,6 +186,12 @@ class Car < ApplicationRecord
       hidden += hide_all_but(keep, group, "same photograph")
     end
 
+    same_money.each do |group|
+      keep = group.min_by { |car| [car.eur, car.direct_link? ? 0 : 1] }
+
+      hidden += hide_all_but(keep, group, "listed on two sites")
+    end
+
     retitled.each do |group|
       # Both adverts are equally fresh, so keep the one that still has a
       # picture, and of those the one seen most recently.
@@ -234,6 +240,33 @@ class Car < ApplicationRecord
       next if key.nil? || group.size < 2 || group.size > MOST_SITES_WITH_ONE_CAR
       next if group.map(&:source).uniq.size < 2
       next if group.map { |car| [car.year, car.place_key] }.uniq.size > 1
+
+      mileages = group.map(&:km)
+      next if mileages.max - mileages.min > RELISTED_KM
+
+      group
+    end
+  end
+
+  # The same car on two sites at the same money, whose odometers have drifted
+  # apart: one site's copy of the reading is older than the other's.
+  #
+  # Two rules miss it for two different reasons. duplicate_key holds the
+  # mileage exactly, so 38000 and 38600 never meet; and `duplicates` asks
+  # whether a whole group of prices is one price, so a dealer with four alike
+  # cars in Kiel shields every one of them. Grouping on the price to the euro
+  # steps around both.
+  #
+  # Everything else still has to agree: the same build month, the same town,
+  # two different sites, a mileage within RELISTED_KM. Over the stock that is
+  # four pairs and every one is plainly one car -- "Bus 210 kW LR Pro" at 8700
+  # and 8755 km in Bahretal, 55489 euro both times.
+  def self.same_money
+    on_offer.where.not(km: nil).where.not(location: nil)
+            .group_by { |car| [car.year, car.place_key, car.eur] }
+            .filter_map do |key, group|
+      next if key.any?(&:nil?) || group.size < 2
+      next if group.map(&:source).uniq.size < 2
 
       mileages = group.map(&:km)
       next if mileages.max - mileages.min > RELISTED_KM

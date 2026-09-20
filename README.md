@@ -464,7 +464,18 @@ to the character, the same money, and a mileage within `Car::RELISTED_KM` of
 each other -- the taxi that turned this up read 10800 on one ad and 11500 on
 the other.
 
-A third case is the same listing back under a different title, which is a
+A third case is the same car on two sites at the same money, whose odometers
+have drifted apart: 4113 reads 38000 km and 5040 reads 38600, both a 2023-04
+car in Geretsried at 40800 euro. Two rules miss that for two different
+reasons. `duplicate_key` holds the mileage exactly, so those two numbers never
+meet; and `duplicates` asks whether a whole group of prices is one price, so
+the Kiel dealer with four alike cars shields all four of them.
+`Car.same_money` groups on the price to the euro instead and steps around
+both, while still asking for the same build month, the same town, two
+different sites and a mileage within `Car::RELISTED_KM`. Four pairs in the
+stock, every one plainly one car.
+
+A fourth case is the same listing back under a different title, which is a
 harder problem than it sounds: the title is part of `Car#identity`, so when
 12gebrauchtwagen rewrote its titles on 18 September -- "(+NAVI) Bluetooth"
 became "(+NAVI) LED", and plenty were simply cut shorter -- 576 cars returned
