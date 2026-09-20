@@ -208,30 +208,8 @@ class CarsController < ApplicationController
 
     q = params[:q].dup
 
-    # "Not stated" is a different question from a value, and ransack asks it
-    # under another name: a car that says nothing about its battery is not a
-    # car that says zero.
-    %w[kwh seats wheelbase].each do |field|
-      next unless q["#{field}_eq"] == CarsHelper::NOT_STATED
-
-      q.delete("#{field}_eq")
-      q["#{field}_null"] = true
-    end
-
-    # Seats can be picked more than one at a time, and "not stated" may be one
-    # of the picks -- which is a different predicate, so the two are asked as
-    # one OR group. Without the group, ransack's `m` would put every other
-    # filter in the same OR and a price limit would stop meaning anything.
-    chosen = Array(q["seats_in"]).reject(&:blank?)
-    if chosen.delete(CarsHelper::NOT_STATED)
-      q.delete("seats_in")
-
-      q["g"] = if chosen.any?
-                 [{ "m" => "or", "seats_in" => chosen, "seats_null" => "1" }]
-               else
-                 [{ "seats_null" => "1" }]
-               end
-    end
+    q["g"] = groupings(q)
+    q.delete("g") if q["g"].empty?
 
     if q[:year_min].present?
       year_start = Date.new(q.delete(:year_min).to_i, 1, 1)
@@ -239,5 +217,37 @@ class CarsController < ApplicationController
     end
 
     q
+  end
+
+  # The three the listing pages fill in. Each is asked as a select you can pick
+  # more than one thing from, because six seats or seven is one question and so
+  # is 79 kWh or 86.
+  PICK_SEVERAL = %w[seats kwh wheelbase].freeze
+
+  # "Not stated" is a different question from a value, and ransack asks it
+  # under another name: a car that says nothing about its battery is not a car
+  # that says zero. So a field where you picked it becomes an OR group of the
+  # two predicates -- 79, or 86, or nothing said.
+  #
+  # A group per field rather than one for all of them. Ransack's own `m` would
+  # put every other filter in the same OR, and then a price limit would stop
+  # meaning anything; groups are ANDed with each other, so "six or seven seats"
+  # and "79 kWh or unknown" still has to be both.
+  def groupings(q)
+    PICK_SEVERAL.filter_map do |field|
+      picked = Array(q.delete("#{field}_in")).reject(&:blank?)
+      next if picked.empty?
+
+      unless picked.delete(CarsHelper::NOT_STATED)
+        q["#{field}_in"] = picked
+        next
+      end
+
+      if picked.any?
+        { "m" => "or", "#{field}_in" => picked, "#{field}_null" => "1" }
+      else
+        { "#{field}_null" => "1" }
+      end
+    end
   end
 end

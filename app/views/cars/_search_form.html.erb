@@ -16,7 +16,8 @@
   <%# Read off the listing's own page rather than guessed from its title, so
       these only offer the counts that are actually in front of you. Blank on a
       car means the advert never said, not that it has none. %>
-  <%# More than one at a time: six seats or seven are the same question. %>
+  <%# More than one at a time, all three: six seats or seven is one question,
+      and so is 79 kWh or 86. %>
   <div class="filter">
     <%= f.label :seats_in, "Seats" %>
     <%= f.select :seats_in, options_for_select(stated_options(:seats), chosen_many(:seats)),
@@ -24,19 +25,19 @@
   </div>
 
   <div class="filter">
-    <%= f.label :kwh_eq, "Battery kWh" %>
-    <%= f.select :kwh_eq, options_for_select(stated_options(:kwh), chosen(:kwh)),
-          include_blank: "Any" %>
+    <%= f.label :kwh_in, "Battery kWh" %>
+    <%= f.select :kwh_in, options_for_select(stated_options(:kwh), chosen_many(:kwh)),
+          { include_blank: "Any" }, { multiple: true, size: 1 } %>
   </div>
 
   <%# What the battery used to stand in for, asked directly: two in five titles
       say "langer Radstand", LR or LWB, and 168 of those name no battery at
       all. See Car.wheelbase_in. %>
   <div class="filter">
-    <%= f.label :wheelbase_eq, "Wheelbase" %>
-    <%= f.select :wheelbase_eq,
-          options_for_select(stated_options(:wheelbase, labels: { "long" => "Long", "short" => "Short" }), chosen(:wheelbase)),
-          include_blank: "Any" %>
+    <%= f.label :wheelbase_in, "Wheelbase" %>
+    <%= f.select :wheelbase_in,
+          options_for_select(stated_options(:wheelbase, labels: { "long" => "Long", "short" => "Short" }), chosen_many(:wheelbase)),
+          { include_blank: "Any" }, { multiple: true, size: 1 } %>
   </div>
 
   <div class="filter">
