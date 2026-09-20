@@ -551,13 +551,31 @@ class Car < ApplicationRecord
   # and a later scrape that finds a real figure writes over the inference.
   FACELIFT = Date.new(2024, 7, 1)
 
+  # The motor dates the car better than its registration does, which is the
+  # whole trouble with the date rule: the old 150 kW car kept being sold new
+  # into 2025. Over the cars whose advert states a battery: 150 kW comes with
+  # the 77 in 67 out of 67, and a short 250 kW with the 79 in 26 out of 26.
+  # A short 210 kW is 79 in 21 of 22, the odd one out being an advert that
+  # contradicts itself -- "210 kW Pro KR 82 kWh", a facelift motor with the
+  # old pack -- and it states its battery, so no inference touches it.
+  #
+  # Only when the wheelbase is known to be short: among the 210 kW cars whose
+  # wheelbase we cannot read, two say 86, and those will be long ones.
+  POWER = /\b(1[0-9]{2}|2[0-9]{2})\s*kW\b/i
+
   def self.infer_batteries!
     filled = 0
 
     on_offer.where(kwh: nil).find_each do |car|
+      power = car.version.to_s[POWER, 1]&.to_i
+
       inferred, because =
         if car.wheelbase == "long"
           [86, "the long wheelbase has only come with the 86"]
+        elsif power == 150
+          [77, "150 kW is the car before the facelift, and that had the 77"]
+        elsif car.wheelbase == "short" && [210, 250].include?(power)
+          [79, "#{power} kW on the short wheelbase has only come with the 79"]
         elsif car.year && car.year < FACELIFT && !car.version.to_s.match?(PURE)
           [77, "before July 2024 there was only the 77"]
         end

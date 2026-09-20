@@ -262,14 +262,26 @@ Two things about an ID. Buzz are true whatever the advert leaves out, and
   contradicting themselves -- a "Pro 79 kWh" registered in August 2023 and a
   "Pro 58KWh" from May 2024, neither pack existing yet.
 
-That filled 279 of the 564 cars whose battery was unknown, and not one of them
+Together that filled 299 of the 564 cars whose battery was unknown -- 143 by
+age, 136 by the long wheelbase, 20 by the motor -- and not one of them
 contradicts its own title.
 
-What it will not do is guess after July 2024. The facelift arrived that
-August, but pre-facelift stock kept being registered well into 2025: five cars
-from April and June 2025 say 77 kWh in their own titles. A date cannot settle
-that and the advert can. Power is a better hint there -- 150 kW is the old car
-and 210 the new -- but only a third of titles give one, so it stays a hint.
+The motor settles what the registration date cannot, and that is the third and
+fourth rule:
+
+- **150 kW is the car before the facelift, and that had the 77.** 67 cars of
+  67 whose advert states a battery.
+- **210 or 250 kW on the short wheelbase has only come with the 79.** 47 of
+  48; the odd one out is an advert contradicting itself -- "210 kW Pro KR 82
+  kWh", a facelift motor with the old pack -- and it names its battery, so no
+  inference goes near it. Only when the wheelbase is known to be short: among
+  the 210 kW cars whose wheelbase cannot be read, two say 86 and will be long
+  ones.
+
+This is what the date could not do. The facelift arrived in August 2024 but
+pre-facelift stock kept being registered well into 2025 -- five cars from April
+and June say 77 kWh in their own titles -- and a 150 kW badge dates the car
+where its number plate does not.
 
 An inference never sits on top of an advert: only an unknown battery is filled,
 a scrape that finds a real figure writes over it, and the car's own page says
@@ -803,14 +815,10 @@ world like the database was down. If the tunnel cannot be opened because an
 older one still has the port, `pkill -f 'ssh -fN -L 5433'` and go again.
 
 That opens the tunnel if it is not open already and runs the same scrape
-against the droplet's database, from this machine.
-
-`config/launchd/nl.diamondbay.carscraper.scrape.plist` does it daily at half
-past eight without being asked -- the file says how to install it. Once a day
-is enough, because `Car::SEEN_WINDOW` is three days and launchd runs a missed
-job when the laptop next wakes. Without it, AutoScout24's 582 cars and
-AutoTrack's 30 drop off the pages three days after the last run you did by
-hand: they stay in the database, but nobody sees them. It is the code in this
+against the droplet's database, from this machine. Run it by hand at
+least every three days, or AutoScout24's 582 cars and AutoTrack's 30 drop off
+the pages: `Car::SEEN_WINDOW` is three days. They stay in the database -- the
+per-source guard sees to that -- but nobody sees them. It is the code in this
 directory doing the work, so it stops first if a migration here has not been
 deployed there -- otherwise the crash arrives halfway through a scrape,
 "undefined method 'seats='", with a few hundred listings already written. The twice-daily round on the
