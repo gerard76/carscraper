@@ -232,6 +232,24 @@ themselves short ("Pro KR AHK Klima Navi 6-Sitzer"), which is either a seller's
 slip or something about the range I have not understood, so the wheelbase is
 read from the title and never inferred from the seat count.
 
+## The battery, and what is not there to find
+
+Reading the battery out of a Dutch description sounded like the obvious next
+gap: 209 AutoScout24 pages were read and only four gave one up. The 258 stored
+descriptions say otherwise, and they cost nothing to check. Of the 228 with no
+battery, **218 never mention kWh at all**, and eight of the remaining ten name
+two capacities in the same breath -- "in Verbindung mit Hochvolt-Batterien 79
+und 86 kWh", which is the WLTP disclaimer and not this car. Refusing to guess
+there is right, and a Dutch phrasing would have found nothing.
+
+What the stored pages did turn up is a rule that was too eager. `BATTERY`
+refused any capacity followed by a slash, to keep consumption -- "18,5 kWh/100
+km" -- out of it. But a title is often written "Pro 86 kWh / 286 PK LWB 7
+persoons", or "91KWh / 6 Seats / Carplay", and those are unmistakably the pack.
+The lookahead now asks for `/100` rather than any slash: three cars gained one
+straight away, every future title written that way will too, and the two
+descriptions that really do say kWh/100 km are still ignored.
+
 ## When the advert is wrong
 
 Car 1616 says eight seats -- not scraped out of a title, but in AutoScout24's

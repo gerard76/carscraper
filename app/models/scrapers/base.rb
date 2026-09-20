@@ -21,7 +21,11 @@ class Scrapers::Base
   # Not a slash after it: "0,00 kWh/100 km" is what the car uses, not what it
   # holds, and without this the energy label on a listing reads as a battery
   # of nought.
-  BATTERY = %r{(\d{2,3})(?:[.,]\d)?\s*kwh\b(?!\s*/)}i
+  # Not followed by /100: that is consumption, "18,5 kWh/100 km", and not the
+  # pack. It used to refuse any slash at all, which also threw away the way
+  # sellers write a title -- "Pro 86 kWh / 286 PK LWB 7 persoons", "91KWh / 6
+  # Seats / Carplay" -- and those are unmistakably the battery.
+  BATTERY = %r{(\d{2,3})(?:[.,]\d)?\s*kwh\b(?!\s*/\s*100)}i
 
   DELAY     = 3
   MAX_PAGES = 40
