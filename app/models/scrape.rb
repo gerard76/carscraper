@@ -59,6 +59,7 @@ class Scrape
     report.call "hid #{Car.hide_small_batteries!} listings whose battery is too small"
 
     report.call "put #{Car.show_driven!} cars back that are no longer factory new"
+    report.call "read #{Car.settle_gross_batteries!} batteries as the gross figure they are"
     report.call "worked out the battery of #{Car.infer_batteries!} cars whose advert does not say"
 
     remove_vanished(since) if since

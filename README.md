@@ -266,12 +266,21 @@ Together that filled 307 of the 564 cars whose battery was unknown -- 143 by
 age, 136 by the long wheelbase, 28 by the motor -- and not one of them
 contradicts its own title.
 
-One thing these rules cannot settle, and it is worth knowing about: "86 kWh"
-in a title is ambiguous. It is the gross figure of the short car's pack (86
-gross, 79 net) and the net figure of the long car's (91 gross, 86 net). A GTX
-advertised as "GTX KR 86 kWh" almost certainly means the short pack, and is
-stored as 86 because the number is taken at face value. That is one car in the
-stock, listed twice.
+`Car.settle_gross_batteries!` is the one place a number in an advert is
+overruled, and it is worth being plain about why: the number is not wrong, it
+is ambiguous. VW gives the same pack twice over -- the short car's is 86 gross
+and 79 net, the long car's is 91 gross and 86 net -- so "86 kWh" in a title is
+either of two packs, and a seller copying it off the spec sheet cannot say
+which. `usable_kwh` turns 82 into 77 and 91 into 86, but has to leave 86 alone.
+
+What settles it is something else the same advert says. A short wheelbase
+advertised as 86 has the 79, and that second reading is the reliable one: 101
+long cars say 86 and not one says 77 or 79, while 59 short ones say 77 or 79
+against this single 86. So it is not that the seller is disbelieved -- he said
+two things and together they are unambiguous. The mirror case never occurs: no
+long car in the stock claims 77 or 79.
+
+A correction by hand still outranks it.
 
 The motor settles what the registration date cannot, and that is the third and
 fourth rule:

@@ -375,6 +375,36 @@ class Car < ApplicationRecord
     end
   end
 
+  # The one place a number in an advert is overruled, and worth being plain
+  # about why: the number is not wrong, it is ambiguous.
+  #
+  # VW gives the same pack twice over. The short car's is 86 gross and 79 net;
+  # the long car's is 91 gross and 86 net. So "86 kWh" in a title is either of
+  # two packs, and a seller copying it off the spec sheet cannot tell you which
+  # -- usable_kwh turns 82 into 77 and 91 into 86, but has to leave 86 alone.
+  #
+  # What settles it is another thing the same advert says. A short wheelbase
+  # advertised as 86 has the 79, and that second reading is the reliable one:
+  # 101 long cars say 86 and not one says 77 or 79, while 59 short ones say 77
+  # or 79 against this single 86.
+  #
+  # A correction by hand still wins over both.
+  def self.settle_gross_batteries!
+    settled = 0
+
+    where(kwh: 86, wheelbase: "short").find_each do |car|
+      next if car.corrected?(:kwh)
+
+      car.update_columns(
+        kwh: 79,
+        data: car.data.to_h.merge("kwh_from" => "the advert says 86, which on a short wheelbase is the 79 measured gross")
+      )
+      settled += 1
+    end
+
+    settled
+  end
+
   # A demonstrator that has been driven since it arrived is not new any more.
   # The hiding happens once, when the car is first saved, so without this a car
   # that came in on delivery mileage stays out of sight at 1500 km. Only what
