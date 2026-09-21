@@ -20,8 +20,15 @@ class Scrape
   end
 
   # Somewhere to write to: the rake task passes `puts`, the job passes the log.
-  def initialize(report: Rails.logger.method(:info))
+  #
+  # `photos: false` leaves the pictures for somebody else to fetch. Photos
+  # writes files, and files live on one machine: it has to run where they are.
+  # When this laptop scrapes into the droplet's database that is not here --
+  # see the `scrape:production` task in mise.toml, which turns this off and
+  # then tells the droplet to go and get them.
+  def initialize(report: Rails.logger.method(:info), photos: true)
     @report = report
+    @photos = photos
   end
 
   def call
@@ -44,7 +51,11 @@ class Scrape
     # the next round, which is a round's patience against a few hundred
     # requests spent on cars we were about to drop.
     Details.call(report: report)
-    Photos.call(report: report)
+    if photos
+      Photos.call(report: report)
+    else
+      report.call "leaving the photographs to the machine that keeps them"
+    end
 
     fit
   end
@@ -83,7 +94,7 @@ class Scrape
 
   private
 
-  attr_reader :report
+  attr_reader :report, :photos
 
   # Left out on purpose: finn.no. Norway is too far to drive to.
   def scrapers

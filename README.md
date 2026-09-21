@@ -989,6 +989,30 @@ than you leave it.
 `bin/kamal scrape` runs it on the droplet instead, which works but is asking
 for a block.
 
+The pictures are the one part of that round that does **not** happen here. A
+scrape from this machine ends with `PHOTOS=elsewhere`, and then tells the
+droplet to fetch its own:
+
+```
+bin/kamal app exec --roles=job --reuse "bin/rails cars:photos"
+```
+
+`Photos` decides what is missing by looking at a disk (`Car#photo_stored?`),
+and writes what it fetches to that same disk. Run from here against the
+droplet's database, those are two different machines: of the 1050 pictures the
+droplet holds, this laptop has 148, so every round it saw nine hundred as
+missing, downloaded two hundred of them (`MOST_PER_ROUND`) from the picture
+servers, and filed them where no website reads them -- and then its sweep
+deleted the development copies, which the droplet's database does not point at.
+Two hundred pointless requests to the picture servers, twice over, every run.
+
+So the data comes over the tunnel and the pictures are fetched at the far end.
+`bin/rails cars:photos` is that step on its own: it asks the picture servers and
+nothing else -- no search page, no listing page -- so it is cheap to run by hand
+whenever something is missing a photograph. The droplet's own twice-daily round
+still fetches its pictures inline, because there the database and the disk are
+the same machine.
+
 Which also means the droplet's database is the real one -- it is where your
 clicks land when you are looking at the site -- and the one here is a
 development copy. To catch this one up rather than the other way round, dump in

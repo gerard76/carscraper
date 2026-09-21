@@ -68,5 +68,24 @@ bundle exec rails runner '
   end
 '
 
-bundle exec rails cars:scrape
+# PHOTOS=elsewhere, because the pictures must not be fetched onto this laptop.
+# Photos decides what is missing by what is on the disk it can see and writes
+# what it fetches there too -- so run from here it looks at the droplet's
+# database, sees the nine hundred files it has never heard of, downloads two
+# hundred of them (MOST_PER_ROUND) from the picture servers, and puts them in
+# a directory no website reads. Every run. Then its sweep deletes whatever in
+# there the droplet's database does not point at, which is the development
+# copies.
+#
+# So the data comes over the tunnel and the pictures are fetched at the far
+# end, by the machine that keeps them.
+PHOTOS=elsewhere bundle exec rails cars:scrape
+
+echo
+echo "Telling the droplet to fetch its own photographs..."
+
+# Not over the tunnel: this one has to run *on* the droplet, in a container
+# with the volume mounted. The job role, because that is the one deploy.yml
+# gives write access to it.
+bin/kamal app exec --roles=job --reuse "bin/rails cars:photos"
 """
