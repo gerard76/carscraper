@@ -126,7 +126,7 @@ class Photos
 
   def download(car, size)
     response = HTTParty.get(car.public_send(SIZES.fetch(size)[:url]),
-                            headers: { "User-Agent" => Scrapers::Base::USER_AGENT },
+                            headers: Scrapers::Base::IMAGE_HEADERS,
                             timeout: 15)
     return :refused if [401, 403, 429].include?(response.code)
     return nil unless response.code == 200

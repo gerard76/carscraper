@@ -727,6 +727,30 @@ reach.
 
 ## What the sites see of us
 
+Every request carries the headers a browser of ours carries. This code is
+looking at these pages on your behalf -- the same pages you open by hand -- so
+it says the same thing on the envelope: the current Chrome's `User-Agent`, its
+`Accept` and `Accept-Language`, its `sec-ch-ua` client hints and its
+`Sec-Fetch-*` metadata, with the image requests asking for an image and the
+page requests asking for a page. Captured on 21 September 2026 from the actual
+browser, by pointing it at a listener on localhost and writing down what
+arrived.
+
+Before that it was one header: a `User-Agent` claiming to be a Chrome from
+November 2024 and none of the fourteen a Chrome sends with it.
+
+Three things are deliberately not copied. **Cookies** -- those are a person's
+session, not a program's. **A `Referer`** we did not actually come from.
+And **`Accept-Encoding`**: Chrome offers "gzip, deflate, br, zstd", but
+Net::HTTP stops decompressing for you the moment you set that header yourself,
+so copying it would hand Nokogiri a bag of compressed bytes, and brotli and
+zstd we could not read anyway. Left alone, Net::HTTP sends its own line and
+unpacks the answer.
+
+None of this is about getting past a block, and it does not: the same request,
+from the droplet, is still 403 at AutoScout24 and AutoTrack, and 200 from the
+laptop. That difference is the IP -- see "The droplet is blocked".
+
 Only result pages -- there are no detail pages to fetch, the cards carry
 everything -- one request at a time, three seconds apart
 (`Scrapers::Base::DELAY`). A round is roughly 15 pages of AutoScout24 (100

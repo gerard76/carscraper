@@ -1,7 +1,58 @@
 # Shared plumbing for the scrapers: fetching pages, pacing the requests,
 # cleaning up the text the sites hand us and turning a listing into a Car.
 class Scrapers::Base
-  USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36".freeze
+  # What a browser of Gerard's sends, because that is who this is browsing for.
+  # Looking at these pages by hand is the same act as looking at them from
+  # here, and it went out under one lonely header claiming to be a Chrome from
+  # November 2024 while sending none of the fifteen a Chrome actually sends.
+  #
+  # Captured on 21 September 2026 from his own Chrome, by pointing it at a
+  # listener on localhost and writing down what arrived -- not invented, and
+  # not lifted out of anyone's session either: no cookies, and no Referer we
+  # did not actually come from.
+  #
+  # This ages. Chrome ships about ten versions a year, so a number left here
+  # long enough starts saying "old browser" out loud. Recapture it now and
+  # then; CHROME is the only place it is written down.
+  CHROME = "153".freeze
+
+  USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
+               "(KHTML, like Gecko) Chrome/#{CHROME}.0.0.0 Safari/537.36".freeze
+
+  # On every request, whatever it is for.
+  #
+  # Accept-Encoding is deliberately absent. Chrome offers "gzip, deflate, br,
+  # zstd", and Net::HTTP stops unzipping for you the moment you set that header
+  # yourself -- so copying it would hand Nokogiri a bag of compressed bytes,
+  # and we could not read brotli or zstd anyway. Left alone, Net::HTTP sends
+  # its own gzip/deflate line and unpacks the answer.
+  BROWSER_HEADERS = {
+    "User-Agent"         => USER_AGENT,
+    "Accept-Language"    => "en-GB,en-US;q=0.9,en;q=0.8",
+    "sec-ch-ua"          => %("Google Chrome";v="#{CHROME}", "Not_A Brand";v="8", "Chromium";v="#{CHROME}"),
+    "sec-ch-ua-mobile"   => "?0",
+    "sec-ch-ua-platform" => %("macOS")
+  }.freeze
+
+  # A page you open: a search page, or a listing's own page.
+  PAGE_HEADERS = BROWSER_HEADERS.merge(
+    "Accept"                    => "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif," \
+                                   "image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "Upgrade-Insecure-Requests" => "1",
+    "Sec-Fetch-Site"            => "none",
+    "Sec-Fetch-Mode"            => "navigate",
+    "Sec-Fetch-User"            => "?1",
+    "Sec-Fetch-Dest"            => "document"
+  ).freeze
+
+  # A picture. Chrome asks for images with a different Accept and says on the
+  # envelope that it is a picture it is after, not a page.
+  IMAGE_HEADERS = BROWSER_HEADERS.merge(
+    "Accept"         => "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "Sec-Fetch-Site" => "cross-site",
+    "Sec-Fetch-Mode" => "no-cors",
+    "Sec-Fetch-Dest" => "image"
+  ).freeze
 
   # Sellers write the make in whatever form they like, and the sites disagree
   # about it too -- 12gebrauchtwagen files Volkswagen under "vw".
@@ -45,7 +96,7 @@ class Scrapers::Base
 
   def fetch(url)
     puts "scraping #{url}"
-    response = HTTParty.get(url, headers: { "User-Agent" => USER_AGENT })
+    response = HTTParty.get(url, headers: PAGE_HEADERS)
 
     unless response.code == 200
       puts "  got HTTP #{response.code}, giving up on this page"

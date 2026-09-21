@@ -251,7 +251,7 @@ class Details
   def fetch(car)
     response = Timeout.timeout(MAX_SECONDS) do
       HTTParty.get(car.url,
-                   headers: { "User-Agent" => Scrapers::Base::USER_AGENT },
+                   headers: Scrapers::Base::PAGE_HEADERS,
                    timeout: 10,
                    limit: 4)
     end
