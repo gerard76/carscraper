@@ -47,8 +47,21 @@ class Scrapers::Base
 
   # A picture. Chrome asks for images with a different Accept and says on the
   # envelope that it is a picture it is after, not a page.
+  #
+  # With one thing left out of Chrome's list: image/avif, which stands first in
+  # it. gaspedaal and autotrack convert on the fly and hand back whatever the
+  # Accept header puts first, so asking the way Chrome asks got avif from both
+  # -- a format Photos::TYPES does not know, so every one of their pictures was
+  # fetched and then dropped on the floor, silently, every round. Car 5651 sat
+  # there saying "no photo" with its picture arriving intact each time.
+  #
+  # Storing avif would have been the other repair, and the smaller file: 37 kB
+  # against the 60 kB webp and the 90 kB jpeg. Left for another day on purpose
+  # -- this header set exists to be Gerard's browser and nothing else, and the
+  # narrower change is the one that puts the pictures back. Second in the list
+  # is webp, which is what AutoScout24 serves anyway.
   IMAGE_HEADERS = BROWSER_HEADERS.merge(
-    "Accept"         => "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "Accept"         => "image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
     "Sec-Fetch-Site" => "cross-site",
     "Sec-Fetch-Mode" => "no-cors",
     "Sec-Fetch-Dest" => "image"
@@ -146,7 +159,12 @@ class Scrapers::Base
     # The same listing can come back under a new url -- 12gebrauchtwagen's
     # redirect rotates its offer_id -- so it is looked up by what it is, not
     # by where it lives today.
-    outcome = if (stored = Car.find_by(fingerprint: car.identity_digest))
+    #
+    # And it can come back under a new title as well, which the digest cannot
+    # see through because the title is part of it: same_listing_as asks the
+    # same question with the title left out. Without it the car arrives as a
+    # new row, dated today, with none of what you did to the old one.
+    outcome = if (stored = Car.find_by(fingerprint: car.identity_digest) || Car.same_listing_as(car))
                 refresh(car, stored)
               elsif car.save
                 :saved

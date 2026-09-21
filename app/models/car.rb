@@ -167,8 +167,23 @@ class Car < ApplicationRecord
   # stay hidden through the next scrape -- except where the difference is the
   # VAT, and then the price you would actually pay stays. Returns the number
   # hidden.
+  # A reason from last round is not a reason. "Listed on two sites" is true of
+  # a pair, and when the other half is sold the survivor stays in the bin
+  # saying it about nobody -- nothing ever lifted one of these, and after
+  # merge_retitled! there are rows whose twin has not merely gone but never
+  # existed as a separate car. So the duplicate reasons are dropped and worked
+  # out again, every round, on what is actually here.
+  #
+  # Only the duplicate ones, and never a decision of yours: "as new" has its
+  # own way back (show_driven!), and "you" is not ours to lift.
+  def self.forget_duplicate_reasons!
+    where(hidden_by: DUPLICATE_REASONS).update_all(hidden_by: nil)
+  end
+
   def self.hide_duplicates!
     hidden = 0
+
+    forget_duplicate_reasons!
 
     duplicates.each do |group|
       keep = if quoted_without_vat?(group.map(&:eur))
@@ -297,6 +312,105 @@ class Car < ApplicationRecord
 
       group
     end
+  end
+
+  # The five things retitled asks for, asked of one listing before it is
+  # stored: is this car already here under another title?
+  #
+  # Hiding the second row was only half a fix. The row is still a row, with
+  # today's date on it and none of what you did to the first one, and the
+  # duplicate rule then keeps the *freshest* advert -- so a car starred on the
+  # 17th came back to the top of the wall on the 21st marked "new today", with
+  # the star dragged along behind it. Car 4859 and car 5650 were one bus in
+  # Leverkusen: 12gebrauchtwagen carried the AutoScout24 advert for it, then
+  # switched to the mobile.de one, which meant another offer_id, another
+  # picture and "SHZ CARPLAY" where the old title said "SHZ CARPL".
+  #
+  # So the scrapers ask this when the digest misses, and refresh what is here
+  # instead of adding to it.
+  #
+  # One candidate or none. Where two rows fit all five, the title is the only
+  # thing telling those cars apart -- a Bavarian dealer has thirteen at 10 km
+  # in one postcode -- and glueing two of them together loses a car.
+  #
+  # Which is also why factory-new cars are left out of this altogether. Their
+  # odometers all read the same handful of kilometres and dealers price whole
+  # trims alike, so all five can agree on two plainly different cars: "Pro 5S
+  # Style+ Open&Cl KomfortP+" and "Pro LR 7S Style KomfortP+ AssisP+" both sat
+  # at 10 km and 59840 euro in one yard, a short five seater and a long seven
+  # seater. A used car's odometer is its own: 8378 km at 45980 euro from one
+  # dealer in Leverkusen is one bus, however the advert is worded this week.
+  def self.same_listing_as(fresh)
+    return nil if fresh.km.nil? || fresh.year.nil? || fresh.price.nil? || fresh.location.blank?
+    return nil if fresh.km <= AS_NEW_KM
+
+    candidates = where(km: fresh.km, year: fresh.year, price: fresh.price, currency: fresh.currency)
+                 .reject { |car| car.id == fresh.id }
+                 .select { |car| car.source == fresh.source && car.place_key == fresh.place_key }
+
+    candidates.first if candidates.one?
+  end
+
+  # What the rows already here need, since they were made before the scrapers
+  # knew to ask. One car, several rows, one per title it has worn: four of them
+  # for a Mulheim bus, on four different days.
+  #
+  # The row that stays is the oldest -- that is the one carrying the date you
+  # first saw the car, your star and your note -- and it takes over the live
+  # advert from the freshest row, so the link still opens something. The rest
+  # go. A car you binned by hand is not touched.
+  #
+  # The reason a rule gave for hiding it goes too: it was about a row that no
+  # longer exists, and nothing ever lifts one of those. The rules run again
+  # directly after this, on what is left.
+  DUPLICATE_REASONS = ["listed on two sites", "advertised twice", "same photograph"].freeze
+
+  def self.merge_retitled!
+    merged = 0
+
+    listed.where.not(hidden_by: BY_HAND).where.not(km: nil).where.not(location: nil)
+          .group_by { |car| [car.source, car.year, car.km, car.place_key, car.eur] }
+          .each do |key, group|
+      next if key.any?(&:nil?) || group.size < 2
+
+      # Delivery mileage tells two cars apart from nobody -- see
+      # same_listing_as -- and this one destroys rows, so it stays away from
+      # them. The duplicate rules still hide what they hide.
+      next if key[2] <= AS_NEW_KM
+
+      keep  = group.min_by(&:id)
+      fresh = group.max_by { |car| [car.seen_at || Time.at(0), car.id] }
+      note  = group.filter_map { |car| car.comments.presence }.first
+      star  = group.any?(&:favourite)
+
+      (group - [keep]).each do |car|
+        car.destroy
+        merged += 1
+      end
+
+      changes = { seen_at: fresh.seen_at }
+      changes[:comments]  = note if note && keep.comments.blank?
+      changes[:favourite] = true if star && !keep.favourite
+      changes[:hidden_by] = nil if DUPLICATE_REASONS.include?(keep.hidden_by)
+
+      # The advert as it stands today, from whichever row saw it last. The
+      # picture comes with its own file, which we already have.
+      if fresh != keep
+        changes.merge!(url: fresh.url, version: fresh.version, image_url: fresh.image_url,
+                       photo: fresh.photo, large_photo: fresh.large_photo)
+      end
+
+      # Only ever filled in: what Details read off a page it has been to is
+      # worth more than a blank on an older row.
+      %i[seats kwh details_at data].each do |field|
+        value = fresh.public_send(field)
+        changes[field] = value if keep.public_send(field).blank? && value.present?
+      end
+
+      keep.update_columns(changes)
+    end
+
+    merged
   end
 
   # One seller advertising one car twice: the same title, the same money, the

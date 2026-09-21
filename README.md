@@ -473,6 +473,45 @@ the two disagreed, which is luck rather than design.
 
 ## The same car twice
 
+One car can also be here several times over on **one** site, and that is a
+different problem: not two adverts to choose between, but one advert that keeps
+arriving as a new row.
+
+`Car#identity` has the title in it, and 12gebrauchtwagen rewrites titles --
+"Pro 150 kW (204 PS) 1-Gang-Automatik Nav" one day, "Pro KR 150 kW (204 PS)
+1-Gang-Automatik" the next, sometimes merely cut a character shorter. The
+aggregator can switch which advert it carries for a car, too: 4859 was a
+Leverkusen bus as AutoScout24 had it, 5650 the same bus as mobile.de has it,
+with another offer_id, another picture and "SHZ CARPLAY" where the old title
+stopped at "SHZ CARPL". Different title, different url, so a new row -- dated
+today.
+
+That is what put a starred car back at the top of the wall as "new". The
+duplicate rule hid the older row and, because a star is about the car rather
+than the advert, dragged the star onto the newest one. Nothing was lost, but
+the car looked like it had just arrived, every couple of days.
+
+So `Car.same_listing_as` asks the same question with the title left out --
+same site, build month, odometer, town and asking price -- and the scrapers
+ask it whenever the digest misses, before storing anything. One candidate or
+none: where two rows fit all five, the title is the only thing telling the
+cars apart. Factory-new cars are left out altogether, because their odometers
+all read the same handful of kilometres and dealers price whole trims alike:
+"Pro 5S Style+ Open&Cl KomfortP+" and "Pro LR 7S Style KomfortP+ AssisP+" both
+sat at 10 km and 59,840 euro in one Bavarian yard, and they are not the same
+van.
+
+`Car.merge_retitled!` does the same for the rows already here, at tidy-up: the
+oldest row stays -- it has the date you first saw the car, your star, your
+note -- and takes over the title, link and picture of the freshest one. On 21
+September 2026 that was 147 cars and 157 rows, one Mulheim bus having arrived
+four times in six days.
+
+And the duplicate reasons are now dropped and worked out again every round.
+"Listed on two sites" is true of a pair; when the other half sells, nothing
+used to lift it and the survivor sat in the bin saying it about nobody. On the
+laptop's copy that freed 61 cars.
+
 12gebrauchtwagen carries a lot of what AutoScout24 already has, so one car
 turns up as two listings and counts twice, in the graph and in the trend line.
 `Car.hide_duplicates!` puts all but the cheapest of a set in the bin, which
@@ -746,6 +785,16 @@ Net::HTTP stops decompressing for you the moment you set that header yourself,
 so copying it would hand Nokogiri a bag of compressed bytes, and brotli and
 zstd we could not read anyway. Left alone, Net::HTTP sends its own line and
 unpacks the answer.
+
+And one thing left out of a header rather than left off: **`image/avif`**, which
+stands first in Chrome's `Accept` for images. gaspedaal and autotrack convert on
+the fly and return whatever that header asks for first, so asking exactly the way
+Chrome asks got avif from both -- a type `Photos::TYPES` does not know, so their
+pictures were fetched and then dropped, silently, every round, while the car's
+page said "no photo". Second in the list is `image/webp`, which is what
+AutoScout24 serves regardless. Storing avif would have been the other repair and
+the smaller file -- 37 kB against a 60 kB webp and a 90 kB jpeg -- and is still
+there to be done.
 
 None of this is about getting past a block, and it does not: the same request,
 from the droplet, is still 403 at AutoScout24 and AutoTrack, and 200 from the
