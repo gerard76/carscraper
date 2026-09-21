@@ -306,7 +306,7 @@ class Car < ApplicationRecord
   # ENERGY LR 5 Türen", both 49370 euro at 16174 km in Plattling).
   def self.retitled
     on_offer.where.not(km: nil).where.not(location: nil)
-            .group_by { |car| [car.source, car.year, car.km, car.place_key, car.eur] }
+            .group_by { |car| [car.source, car.year, car.km, car.locality, car.eur] }
             .filter_map do |key, group|
       next if key.any?(&:nil?) || group.size < 2
 
@@ -346,7 +346,7 @@ class Car < ApplicationRecord
 
     candidates = where(km: fresh.km, year: fresh.year, price: fresh.price, currency: fresh.currency)
                  .reject { |car| car.id == fresh.id }
-                 .select { |car| car.source == fresh.source && car.place_key == fresh.place_key }
+                 .select { |car| car.source == fresh.source && car.locality == fresh.locality }
 
     candidates.first if candidates.one?
   end
@@ -365,11 +365,29 @@ class Car < ApplicationRecord
   # directly after this, on what is left.
   DUPLICATE_REASONS = ["listed on two sites", "advertised twice", "same photograph"].freeze
 
+  # Rounds, because merging changes what is grouped: a row that stays takes
+  # over the freshest advert, and that can bring it alongside a third row that
+  # was in nobody's group before. Two passes settled production; the cap is
+  # there so a bug cannot spin here.
+  MERGE_PASSES = 5
+
   def self.merge_retitled!
     merged = 0
 
+    MERGE_PASSES.times do
+      gone = merge_retitled_once!
+      merged += gone
+      break if gone.zero?
+    end
+
+    merged
+  end
+
+  def self.merge_retitled_once!
+    merged = 0
+
     listed.where.not(hidden_by: BY_HAND).where.not(km: nil).where.not(location: nil)
-          .group_by { |car| [car.source, car.year, car.km, car.place_key, car.eur] }
+          .group_by { |car| [car.source, car.year, car.km, car.locality, car.eur] }
           .each do |key, group|
       next if key.any?(&:nil?) || group.size < 2
 
@@ -979,7 +997,18 @@ class Car < ApplicationRecord
   # Mileage is part of it on purpose: without it, six different cars from one
   # seller with the same generic title collapsed into one.
   def identity
-    [source, year, km, Postcode.digits(location).presence || place_key, version.to_s.downcase.gsub(/[^a-z0-9]+/, " ").strip]
+    [source, year, km, locality, version.to_s.downcase.gsub(/[^a-z0-9]+/, " ").strip]
+  end
+
+  # Where the car stands, for the rules that have to agree with each other
+  # about it. The postcode as written comes first and needs no lookup; only a
+  # listing that gives a bare town name asks the table, and that answer can
+  # come back nil (a town the tables do not carry). A key that is sometimes nil
+  # for the same row is worse than a coarse one: merge_retitled! skipped car
+  # 5650 on its first pass and merged it on the second, which is how this was
+  # found.
+  def locality
+    Postcode.digits(location).presence || place_key
   end
 
   # Computed rather than read from the column, so a scraper can ask a car it
