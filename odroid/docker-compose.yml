@@ -74,13 +74,25 @@ services:
       - bash
       - -c
       - |
-        # The next 07:00 or 19:00, whichever comes first. Both are looked up
+        # The next 06:00 or 18:00, whichever comes first. Both are looked up
         # through TZ above, so the summer-time jump is the zoneinfo database's
         # problem and not arithmetic done here.
+        #
+        # An hour ahead of the droplet's own 07:00 and 19:00, and deliberately
+        # so, for two reasons. Two scrapes at once on one database is a race --
+        # the same listing arriving down two paths, merge_relisted! and
+        # hide_duplicates! reading rows the other round is still writing. And
+        # in this order the droplet's round picks up the photographs for
+        # whatever this one just found, since this one does not fetch them.
+        #
+        # A round here takes about 17 minutes -- longer than the droplet's 6,
+        # because Details actually gets answers here -- so the margin is 40-odd
+        # minutes. If either side gets much slower, move these, not those: the
+        # droplet's are in config/initializers/good_job.rb.
         next_round() {
           local now soonest next h
           now=$$(date +%s); soonest=""
-          for h in 7 19; do
+          for h in 6 18; do
             next=$$(date -d "today $$h:00" +%s)
             [ "$$next" -le "$$now" ] && next=$$(date -d "tomorrow $$h:00" +%s)
             if [ -z "$$soonest" ] || [ "$$next" -lt "$$soonest" ]; then soonest=$$next; fi
