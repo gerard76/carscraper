@@ -1,0 +1,93 @@
+# The scrape, on a box at home that does not close its lid.
+#
+# Why here and not on the droplet: AutoScout24 and AutoTrack answer a data
+# centre address with 403 and a home address with 200 (measured both ways --
+# see README.md, "The droplet is blocked"). Between them they carry half the
+# cars. Until now the round that kept those two fresh was run by hand from a
+# laptop; this is the same round on a machine that is always on.
+#
+# Why the tunnel points this way: nothing here listens. The droplet holds no
+# key, no address and no open socket that leads to this house, so taking the
+# droplet gets you no further. The one direction that exists is outbound, and
+# over an established ssh session a server cannot open a channel back to the
+# client for a forward the client never asked for.
+
+name: carscraper
+
+networks:
+  # internal, so neither container can be reached from the LAN or the host --
+  # they can only talk to each other and out to the internet.
+  scraper:
+    driver: bridge
+
+services:
+  tunnel:
+    build:
+      context: .
+      dockerfile: Dockerfile.tunnel
+    command: ["-L", "0.0.0.0:5433:127.0.0.1:5433", "scraper@146.185.130.81"]
+    networks: [scraper]
+    restart: unless-stopped
+    volumes:
+      - ./ssh/id_scraper:/keys/id_scraper:ro
+      - ./ssh/known_hosts:/keys/known_hosts:ro
+    healthcheck:
+      # The scrape must not start against a tunnel that is not up yet.
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 5433 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  scrape:
+    image: registry.digitalocean.com/eet-nu/carscraper:arm64
+    depends_on:
+      tunnel:
+        condition: service_healthy
+    networks: [scraper]
+    restart: unless-stopped
+    environment:
+      RAILS_ENV: production
+      # The pictures are NOT fetched here. Photos writes files and decides what
+      # is missing by looking at a disk; the disk that matters is the droplet's
+      # volume, not this SD card. The droplet fetches its own on its own cron
+      # -- the image servers answer it fine, it is only the listing pages that
+      # are blocked. See app/models/scrape.rb.
+      PHOTOS: elsewhere
+      DATABASE_URL: postgres://carscraper:${CARSCRAPER_DATABASE_PASSWORD}@tunnel:5433/carscraper_production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      HOME_LATITUDE: ${HOME_LATITUDE}
+      HOME_LONGITUDE: ${HOME_LONGITUDE}
+      TZ: Europe/Amsterdam
+    # Waits for the next 07:00 or 19:00 and runs one round, forever.
+    #
+    # A scheduler container was the other option and was rejected: every one of
+    # them wants /var/run/docker.sock, and handing a container the docker socket
+    # on the box that runs the house is root on that box. Host cron would do as
+    # well; this keeps it where the rest of it is.
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        # The next 07:00 or 19:00, whichever comes first. Both are looked up
+        # through TZ above, so the summer-time jump is the zoneinfo database's
+        # problem and not arithmetic done here.
+        next_round() {
+          local now soonest next h
+          now=$$(date +%s); soonest=""
+          for h in 7 19; do
+            next=$$(date -d "today $$h:00" +%s)
+            [ "$$next" -le "$$now" ] && next=$$(date -d "tomorrow $$h:00" +%s)
+            if [ -z "$$soonest" ] || [ "$$next" -lt "$$soonest" ]; then soonest=$$next; fi
+          done
+          echo "$$soonest"
+        }
+
+        while true; do
+          at=$$(next_round)
+          echo "next round at $$(date -d @$$at)"
+          sleep $$(( at - $$(date +%s) ))
+          # Never fatal: a site that is down, or a tunnel that dropped, is a
+          # round to skip and not a container to lose. restart: unless-stopped
+          # would otherwise turn one bad round into a restart loop.
+          bin/rails cars:scrape || echo "round failed, leaving it until the next one"
+        done
