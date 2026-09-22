@@ -65,8 +65,14 @@ services:
     # them wants /var/run/docker.sock, and handing a container the docker socket
     # on the box that runs the house is root on that box. Host cron would do as
     # well; this keeps it where the rest of it is.
-    entrypoint: ["/bin/bash", "-c"]
+    # The image's own entrypoint is left in place, so `docker compose run`
+    # takes an ordinary command -- `docker compose run --rm scrape
+    # bin/rails cars:scrape` runs one round by hand. Overriding the entrypoint
+    # with bash -c broke exactly that: bash -c takes one argument as the
+    # script and drops the rest.
     command:
+      - bash
+      - -c
       - |
         # The next 07:00 or 19:00, whichever comes first. Both are looked up
         # through TZ above, so the summer-time jump is the zoneinfo database's

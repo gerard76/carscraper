@@ -118,11 +118,38 @@ docker compose logs -f
 
 ## Checking it works before trusting it
 
-One round by hand, watching it:
+Cheapest first -- this asks the sites nothing and only proves the tunnel and
+the database:
+
+```
+docker compose run --rm --no-deps scrape bin/rails runner 'puts Car.count'
+```
+
+Then one round by hand, watching it:
 
 ```
 docker compose run --rm scrape bin/rails cars:scrape
 ```
+
+That second one works because the image's own entrypoint is left alone. An
+earlier version of this file overrode it with `bash -c` to hold the waiting
+loop, which quietly broke every `docker compose run`: `bash -c` takes one
+argument as the script and drops the rest, so `bin/rails cars:scrape` became
+`bin/rails` with `cars:scrape` as `$0`, and rails printed its help.
+
+The key's restrictions are worth checking too, since they are what makes
+losing this box survivable. Both of these must fail:
+
+```
+ssh -i ssh/id_scraper scraper@146.185.130.81 id
+  -> This account is currently not available.
+
+ssh -i ssh/id_scraper -N -L 15432:127.0.0.1:22 scraper@146.185.130.81
+  -> channel 2: open failed: administratively prohibited
+```
+
+The local port in that second one *does* open -- a client always binds its own
+listener -- so the line to look for is the refused channel, not a closed port.
 
 ## When it is up
 
