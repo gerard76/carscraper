@@ -887,19 +887,28 @@ class Car < ApplicationRecord
 
   # The card picture on the wall and in the bin: our own copy, or nothing.
   #
+  # Our copy of *a* picture of this car, note, not of the picture the advert
+  # happens to show this morning. Those are different questions and they were
+  # one question for a day: a scrape from the laptop refreshed image_url on 94
+  # AutoScout24 cars, the digest in the file name stopped matching the new url,
+  # and the wall went blank for all of them -- with the old photographs sitting
+  # on the disk, of the same cars, perfectly good. photo_stored? is the
+  # question Photos asks (is this still the advert's picture, should it be
+  # fetched again); this is the question a page asks.
+  #
   # It used to fall back to the site's own url so that a car scraped a minute
   # ago still showed something. That is one page of ours asking a seller's
   # server for a file, which is the thing we do not do -- and it bought little:
   # Photos runs at the end of the same round that finds the car, so the wait it
   # covered is minutes.
   def photo_url
-    "#{Photos::PATH}/#{photo}" if photo_stored?
+    "#{Photos::PATH}/#{photo}" if held?(photo)
   end
 
   # The one on a car's own page: our big copy, with our card copy behind it for
   # the cars whose big one has not been fetched yet.
   def large_photo_url
-    return "#{Photos::PATH}/#{large_photo}" if large_photo_stored?
+    return "#{Photos::PATH}/#{large_photo}" if held?(large_photo)
 
     photo_url
   end
@@ -925,19 +934,29 @@ class Car < ApplicationRecord
   # images and never fetch them, because the column says they are already
   # here. Checking costs one stat per car, and it means a wiped volume heals
   # itself on the next scrape.
+  # What Photos asks: is the file here, and is it still the picture the advert
+  # shows? A listing that swaps its photograph fails the second half and is
+  # fetched again -- the name is a digest of the url it came from, so a new url
+  # means a new file rather than a stale one under the old name.
   def photo_stored?
-    held?(photo, photo_digest)
+    held?(photo) && named_after?(photo, photo_digest)
   end
 
   def large_photo_stored?
-    held?(large_photo, large_photo_digest)
+    held?(large_photo) && named_after?(large_photo, large_photo_digest)
   end
 
-  def held?(name, digest)
-    return false if name.blank? || digest.blank?
-    return false unless name.start_with?(digest)
+  # On the disk, under that name. The name in the column is only half of it: a
+  # database restored onto a machine without the pictures -- this laptop,
+  # carrying a dump of the droplet -- would otherwise show six hundred broken
+  # images and never fetch them, because the column says they are already here.
+  # One stat per car, about a millisecond over a page.
+  def held?(name)
+    name.present? && File.exist?(Photos::DIRECTORY.join(name))
+  end
 
-    File.exist?(Photos::DIRECTORY.join(name))
+  def named_after?(name, digest)
+    digest.present? && name.to_s.start_with?(digest)
   end
 
   # Worth a request only when the site has something bigger than the picture

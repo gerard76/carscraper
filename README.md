@@ -850,6 +850,16 @@ That last part is why `large_image_url` only ever substitutes *upwards*. It
 used to rewrite any size in the url to 1024x768, which for those 455 handed out
 a picture smaller than the copy already on disk.
 
+Two questions about one file, kept apart since 22 September 2026: *is this
+still the picture the advert shows* (Photos asks that, and fetches again when
+the answer is no) and *do we have a picture of this car at all* (a page asks
+that). They were one question for a day, and the wall went blank for 94 cars
+the first time a laptop scrape refreshed their `image_url`: the digest in the
+file name no longer matched the new url, so a perfectly good photograph of the
+same car, sitting on the disk, counted as nothing. `photo_url` now shows what
+is held; `photo_stored?` still wants the name to match, which is what keeps the
+queue honest.
+
 The car page used to show the seller's url with our copy behind it as an
 `onerror` fallback. Two things wrong with that: it is a page of ours fetching
 from their server on every view, and the fallback had already proved necessary
