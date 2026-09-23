@@ -478,6 +478,19 @@ Norway is too far to drive to anyway.
 
 ## In the bin, or on the pages
 
+A decision of yours is about the car, not about the advert it was written on.
+Car 4093 was crossed off as a smoker's car, with a note saying so, and two days
+later the same van arrived from another site as 4767: on the pages, unmarked,
+the note nowhere. Every duplicate rule works on what is *on offer*, and a row
+you have crossed off is not on offer, so nothing could carry it.
+
+`Car.carry_hand_decisions!` does, at tidy-up, over `Car#twins` -- the other
+rows for the same car, recognised by the advert's picture folder, or failing
+that by build month, odometer, town and price to the euro. The crossing-off,
+the note and the star all travel. `hide_all_but` carries the same three to
+whichever row stays, and now takes them from crossed-off rows too, which it
+used to skip.
+
 One column says it: `hidden_by`, which is either nil or the reason -- `you`,
 `as new`, `listed on two sites`, `advertised twice`, `same photograph`,
 `battery too small`, `pure model`, `a cargo van`. `Car.shown` is the ones with no reason,

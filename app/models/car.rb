@@ -225,14 +225,48 @@ class Car < ApplicationRecord
   end
 
   def self.hide_all_but(keep, group, reason)
-    gone = (group - [keep]).reject(&:hidden_by_hand?)
+    others = group - [keep]
+    gone   = others.reject(&:hidden_by_hand?)
 
-    # The cheapest listing is the one that stays, star or no star -- but a star
-    # is about the car and not about the advert, so it moves to the one that
-    # stays rather than disappearing with the one that goes.
-    keep.update_columns(favourite: true) if gone.any?(&:favourite) && !keep.favourite
+    # The cheapest listing is the one that stays -- but a star, a note and a
+    # decision to cross a car off are about the car and not about the advert,
+    # so they move to the row that stays rather than going with the one that
+    # goes. Taken from every other row in the group, crossed-off ones included:
+    # those are not in `gone`, and their note was exactly what went missing.
+    keep.update_columns(favourite: true) if others.any?(&:favourite) && !keep.favourite
+
+    note = others.filter_map { |car| car.comments.presence }.first
+    keep.update_columns(comments: note) if note && keep.comments.blank?
+
+    keep.update_columns(hidden_by: BY_HAND) if others.any?(&:hidden_by_hand?) && !keep.hidden_by_hand?
 
     gone.each { |car| car.update_columns(hidden_by: reason) }.size
+  end
+
+  # What you decided about a car holds for the car, on whatever site it turns
+  # up next. Every duplicate rule works on what is on offer, and a row you
+  # crossed off is not on offer -- so nothing carried it. Car 4093 was crossed
+  # off as a smoker's car, with a note saying so, and two days later the same
+  # van arrived from another site as 4767: on the pages, unmarked, and the note
+  # nowhere to be seen.
+  #
+  # Runs at tidy-up, before the duplicate rules, so the row it crosses off is
+  # out of their way.
+  def self.carry_hand_decisions!
+    carried = 0
+
+    hidden_by_hand.each do |crossed_off|
+      crossed_off.twins.each do |twin|
+        next if twin.hidden_by_hand?
+
+        twin.update_columns(hidden_by: BY_HAND,
+                            comments: twin.comments.presence || crossed_off.comments,
+                            favourite: twin.favourite || crossed_off.favourite)
+        carried += 1
+      end
+    end
+
+    carried
   end
 
   def hidden_by_hand?
@@ -874,6 +908,22 @@ class Car < ApplicationRecord
 
   def corrected?(field)
     corrections.is_a?(Hash) && corrections.key?(field.to_s)
+  end
+
+  # The other rows that are this same car, wherever they came from.
+  #
+  # The photograph is the strongest tie: one advert's pictures live in one
+  # folder, and the sites that syndicate each other hand out the same folder --
+  # which is what made 4093 and 4767 recognisable as one van. Failing that, the
+  # same build month, odometer, town and asking price to the euro, which is the
+  # test Car.retitled makes and is wrong about nobody.
+  def twins
+    others = self.class.where.not(id: id)
+
+    return others.where("image_url like ?", "%#{photo_key}%").to_a if photo_key.present?
+    return [] if km.nil? || year.nil? || eur.nil? || locality.blank?
+
+    others.where(km: km, year: year, eur: eur).select { |car| car.locality == locality }
   end
 
   # In the bin, or on the pages. hidden_by says which, and why.
