@@ -5,7 +5,7 @@
 # through here.
 class Scrape
   # A source that has been blocked, or whose markup has changed, returns
-  # nothing at all -- and remove_vanished! would then delete every car it had.
+  # nothing at all -- and every car it had would then be written off at once.
   # So a source's listings are only removed when this round saw most of what
   # that source already had.
   #
@@ -84,6 +84,9 @@ class Scrape
     # Twice around: the Pure is spotted by how far under the line it sits, and
     # taking a couple of dozen of them out moves the line the rest are judged
     # against.
+    forgotten = Car.forget_long_gone!
+    report.call "forgot #{forgotten} listings gone for #{Car::FORGET_AFTER.inspect} with nothing of yours on them" if forgotten.positive?
+
     Car.recalculate_bargains!
     report.call "hid #{Car.hide_pures!} listings that are the cheap Pure model"
 
@@ -108,17 +111,29 @@ class Scrape
     seen      = Car.where(seen_at: started..).group_by(&:source).transform_values(&:size)
 
     by_source.each do |source, cars|
-      vanished = cars.select { |car| Car.vanished.exists?(car.id) }
-      next if vanished.empty?
+      missing = cars.reject { |car| car.seen_at && car.seen_at >= started }
+      next if missing.empty?
 
+      # A source that answered nothing this round has not told us anything
+      # about its cars, and taking them off the pages would empty the site.
       if seen.fetch(source, 0) < cars.size * MOST_OF_THEM
-        report.call "left #{vanished.size} #{source} #{"listing".pluralize(vanished.size)} that look gone alone: " \
+        report.call "left #{missing.size} #{source} #{"listing".pluralize(missing.size)} that look gone alone: " \
                     "this round saw only #{seen.fetch(source, 0)} of its #{cars.size}, so it is the scrape " \
                     "that is broken there, not the site"
-      else
-        vanished.each(&:destroy)
-        report.call "removed #{vanished.size} #{source} #{"listing".pluralize(vanished.size)} that are no longer on the site"
+        next
       end
+
+      # The site itself can settle most of it in one request each: an offer
+      # that is withdrawn answers 410 Gone, and there is no reason to show a
+      # dead link for three days waiting to be sure.
+      StillThere.call(missing, report: report)
+
+      vanished = missing.select { |car| car.seen_at.nil? || car.seen_at < Car::SEEN_WINDOW.ago }
+      vanished = vanished.reject { |car| car.hidden_by_hand? || car.hidden_by == Car::GONE }
+      next if vanished.empty?
+
+      vanished.each { |car| car.update_columns(hidden_by: Car::GONE) }
+      report.call "took #{vanished.size} #{source} #{"listing".pluralize(vanished.size)} off the pages: nothing has seen them for #{Car::SEEN_WINDOW.inspect}"
     end
   end
 end

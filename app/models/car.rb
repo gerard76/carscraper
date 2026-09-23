@@ -664,19 +664,27 @@ class Car < ApplicationRecord
     hidden
   end
 
-  # A listing no scraper has seen for SEEN_WINDOW is sold or withdrawn: the
-  # link is dead -- 12gebrauchtwagen answers 410 Gone -- so the row goes.
+  # A listing no scraper has seen for SEEN_WINDOW is sold or withdrawn -- the
+  # link is dead, 12gebrauchtwagen answers 410 Gone -- so it comes off the
+  # pages. Off the pages, not out of the database: it used to be destroyed, and
+  # a car that came back came back as a fresh row with your note, your star and
+  # your corrections missing. This is a reason like any other, so the row keeps
+  # all of it, and a scrape that sees the car again lifts the reason (see
+  # Scrapers::Base#refresh).
   #
   # The window is the safety margin: a source that falls over, or a listing
-  # that slips off the last page for a round, is not thrown away on one miss.
-  # A car that comes back after being removed comes back as a new row, so any
-  # note on it is gone with it.
-  def self.remove_vanished!
-    vanished.destroy_all.size
-  end
+  # that slips off the last page for a round, is not written off on one miss.
+  # A dead link is proof rather than a guess, and StillThere acts on it the
+  # same round.
+  GONE = "no longer listed".freeze
 
-  def self.vanished
-    where("seen_at is null or seen_at < ?", SEEN_WINDOW.ago)
+  # Gone, and nothing of yours on it, and long enough ago that it is not coming
+  # back. Rows you wrote on, starred, corrected or crossed off are kept
+  # whatever their age: that is the whole point of keeping them at all.
+  FORGET_AFTER = 60.days
+
+  def self.forget_long_gone!
+    where(hidden_by: GONE).where("seen_at < ?", FORGET_AFTER.ago).where.not(id: decided.select(:id)).destroy_all.size
   end
 
   # Rows that are the same listing re-arrived under a new url. Keeps the one

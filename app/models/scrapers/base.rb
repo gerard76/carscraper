@@ -190,6 +190,11 @@ class Scrapers::Base
     # stops being stamped has been sold.
     stored.update_columns(seen_at: Time.current)
 
+    # And if it was written off as gone, it plainly is not: back on the pages,
+    # with whatever you had said about it still on it. Only what the rule put
+    # away -- a car you crossed off yourself stays crossed off.
+    stored.update_columns(hidden_by: nil) if stored.hidden_by == Car::GONE
+
     stored.url      = fresh.url
     stored.price    = fresh.price
     stored.km       = fresh.km

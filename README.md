@@ -502,7 +502,7 @@ keeps what you said about the one that goes.
 
 One column says it: `hidden_by`, which is either nil or the reason -- `you`,
 `as new`, `listed on two sites`, `advertised twice`, `same photograph`,
-`battery too small`, `pure model`, `a cargo van`. `Car.shown` is the ones with no reason,
+`battery too small`, `pure model`, `a cargo van`, `no longer listed`. `Car.shown` is the ones with no reason,
 `Car.binned` the rest, and `Car.hidden_by_hand` versus `Car.hidden_by_rule`
 tells your decisions from the rules'.
 
@@ -511,6 +511,33 @@ reverse, which is two columns that have to agree -- and the page had a
 "Show on the pages" tick that was on by default, so you binned a car by
 taking a tick away. Both are gone. Neither database had a single row where
 the two disagreed, which is luck rather than design.
+
+## Sold, or only quiet
+
+A listing that stops turning up is usually sold, and the link usually says so
+itself: 12gebrauchtwagen answers **410 Gone** the moment an offer is withdrawn.
+So a round asks -- once, a second apart, about the listings it did not see this
+time -- and a 410 or a 404 takes the car off the pages the same round.
+`StillThere` does the asking, and only for a source that answered this round;
+a redirect, a timeout or a 403 says nothing about whether a car is sold and
+leaves it alone. Cars 5092 and 4501 were found the other way round, by clicking
+a link that opened nothing three days running.
+
+What has not said anything either way comes off after `SEEN_WINDOW` of silence,
+as before.
+
+**Off the pages, not out of the database.** They used to be destroyed, and a
+car that came back came back as a fresh row: no note, no star, no corrections,
+and a "new today" date. Now it is a reason like any other -- `no longer listed`
+-- so the row keeps everything you put on it, and a scrape that sees the car
+again lifts the reason and puts it straight back (`Scrapers::Base#refresh`).
+Nothing asks about a car already written off, so this costs one request per
+listing, once.
+
+Rows do get forgotten eventually: gone for `FORGET_AFTER` (60 days) **and**
+with nothing of yours on them -- no note, no star, no correction, no crossing
+off. Those four are what `Car.decided` means, and a row that has any of them is
+kept however old it gets.
 
 ## The same car twice
 
