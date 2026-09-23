@@ -57,7 +57,7 @@
 
   <div class="filter">
     <label for="q_year_min">Year from</label>
-    <input type="text" name="q[year_min]" id="q_year_min" value="<%= params.dig(:q, :year_min) %>">
+    <input type="text" name="q[year_min]" id="q_year_min" value="<%= search_query&.dig("year_min") %>">
   </div>
 
   <div class="filter">
@@ -77,7 +77,9 @@
   <div class="filter actions">
     <%= f.submit "Search" %>
     <% if search_query.present? %>
-      <%= link_to "Clear", local_assigns.fetch(:url, cars_path), class: "clear" %>
+      <%# The plain path now means "what you had last time", so clearing has to
+          ask for it: this is the only thing that forgets the filter. %>
+      <%= link_to "Clear", "#{local_assigns.fetch(:url, cars_path)}?clear=1", class: "clear" %>
     <% end %>
   </div>
 <% end %>

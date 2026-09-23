@@ -202,11 +202,22 @@ class CarsController < ApplicationController
     query
   end
 
+  # What you last filtered on, until you say otherwise.
+  #
+  # The sort has been remembered for a while (remember_sort) and the filters
+  # were not, so every visit started with an empty form and a thousand cars:
+  # six seats, 79 kWh, under 40,000 km, all of it typed in again. A bare
+  # /cars/photos carries no q at all, and that is most of how you arrive --
+  # from a bookmark, from the menu, from yesterday.
+  #
+  # Which turns the plain path into "whatever you had", so Clear has to say so
+  # out loud: it asks for ?clear=1 and that is the one thing that empties this.
   def search_params
-    session[:q] = params[:q]
-    return {} unless params[:q]
+    session.delete(:q) if params[:clear]
+    session[:q] = params[:q].to_unsafe_h if params[:q]
 
-    q = params[:q].dup
+    q = remembered_query
+    return {} if q.blank?
 
     q["g"] = groupings(q)
     q.delete("g") if q["g"].empty?
@@ -217,6 +228,13 @@ class CarsController < ApplicationController
     end
 
     q
+  end
+
+  # The filter this request is to be read with: its own, or the one in hand
+  # from last time. A hash either way -- what comes back out of the session
+  # cookie is plain json, with none of Parameters' methods on it.
+  def remembered_query
+    ActiveSupport::HashWithIndifferentAccess.new(params[:q]&.to_unsafe_h || session[:q] || {})
   end
 
   # The three the listing pages fill in. Each is asked as a select you can pick

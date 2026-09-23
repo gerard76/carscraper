@@ -18,8 +18,12 @@ class ApplicationController < ActionController::Base
 
   private
 
+  # What the form shows as filled in, and what the menu carries from one view
+  # to the next. The session half matters as much as the url half: a filter
+  # remembered from yesterday has to show in the boxes, or the page says one
+  # thing and the list another.
   def search_query
-    request.query_parameters[:q]
+    request.query_parameters[:q] || session[:q]
   end
 
   def reading?

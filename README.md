@@ -25,6 +25,18 @@ Both open cheapest first, and then on whatever you last sorted on: the choice
 is kept in the session and shared between the two pages, so the table and the
 photos agree without being told twice.
 
+The filter is kept the same way. Six seats, 79 kWh, under 40,000 km is a
+question you go on asking for weeks, and a bare `/cars/photos` -- which is how
+you arrive, from a bookmark or the menu -- used to answer it with all eleven
+hundred cars until you had filled the form in again. Now a request that brings
+no `q` of its own is read with the last one, and the boxes show it. Which makes
+the plain path mean "what you had", so **Clear** asks for `?clear=1`: that is
+the one thing that forgets it. The cookie lasts ninety days
+(`config/initializers/session_store.rb`), because a session cookie without an
+expiry dies when the browser does, and shutting the laptop at night should not
+count as clearing the filter. Nothing is unlocked by holding it: writing is
+behind http basic auth, not the session.
+
 `/cars/table` has the same cars as a table instead, sortable by distance,
 price, mileage, build date, bargain, star, and how new it is, keeping whatever
 the search form is filtering on. `New` counts the days since the scrape that
