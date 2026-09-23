@@ -3,7 +3,7 @@
     <%= f.label :models %>
     <%= f.select :model_id_in,
       options_from_collection_for_select(Model.all, :id, :short_type, @q.model_id_in),
-      { include_blank: "Any" }, { multiple: true, size: 1 } %>
+      { include_blank: "Any", include_hidden: false }, { multiple: true, size: 1 } %>
   </div>
 
   <%# Bargain compares a car to every other car, trim and all, so narrowing to
@@ -17,17 +17,24 @@
       these only offer the counts that are actually in front of you. Blank on a
       car means the advert never said, not that it has none. %>
   <%# More than one at a time, all three: six seats or seven is one question,
-      and so is 79 kWh or 86. %>
+      and so is 79 kWh or 86.
+
+      include_hidden: false, or every submit carries a blank whether or not you
+      picked one -- Rails puts one in front of a multiple select so that
+      clearing the last pick still sends something. With "Any" meaning "forget
+      this field" (see CarsController#asked_for), that blank cleared the field
+      on every search: tick 6, press Search, get everything. Without it, an
+      empty select simply sends nothing, which says the same thing. %>
   <div class="filter">
     <%= f.label :seats_in, "Seats" %>
     <%= f.select :seats_in, options_for_select(stated_options(:seats), chosen_many(:seats)),
-          { include_blank: "Any" }, { multiple: true, size: 1 } %>
+          { include_blank: "Any", include_hidden: false }, { multiple: true, size: 1 } %>
   </div>
 
   <div class="filter">
     <%= f.label :kwh_in, "Battery kWh" %>
     <%= f.select :kwh_in, options_for_select(stated_options(:kwh), chosen_many(:kwh)),
-          { include_blank: "Any" }, { multiple: true, size: 1 } %>
+          { include_blank: "Any", include_hidden: false }, { multiple: true, size: 1 } %>
   </div>
 
   <%# What the battery used to stand in for, asked directly: two in five titles
@@ -37,7 +44,7 @@
     <%= f.label :wheelbase_in, "Wheelbase" %>
     <%= f.select :wheelbase_in,
           options_for_select(stated_options(:wheelbase, labels: { "long" => "Long", "short" => "Short" }), chosen_many(:wheelbase)),
-          { include_blank: "Any" }, { multiple: true, size: 1 } %>
+          { include_blank: "Any", include_hidden: false }, { multiple: true, size: 1 } %>
   </div>
 
   <div class="filter">
