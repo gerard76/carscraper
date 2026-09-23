@@ -67,7 +67,7 @@ class Scrape
     report.call "== tidying up =="
     report.call "merged away #{Car.merge_relisted!} rows that were the same listing twice"
     report.call "merged away #{Car.merge_retitled!} rows that were one car under several titles"
-    report.call "crossed off #{Car.carry_hand_decisions!} listings that are a car you had already crossed off"
+    report.call "carried what you had said about a car to #{Car.carry_decisions!} other rows of it"
 
     # Counts every copy, not the ones new since last round: the reasons are
     # dropped and worked out again each time -- see forget_duplicate_reasons!.

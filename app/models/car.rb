@@ -228,42 +228,41 @@ class Car < ApplicationRecord
     others = group - [keep]
     gone   = others.reject(&:hidden_by_hand?)
 
-    # The cheapest listing is the one that stays -- but a star, a note and a
-    # decision to cross a car off are about the car and not about the advert,
-    # so they move to the row that stays rather than going with the one that
-    # goes. Taken from every other row in the group, crossed-off ones included:
-    # those are not in `gone`, and their note was exactly what went missing.
-    keep.update_columns(favourite: true) if others.any?(&:favourite) && !keep.favourite
-
-    note = others.filter_map { |car| car.comments.presence }.first
-    keep.update_columns(comments: note) if note && keep.comments.blank?
-
-    keep.update_columns(hidden_by: BY_HAND) if others.any?(&:hidden_by_hand?) && !keep.hidden_by_hand?
+    # The cheapest listing is the one that stays, and everything you have said
+    # about the car moves to it -- from every other row in the group, including
+    # the crossed-off ones, which are not in `gone` at all.
+    keep.adopt_decisions_from(others)
 
     gone.each { |car| car.update_columns(hidden_by: reason) }.size
   end
 
+  # A row you have said something about: crossed off, starred, written on, or
+  # put right by hand.
+  def self.decided
+    where(hidden_by: BY_HAND)
+      .or(where(favourite: true))
+      .or(where.not(comments: [nil, ""]))
+      .or(where("corrections::text not in ('{}', 'null', '')"))
+  end
+
   # What you decided about a car holds for the car, on whatever site it turns
-  # up next. Every duplicate rule works on what is on offer, and a row you
-  # crossed off is not on offer -- so nothing carried it. Car 4093 was crossed
-  # off as a smoker's car, with a note saying so, and two days later the same
-  # van arrived from another site as 4767: on the pages, unmarked, and the note
-  # nowhere to be seen.
+  # up next, and however many rows it turns up as.
   #
-  # Runs at tidy-up, before the duplicate rules, so the row it crosses off is
-  # out of their way.
-  def self.carry_hand_decisions!
+  # Every duplicate rule works on what is on offer, and a row you crossed off
+  # is not on offer, so nothing carried it: car 4093 was crossed off as a
+  # smoker's car, with a note saying so, and two days later the same van
+  # arrived from another site as 4767 -- on the pages, unmarked, the note
+  # nowhere. A correction can go the same way: the seat count you fixed by hand
+  # on one row says nothing about the copy that arrives tomorrow, and that copy
+  # carries the seller's number.
+  #
+  # Runs at tidy-up, before the duplicate rules, so a row it crosses off is out
+  # of their way.
+  def self.carry_decisions!
     carried = 0
 
-    hidden_by_hand.each do |crossed_off|
-      crossed_off.twins.each do |twin|
-        next if twin.hidden_by_hand?
-
-        twin.update_columns(hidden_by: BY_HAND,
-                            comments: twin.comments.presence || crossed_off.comments,
-                            favourite: twin.favourite || crossed_off.favourite)
-        carried += 1
-      end
+    decided.each do |car|
+      car.twins.each { |twin| carried += twin.adopt_decisions_from(car) }
     end
 
     carried
@@ -432,8 +431,9 @@ class Car < ApplicationRecord
 
       keep  = group.min_by(&:id)
       fresh = group.max_by { |car| [car.seen_at || Time.at(0), car.id] }
-      note  = group.filter_map { |car| car.comments.presence }.first
-      star  = group.any?(&:favourite)
+
+      # Before they go: the star, the note, the crossing-off, the corrections.
+      keep.adopt_decisions_from(group - [keep])
 
       (group - [keep]).each do |car|
         car.destroy
@@ -441,9 +441,7 @@ class Car < ApplicationRecord
       end
 
       changes = { seen_at: fresh.seen_at }
-      changes[:comments]  = note if note && keep.comments.blank?
-      changes[:favourite] = true if star && !keep.favourite
-      changes[:hidden_by] = nil if DUPLICATE_REASONS.include?(keep.hidden_by)
+      changes[:hidden_by] = nil if DUPLICATE_REASONS.include?(keep.reload.hidden_by)
 
       # The advert as it stands today, from whichever row saw it last. The
       # picture comes with its own file, which we already have.
@@ -924,6 +922,45 @@ class Car < ApplicationRecord
     return [] if km.nil? || year.nil? || eur.nil? || locality.blank?
 
     others.where(km: km, year: year, eur: eur).select { |car| car.locality == locality }
+  end
+
+  # Everything you have said about this car, taken over from another row of it.
+  # A star, a note, a crossing-off and a correction are about the van; which
+  # row they were written on is an accident of which advert we saw first.
+  #
+  # Yours wins over theirs, on every count: a note here is not replaced by a
+  # note there, and a correction here outranks the same correction there. What
+  # travels is what this row does not have.
+  #
+  # Corrections travel with their values, because that is what a correction is
+  # -- a number that outranks the advert. Car 1616 says eight seats and has
+  # five; the copy of it that arrives tomorrow from another site says eight as
+  # well.
+  #
+  # Returns 1 when it took something over, 0 when it had nothing to take, so a
+  # round can count what it did.
+  def adopt_decisions_from(others)
+    others  = Array(others)
+    changes = {}
+
+    changes[:favourite] = true if !favourite && others.any?(&:favourite)
+
+    note = others.filter_map { |car| car.comments.presence }.first
+    changes[:comments] = note if comments.blank? && note
+
+    changes[:hidden_by] = BY_HAND if !hidden_by_hand? && others.any?(&:hidden_by_hand?)
+
+    theirs = others.reduce({}) { |all, car| car.corrections.to_h.merge(all) }
+    ours   = corrections.to_h
+    unless (theirs.keys - ours.keys).empty?
+      changes[:corrections] = theirs.merge(ours)
+      changes[:corrections].each { |field, value| changes[field.to_sym] = value }
+    end
+
+    return 0 if changes.empty?
+
+    update_columns(changes)
+    1
   end
 
   # In the bin, or on the pages. hidden_by says which, and why.

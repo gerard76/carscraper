@@ -484,12 +484,21 @@ later the same van arrived from another site as 4767: on the pages, unmarked,
 the note nowhere. Every duplicate rule works on what is *on offer*, and a row
 you have crossed off is not on offer, so nothing could carry it.
 
-`Car.carry_hand_decisions!` does, at tidy-up, over `Car#twins` -- the other
-rows for the same car, recognised by the advert's picture folder, or failing
-that by build month, odometer, town and price to the euro. The crossing-off,
-the note and the star all travel. `hide_all_but` carries the same three to
-whichever row stays, and now takes them from crossed-off rows too, which it
-used to skip.
+`Car.carry_decisions!` does, at tidy-up, over `Car#twins` -- the other rows for
+the same car, recognised by the advert's picture folder, or failing that by
+build month, odometer, town and price to the euro.
+
+All four things travel, by `Car#adopt_decisions_from`: the crossing-off, the
+note, the star and any correction. Corrections travel with their values,
+because that is what a correction is -- a number that outranks the advert. Car
+1616 says eight seats and has five; the copy of it that arrives tomorrow from
+another site says eight as well, and would have quietly won. Yours wins over
+theirs on every count: what travels is only what the receiving row does not
+already have, so a correction made on this row is never replaced by one made
+on another.
+
+`hide_all_but` and `merge_retitled!` take the same route, so the row that stays
+keeps what you said about the one that goes.
 
 One column says it: `hidden_by`, which is either nil or the reason -- `you`,
 `as new`, `listed on two sites`, `advertised twice`, `same photograph`,
