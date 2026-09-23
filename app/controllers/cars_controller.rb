@@ -214,10 +214,16 @@ class CarsController < ApplicationController
   # out loud: it asks for ?clear=1 and that is the one thing that empties this.
   def search_params
     session.delete(:q) if params[:clear]
-    session[:q] = params[:q].to_unsafe_h if params[:q]
+    session[:q] = asked_for if params[:q]
 
-    q = remembered_query
-    return {} if q.blank?
+    # Kept apart on purpose: this is the filter as the form speaks it, which is
+    # what the boxes and the menu are drawn from, and the copy below is the
+    # same thing translated into ransack's. Draw the boxes from the untranslated
+    # one or they disagree with the list they sit above.
+    @search_query = remembered_query
+    return {} if @search_query.blank?
+
+    q = @search_query.deep_dup
 
     q["g"] = groupings(q)
     q.delete("g") if q["g"].empty?
@@ -234,7 +240,25 @@ class CarsController < ApplicationController
   # from last time. A hash either way -- what comes back out of the session
   # cookie is plain json, with none of Parameters' methods on it.
   def remembered_query
-    ActiveSupport::HashWithIndifferentAccess.new(params[:q]&.to_unsafe_h || session[:q] || {})
+    ActiveSupport::HashWithIndifferentAccess.new(params[:q] ? asked_for : session[:q] || {})
+  end
+
+  # What the form asked for, with "Any" honoured.
+  #
+  # A select you can pick several things from still carries its blank "Any"
+  # row, and nothing stops you from picking that *and* 6 and 7 -- which read
+  # literally is "any seat count, and also six, and also seven". The blank used
+  # to be dropped and the other two kept, so ticking Any left you with exactly
+  # the filter you were trying to lift. Any wins instead, and takes the field
+  # with it.
+  def asked_for
+    q = params[:q].to_unsafe_h
+
+    PICK_SEVERAL.each do |field|
+      q.delete("#{field}_in") if Array(q["#{field}_in"]).any?(&:blank?)
+    end
+
+    q
   end
 
   # The three the listing pages fill in. Each is asked as a select you can pick

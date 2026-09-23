@@ -236,6 +236,13 @@ So every select that reads a field the sellers only sometimes fill in ends with
 `Not stated (612)`: the cars that are silent, and how many of them there are.
 It is a question you can now ask instead of a set you cannot see.
 
+Each of those three still carries its blank **Any** row, and nothing stops you
+from picking that alongside 6 and 7. Read literally that says "any seat count,
+and also six, and also seven"; the blank used to be dropped and the other two
+kept, so ticking Any left you with exactly the filter you were trying to lift.
+Any wins now, and takes the field with it -- the other filters stay where they
+are.
+
 `Seats`, `Battery kWh` and `Wheelbase` each take more than one answer at a
 time, because six seats or seven is one question rather than two, and so is 79
 kWh or 86. "Not stated" can be one of those answers, and it is a different

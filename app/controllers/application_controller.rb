@@ -23,7 +23,7 @@ class ApplicationController < ActionController::Base
   # remembered from yesterday has to show in the boxes, or the page says one
   # thing and the list another.
   def search_query
-    request.query_parameters[:q] || session[:q]
+    @search_query || request.query_parameters[:q] || session[:q]
   end
 
   def reading?
