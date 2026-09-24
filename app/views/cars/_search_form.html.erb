@@ -25,26 +25,38 @@
       this field" (see CarsController#asked_for), that blank cleared the field
       on every search: tick 6, press Search, get everything. Without it, an
       empty select simply sends nothing, which says the same thing. %>
+  <%# size is the whole list, not 1. The standard gives a multiple select a
+      display size of 4 and says nothing at all about how a collapsed one is
+      drawn -- that is the browser's business. Safari on a desktop draws a
+      short scrolling box you can still read a selection out of; iOS has no
+      such box, every select there is a picker that slides up from the bottom
+      with one line of text as its button. Asked for one line with several
+      things ticked, that line says "Any", and a phone shows no sign that
+      anything was picked at all. A list with nothing to collapse cannot lie
+      about itself. Four or five options each, so it costs a few rows. %>
   <div class="filter">
+    <% seats = stated_options(:seats) %>
     <%= f.label :seats_in, "Seats" %>
-    <%= f.select :seats_in, options_for_select(stated_options(:seats), chosen_many(:seats)),
-          { include_blank: "Any", include_hidden: false }, { multiple: true, size: 1 } %>
+    <%= f.select :seats_in, options_for_select(seats, chosen_many(:seats)),
+          { include_blank: "Any", include_hidden: false }, { multiple: true, size: seats.size + 1 } %>
   </div>
 
   <div class="filter">
+    <% kwh = stated_options(:kwh) %>
     <%= f.label :kwh_in, "Battery kWh" %>
-    <%= f.select :kwh_in, options_for_select(stated_options(:kwh), chosen_many(:kwh)),
-          { include_blank: "Any", include_hidden: false }, { multiple: true, size: 1 } %>
+    <%= f.select :kwh_in, options_for_select(kwh, chosen_many(:kwh)),
+          { include_blank: "Any", include_hidden: false }, { multiple: true, size: kwh.size + 1 } %>
   </div>
 
   <%# What the battery used to stand in for, asked directly: two in five titles
       say "langer Radstand", LR or LWB, and 168 of those name no battery at
       all. See Car.wheelbase_in. %>
   <div class="filter">
+    <% wheelbase = stated_options(:wheelbase, labels: { "long" => "Long", "short" => "Short" }) %>
     <%= f.label :wheelbase_in, "Wheelbase" %>
     <%= f.select :wheelbase_in,
-          options_for_select(stated_options(:wheelbase, labels: { "long" => "Long", "short" => "Short" }), chosen_many(:wheelbase)),
-          { include_blank: "Any", include_hidden: false }, { multiple: true, size: 1 } %>
+          options_for_select(wheelbase, chosen_many(:wheelbase)),
+          { include_blank: "Any", include_hidden: false }, { multiple: true, size: wheelbase.size + 1 } %>
   </div>
 
   <div class="filter">
