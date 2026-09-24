@@ -1,16 +1,21 @@
 <%= render 'search_form', url: photos_cars_path %>
 
-<p class="count"><%= pluralize(@cars.size, "car") %></p>
+<%# The whole answer first, then which of it is in front of you. %>
+<p class="count">
+  <%= pluralize(@total, "car") %><%= ", #{@from}&ndash;#{@to} shown".html_safe if @pages > 1 %>
+</p>
 
 <p class="sorting">
-  <%# A grid has no column headers to click, so the same sorts live here. %>
+  <%# A grid has no column headers to click, so the same sorts live here.
+      page: nil for the same reason as in the table: a new order is a new
+      list and you want the top of it, not page 12 of something else. %>
   Sort by
-  <%= sort_link(@q, :bargain_eur, "bargain") %> &middot;
-  <%= sort_link(@q, :landed_eur, "price") %> &middot;
-  <%= sort_link(@q, :km, "km") %> &middot;
-  <%= sort_link(@q, :year, "built") %> &middot;
-  <%= sort_link(@q, :distance_km, "distance") %> &middot;
-  <%= sort_link(@q, :created_at, "new", default_order: :desc) %>
+  <%= sort_link(@q, :bargain_eur, "bargain", page: nil) %> &middot;
+  <%= sort_link(@q, :landed_eur, "price", page: nil) %> &middot;
+  <%= sort_link(@q, :km, "km", page: nil) %> &middot;
+  <%= sort_link(@q, :year, "built", page: nil) %> &middot;
+  <%= sort_link(@q, :distance_km, "distance", page: nil) %> &middot;
+  <%= sort_link(@q, :created_at, "new", default_order: :desc, page: nil) %>
 </p>
 
 <div class="photos">
@@ -63,6 +68,8 @@
     </div>
   <% end %>
 </div>
+
+<%= render "pages" %>
 
 <style>
   .photos {

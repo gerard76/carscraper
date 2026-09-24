@@ -1,0 +1,48 @@
+<%# Previous and next, and where you are. No numbered links: twenty-two of
+    them is a row of targets too small to hit with a thumb, and the way to
+    the far end of a list is to sort it the other way round, which the
+    headings above already do. %>
+<% if @pages > 1 %>
+  <nav class="pages" aria-label="Pages">
+    <% if @page > 1 %>
+      <%= link_to "&larr; previous".html_safe, page_path(@page - 1), rel: "prev" %>
+    <% else %>
+      <span class="spent">&larr; previous</span>
+    <% end %>
+
+    <span class="where">page <%= @page %> of <%= @pages %></span>
+
+    <% if @page < @pages %>
+      <%= link_to "next &rarr;".html_safe, page_path(@page + 1), rel: "next" %>
+    <% else %>
+      <span class="spent">next &rarr;</span>
+    <% end %>
+  </nav>
+<% end %>
+
+<style>
+  .pages {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin: 22px 0 8px;
+    font-size: 14px;
+  }
+  /* Big enough to hit with a thumb, which is the whole reason this exists. */
+  .pages a, .pages .spent {
+    display: inline-block;
+    padding: 10px 16px;
+    border: 1px solid var(--line, #ddd);
+    border-radius: 6px;
+  }
+  .pages .spent {
+    color: #bbb;
+    border-color: #eee;
+  }
+  .pages .where {
+    color: #666;
+    font-family: var(--figures);
+    font-variant-numeric: tabular-nums;
+  }
+</style>

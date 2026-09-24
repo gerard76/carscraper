@@ -1,20 +1,28 @@
 <%= render 'search_form', url: table_cars_path %>
 
-<p class="count"><%= pluralize(@cars.size, "car") %></p>
+<%# The whole answer first, then which of it is in front of you. %>
+<p class="count">
+  <%= pluralize(@total, "car") %><%= ", #{@from}&ndash;#{@to} shown".html_safe if @pages > 1 %>
+</p>
 
 <table class="cars">
   <thead>
     <tr>
-      <th class="starred"><%= sort_link(@q, :favourite, "★") %></th>
+      <%# page: nil on every one of them. sort_link builds its url out of the
+          parameters you arrived with, so sorting from page 12 would sort the
+          list and leave you standing on page 12 of it -- which is a different
+          set of cars than the one you were looking at. A new order is a new
+          list, and you want the top of it. %>
+      <th class="starred"><%= sort_link(@q, :favourite, "★", page: nil) %></th>
       <th>Title</th>
-      <th class="right"><%= sort_link(@q, :year, "Built") %></th>
-      <th class="right"><%= sort_link(@q, :km, "Km") %></th>
-      <th class="right"><%= sort_link(@q, :landed_eur, "Price") %></th>
-      <th class="right"><%= sort_link(@q, :bargain_eur, "Bargain") %></th>
-      <th class="right"><%= sort_link(@q, :distance_km, "Distance") %></th>
+      <th class="right"><%= sort_link(@q, :year, "Built", page: nil) %></th>
+      <th class="right"><%= sort_link(@q, :km, "Km", page: nil) %></th>
+      <th class="right"><%= sort_link(@q, :landed_eur, "Price", page: nil) %></th>
+      <th class="right"><%= sort_link(@q, :bargain_eur, "Bargain", page: nil) %></th>
+      <th class="right"><%= sort_link(@q, :distance_km, "Distance", page: nil) %></th>
       <%# Newest first on the first click: that is what you want from it. %>
       <th class="right" title="Days since the scrape that first found it">
-        <%= sort_link(@q, :created_at, "New", default_order: :desc) %>
+        <%= sort_link(@q, :created_at, "New", default_order: :desc, page: nil) %>
       </th>
       <th>Where</th>
       <th></th>
@@ -73,6 +81,8 @@
     <% end %>
   </tbody>
 </table>
+
+<%= render "pages" %>
 
 <style>
   table.cars {

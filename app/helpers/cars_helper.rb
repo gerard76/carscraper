@@ -4,6 +4,17 @@ module CarsHelper
   # swaps it over.
   NOT_STATED = "none".freeze
 
+  # This page at another number, filter and sort and all.
+  #
+  # Written out by hand rather than through url_for, which wants to be told a
+  # controller and an action and would be guessing at both from a bag of
+  # query parameters. request.path is already the page we are on -- the table
+  # or the wall -- and everything that makes it this list rather than another
+  # one is in the query string beside it.
+  def page_path(number)
+    "#{request.path}?#{request.query_parameters.merge('page' => number).to_query}"
+  end
+
   # The values the adverts actually name, and then the cars that name none.
   #
   # Most of them name none: three in five say nothing about their battery.

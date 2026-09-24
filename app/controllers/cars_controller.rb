@@ -21,13 +21,13 @@ class CarsController < ApplicationController
   # column headers keep whatever is filled in on the search form.
   def table
     @q    = remember_sort(Car.ransack(search_params))
-    @cars = @q.result.on_offer.includes(:model)
+    @cars = page_of(@q.result.on_offer.includes(:model))
   end
 
   # The same cars again, as photographs.
   def photos
     @q    = remember_sort(Car.ransack(search_params))
-    @cars = @q.result.on_offer.includes(:model)
+    @cars = page_of(@q.result.on_offer.includes(:model))
   end
 
   # What you clicked away. Kept apart from what a rule hid -- the duplicates,
@@ -187,6 +187,41 @@ class CarsController < ApplicationController
         [values[(values.size * 0.05).floor], values[(values.size * 0.95).floor.clamp(0, values.size - 1)]]
       end
     end
+  end
+
+  # How many cars to a page of the table and the wall.
+  #
+  # All of them used to go on one page, and on a desktop that was fine. On a
+  # phone it was not: eleven hundred rows is 2.2 MB of html and thirty
+  # thousand elements, two seconds of rendering here and a good deal more of
+  # laying it out there, and every touch of a filter paid the whole bill
+  # again. Fifty is a couple of screens of scrolling, and about a twentieth of
+  # all that.
+  #
+  # The graph keeps every car. It is not a list you read down: the trend line
+  # and the colour scale are statements about the whole set, and a page of it
+  # would quietly be a statement about fifty cars instead.
+  PER_PAGE = 50
+
+  # One page of a list, and what the pager needs to describe it.
+  #
+  # @total is the whole answer, not what is in front of you -- the count line
+  # says "1,096 cars" and then which of them you are looking at. The order is
+  # dropped for the count: postgres would only throw it away again, and
+  # landed_eur is an expression, not a column.
+  #
+  # A page number out of range is clamped rather than refused. Filters narrow
+  # as you type: asking for six seats while standing on page 12 is an ordinary
+  # thing to do, and it should land you on the last page there is, not on an
+  # error.
+  def page_of(scope)
+    @total = scope.except(:order).count
+    @pages = (@total / PER_PAGE.to_f).ceil
+    @page  = params[:page].to_i.clamp(1, [@pages, 1].max)
+    @from  = (@page - 1) * PER_PAGE + 1
+    @to    = [@page * PER_PAGE, @total].min
+
+    scope.limit(PER_PAGE).offset((@page - 1) * PER_PAGE)
   end
 
   # Cheapest first until you say otherwise.
