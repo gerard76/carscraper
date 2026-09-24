@@ -374,6 +374,18 @@ class Car < ApplicationRecord
   # seater. A used car's odometer is its own: 8378 km at 45980 euro from one
   # dealer in Leverkusen is one bus, however the advert is worded this week.
   def self.same_listing_as(fresh)
+    # One advert files its photographs in one folder, so a row of the same site
+    # pointing into that folder is that advert, whatever it says today. This
+    # catches what the five below cannot: 5713 and 5742 were one Berlin bus,
+    # same advert, same money, with 171 km and a rewritten title between them.
+    if fresh.photo_key.present?
+      advert = where("image_url like ?", "%#{fresh.photo_key}%")
+               .reject { |car| car.id == fresh.id }
+               .select { |car| car.source == fresh.source }
+
+      return advert.first if advert.one?
+    end
+
     return nil if fresh.km.nil? || fresh.year.nil? || fresh.price.nil? || fresh.location.blank?
     return nil if fresh.km <= AS_NEW_KM
 
@@ -416,18 +428,44 @@ class Car < ApplicationRecord
     merged
   end
 
+  # The groups that are one advert twice over: rows of one site whose pictures
+  # come out of one folder, and rows of one site that agree on build month,
+  # odometer, town and price.
+  #
+  # Delivery mileage tells two cars apart from nobody, so the second test stays
+  # away from it -- a dealer's row of new stock all reads 10 km at one price.
+  # The first has two guards of its own instead. A ceiling, because a site with
+  # no picture for a car can hand out a placeholder and a placeholder would tie
+  # together everything it was given to. And one asking price across the group,
+  # because that placeholder problem turns up for real on factory-new stock:
+  # two vans at 10 km in one yard, sharing a photograph, at 69,775 and 70,000
+  # euro, are two vans. 5713 and 5742 -- the pair this was written for -- agree
+  # on the money to the euro and differ by 171 km and a rewritten title.
+  def self.one_advert_twice
+    rows = listed.where.not(hidden_by: BY_HAND).to_a
+
+    folders = rows.select { |car| car.photo_key.present? }
+                  .group_by { |car| [car.source, car.photo_key] }
+                  .values
+                  .select { |group| group.size.between?(2, MOST_SITES_WITH_ONE_CAR) }
+                  .select { |group| group.map(&:eur).uniq.size == 1 }
+
+    five = rows.select { |car| car.km && car.location.present? }
+               .group_by { |car| [car.source, car.year, car.km, car.locality, car.eur] }
+               .select { |key, group| key.none?(&:nil?) && group.size > 1 && key[2] > AS_NEW_KM }
+               .values
+
+    folders + five
+  end
+
   def self.merge_retitled_once!
     merged = 0
 
-    listed.where.not(hidden_by: BY_HAND).where.not(km: nil).where.not(location: nil)
-          .group_by { |car| [car.source, car.year, car.km, car.locality, car.eur] }
-          .each do |key, group|
-      next if key.any?(&:nil?) || group.size < 2
-
-      # Delivery mileage tells two cars apart from nobody -- see
-      # same_listing_as -- and this one destroys rows, so it stays away from
-      # them. The duplicate rules still hide what they hide.
-      next if key[2] <= AS_NEW_KM
+    one_advert_twice.each do |group|
+      # A row can be in both groupings, and the first pass may already have
+      # taken it.
+      group = group.select { |car| exists?(car.id) }
+      next if group.size < 2
 
       keep  = group.min_by(&:id)
       fresh = group.max_by { |car| [car.seen_at || Time.at(0), car.id] }

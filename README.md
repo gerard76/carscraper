@@ -569,6 +569,17 @@ all read the same handful of kilometres and dealers price whole trims alike:
 sat at 10 km and 59,840 euro in one Bavarian yard, and they are not the same
 van.
 
+One advert's photographs live in one folder, and that folder is the strongest
+tie there is: 5713 and 5742 were one Berlin bus on one site, same advert, same
+money, 171 km and a rewritten title apart -- which no other rule sees, since
+they all want the odometer to match to the kilometre. So a row of the same site
+pointing into that folder is that advert, at the scrape and at tidy-up alike.
+
+With two guards, because a site that has no picture for a car hands out a
+placeholder: at most three rows to a folder, and one asking price across them.
+Both earn their keep on factory-new stock, where two vans at 10 km in one yard
+shared a photograph at 69,775 and 70,000 euro.
+
 `Car.merge_retitled!` does the same for the rows already here, at tidy-up: the
 oldest row stays -- it has the date you first saw the car, your star, your
 note -- and takes over the title, link and picture of the freshest one. On 21
