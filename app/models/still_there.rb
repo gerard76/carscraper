@@ -26,9 +26,18 @@ class StillThere
   REFUSED = [403, 429].freeze
   REFUSALS_BEFORE_GIVING_UP = 5
 
-  # A hard ceiling per car, redirects and all: a partner link goes through two
-  # hops and can end up at a dealer's own site that answers in a trickle.
+  # A hard ceiling per car. Low, because nothing here follows a redirect.
   MAX_SECONDS = 10
+
+  # A redirect is an answer: the aggregator still has somewhere to send us, so
+  # the offer stands. A withdrawn one says 410 outright and says it first.
+  #
+  # So this asks for the first answer and stops there. Following the chain took
+  # us to mobile.de and to dealers' own sites, cost seconds a car, and mostly
+  # ended in HTTParty::RedirectionTooDeep -- sixty of them in one round, which
+  # is sixty requests spent to learn nothing. It also bothered three servers
+  # per car instead of the one we actually have a question for.
+  MOVED = (300..399).freeze
 
   def self.call(...)
     new(...).call
@@ -81,11 +90,12 @@ class StillThere
 
   def ask(car)
     response = Timeout.timeout(MAX_SECONDS) do
-      HTTParty.get(car.url, headers: Scrapers::Base::PAGE_HEADERS, timeout: 8, limit: 4)
+      HTTParty.get(car.url, headers: Scrapers::Base::PAGE_HEADERS, timeout: 8, follow_redirects: false)
     end
 
     return :gone if GONE_CODES.include?(response.code)
     return :refused if REFUSED.include?(response.code)
+    return :there if MOVED.cover?(response.code)
 
     :there
   rescue HTTParty::Error, SocketError, Timeout::Error, Errno::ECONNRESET, URI::InvalidURIError => e

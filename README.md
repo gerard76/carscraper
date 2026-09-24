@@ -519,8 +519,15 @@ itself: 12gebrauchtwagen answers **410 Gone** the moment an offer is withdrawn.
 So a round asks -- once, a second apart, about the listings it did not see this
 time -- and a 410 or a 404 takes the car off the pages the same round.
 `StillThere` does the asking, and only for a source that answered this round;
-a redirect, a timeout or a 403 says nothing about whether a car is sold and
-leaves it alone. Cars 5092 and 4501 were found the other way round, by clicking
+a timeout or a 403 says nothing about whether a car is sold and leaves it
+alone.
+
+It asks for the first answer and stops there -- `follow_redirects: false`. A
+partner link that still has somewhere to send us is an offer that stands
+(`302` to autohero.com), and a withdrawn one answers `410` itself, first hop.
+Following the chain instead took us to mobile.de and to dealers' own sites,
+spent seconds a car, and ended in `HTTParty::RedirectionTooDeep` sixty times in
+one round: sixty requests, three servers bothered per car, and nothing learned. Cars 5092 and 4501 were found the other way round, by clicking
 a link that opened nothing three days running.
 
 What has not said anything either way comes off after `SEEN_WINDOW` of silence,
@@ -575,10 +582,13 @@ money, 171 km and a rewritten title apart -- which no other rule sees, since
 they all want the odometer to match to the kilometre. So a row of the same site
 pointing into that folder is that advert, at the scrape and at tidy-up alike.
 
-With two guards, because a site that has no picture for a car hands out a
-placeholder: at most three rows to a folder, and one asking price across them.
-Both earn their keep on factory-new stock, where two vans at 10 km in one yard
-shared a photograph at 69,775 and 70,000 euro.
+With three guards, because a site that has no picture for a car hands out a
+placeholder: at most three rows to a folder, one asking price across them, and
+odometers within `RELISTED_KM` of each other. All three earn their keep --- two
+factory-new vans at 10 km in one yard shared a photograph at 69,775 and 70,000
+euro, and a stock picture says nothing about either car's mileage. A relisted
+advert has moved a few hundred kilometres at most; 5713 and 5742 were 171
+apart.
 
 `Car.merge_retitled!` does the same for the rows already here, at tidy-up: the
 oldest row stays -- it has the date you first saw the car, your star, your

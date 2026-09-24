@@ -442,13 +442,19 @@ class Car < ApplicationRecord
   # euro, are two vans. 5713 and 5742 -- the pair this was written for -- agree
   # on the money to the euro and differ by 171 km and a rewritten title.
   def self.one_advert_twice
-    rows = listed.where.not(hidden_by: BY_HAND).to_a
+    # `is distinct from` rather than where.not: in SQL, `hidden_by != 'you'` is
+    # unknown for a row whose hidden_by is null, and unknown rows are dropped --
+    # so this looked at nothing but the rows some rule had already hidden. Which
+    # is why 5650 merged a pass late, and why 5713 and 5742 stood side by side
+    # on the pages with the rule that catches them switched on.
+    rows = listed.where("hidden_by is distinct from ?", BY_HAND).to_a
 
     folders = rows.select { |car| car.photo_key.present? }
                   .group_by { |car| [car.source, car.photo_key] }
                   .values
                   .select { |group| group.size.between?(2, MOST_SITES_WITH_ONE_CAR) }
                   .select { |group| group.map(&:eur).uniq.size == 1 }
+                  .select { |group| odometers_agree?(group) }
 
     five = rows.select { |car| car.km && car.location.present? }
                .group_by { |car| [car.source, car.year, car.km, car.locality, car.eur] }
@@ -456,6 +462,17 @@ class Car < ApplicationRecord
                .values
 
     folders + five
+  end
+
+  # Within RELISTED_KM of each other, the same distance that tells a car listed
+  # twice from a dealer's two alike cars. A relisted advert has moved a few
+  # hundred kilometres at most -- 5713 and 5742 were 171 apart -- while a stock
+  # photograph handed to two different vans says nothing about either odometer.
+  def self.odometers_agree?(group)
+    mileages = group.map(&:km)
+    return false if mileages.any?(&:nil?)
+
+    mileages.max - mileages.min <= RELISTED_KM
   end
 
   def self.merge_retitled_once!
