@@ -117,7 +117,10 @@ class Photos
   # two rounds a day it is a day and a half before every car has one -- and
   # until then its page shows the card picture, not the seller's server.
   def missing
-    cards = Car.on_offer.where.not(image_url: [nil, ""]).reject(&:photo_stored?).map { |car| [car, :card] }
+    # Newest first: a car that came in this round is the one at the top of the
+    # wall, and the top of the wall is what anybody looks at.
+    cards = Car.on_offer.where.not(image_url: [nil, ""]).order(created_at: :desc)
+               .reject(&:photo_stored?).map { |car| [car, :card] }
     return cards.first(limit) if cards.size >= limit
 
     big = Car.on_offer.select(&:wants_large_photo?).map { |car| [car, :big] }

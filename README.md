@@ -957,6 +957,19 @@ one we had fetched, while our copy of the same photograph sat here unused. Now
 the copy is simply what is shown, and a car whose picture has not been fetched
 yet says "no photo" rather than borrowing theirs.
 
+**On a clock of its own, every quarter of an hour** (`PhotosJob`, see
+`config/initializers/good_job.rb`). It used to be the tail of a scrape, and
+that is where it kept going missing: a scrape from the laptop writes into the
+droplet's database but cannot write to the droplet's disk, so it hands the
+fetching over -- `mise run scrape:production` ends by telling the droplet to go
+and get them -- and anything that stops before that last line leaves the newest
+cars as grey boxes until the next cron round. Which is the half of the wall
+anybody looks at, sorted newest first. So it no longer waits on anybody
+finishing anything; it asks the database what is missing, and nearly always
+that is nothing and it asks the picture servers for nothing at all.
+
+The queue is newest first, for the same reason.
+
 `Photos` also sweeps: a file no car points at any more is deleted, so the
 directory follows the cars rather than growing forever.
 

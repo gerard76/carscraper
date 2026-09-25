@@ -16,6 +16,16 @@ Rails.application.configure do
       cron: "0 7,19 * * * Europe/Amsterdam",
       class: "ScrapeJob",
       description: "Every source for every model, and the tidying up after it"
+    },
+
+    # Four times an hour, and almost always nothing to do: Photos asks the
+    # database what it is missing and asks the picture servers only for that.
+    # It is here rather than at the end of a scrape because that is where it
+    # kept being skipped -- see PhotosJob.
+    photos: {
+      cron: "*/15 * * * *",
+      class: "PhotosJob",
+      description: "Our own copy of any photograph this machine is missing"
     }
   }
 end
