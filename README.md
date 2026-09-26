@@ -26,7 +26,8 @@ him quotes the net.
 - [The commands](#the-commands)
 - [How it is put together](#how-it-is-put-together)
 - [Scrapers](#scrapers) -- and everything below it: how each piece decides what it decides
-- [On the server](#on-the-server) -- how the deployed copy is put together
+- [Where you run it](#where-you-run-it) -- two of the four sites judge you by your address
+- [On the server](#on-the-server) -- deploying it, if you want it somewhere other than your own machine
 
 ## What you get
 
@@ -93,6 +94,11 @@ rule does not overrule a decision.
 
 ## Running it yourself
 
+It is one program on one machine. Whatever runs it scrapes, keeps the
+pictures, holds the database and serves the pages -- your own laptop is a
+perfectly good answer, and so is a small rented server. It does not want to be
+split across two.
+
 You need **Ruby 4.0.2** and **PostgreSQL**. Versions are pinned in `mise.toml`,
 so with [mise](https://mise.jdx.dev) installed, `mise install` gets the right
 ruby. Node and yarn are in there too, but only to rebuild the echarts file
@@ -140,6 +146,11 @@ bin/rails cars:scrape
 
 The scrape asks four sites, waits three seconds between pages, and takes a few
 minutes. Then http://localhost:3000/cars has a graph on it.
+
+Two of those four answer some addresses with 403 rather than a page. From an
+ordinary home connection all four answer; from a rented server, two may not --
+see [Where you run it](#where-you-run-it), which is also where the guard that
+keeps a blocked site from emptying your graph is described.
 
 ## Telling it what to look for
 
@@ -330,14 +341,12 @@ took short six seaters from 4 to 20. It runs at the end of a scrape next to
 `bin/rails cars:details`. Only AutoScout24: four fifths of the cars come from
 there and it is the only one of the four whose detail page we know how to read.
 
-Which means it only works from a machine AutoScout24 answers. From the droplet
-every listing page is a 403 (see "The droplet is blocked" below), so the
-twice-daily round there fills in nothing; what fills these in is
-`mise run scrape:production` from this machine, the same round that keeps
-AutoScout24 and AutoTrack fresh at all. `REFUSALS_BEFORE_GIVING_UP` stops the
-droplet working through three hundred refusals to find that out -- five in a
-row and it leaves the rest, because one 403 among answers is a listing taken
-down and five in a row is the door.
+Which means it only works from a machine AutoScout24 answers; from an address
+it refuses, every listing page is a 403 and this fills in nothing (see "Where
+you run it"). `REFUSALS_BEFORE_GIVING_UP` stops a round working through three
+hundred refusals to find that out -- five in a row and it leaves the rest,
+because one 403 among answers is a listing taken down and five in a row is the
+door.
 
 The battery is not a field anywhere, so it is read off three things in turn:
 the seller's title, then a *labelled* capacity in the description
@@ -736,8 +745,8 @@ four times in six days.
 
 And the duplicate reasons are now dropped and worked out again every round.
 "Listed on two sites" is true of a pair; when the other half sells, nothing
-used to lift it and the survivor sat in the bin saying it about nobody. On the
-laptop's copy that freed 61 cars.
+used to lift it and the survivor sat in the bin saying it about nobody. On one
+copy of the database that freed 61 cars.
 
 12gebrauchtwagen carries a lot of what AutoScout24 already has, so one car
 turns up as two listings and counts twice, in the graph and in the trend line.
@@ -1024,9 +1033,9 @@ AutoScout24 serves regardless. Storing avif would have been the other repair and
 the smaller file -- 37 kB against a 60 kB webp and a 90 kB jpeg -- and is still
 there to be done.
 
-None of this is about getting past a block, and it does not: the same request,
-from the droplet, is still 403 at AutoScout24 and AutoTrack, and 200 from the
-laptop. That difference is the IP -- see "The droplet is blocked".
+None of this is about getting past a block, and it does not: the same request
+is still 403 at AutoScout24 and AutoTrack from one address and 200 from
+another. That difference is the address -- see "Where you run it".
 
 Only result pages -- there are no detail pages to fetch, the cards carry
 everything -- one request at a time, three seconds apart
@@ -1082,7 +1091,7 @@ Two questions about one file, kept apart since 22 September 2026: *is this
 still the picture the advert shows* (Photos asks that, and fetches again when
 the answer is no) and *do we have a picture of this car at all* (a page asks
 that). They were one question for a day, and the wall went blank for 94 cars
-the first time a laptop scrape refreshed their `image_url`: the digest in the
+the first time a scrape refreshed their `image_url`: the digest in the
 file name no longer matched the new url, so a perfectly good photograph of the
 same car, sitting on the disk, counted as nothing. `photo_url` now shows what
 is held; `photo_stored?` still wants the name to match, which is what keeps the
@@ -1097,14 +1106,12 @@ the copy is simply what is shown, and a car whose picture has not been fetched
 yet says "no photo" rather than borrowing theirs.
 
 **On a clock of its own, every quarter of an hour** (`PhotosJob`, see
-`config/initializers/good_job.rb`). It used to be the tail of a scrape, and
-that is where it kept going missing: a scrape from the laptop writes into the
-droplet's database but cannot write to the droplet's disk, so it hands the
-fetching over -- `mise run scrape:production` ends by telling the droplet to go
-and get them -- and anything that stops before that last line leaves the newest
-cars as grey boxes until the next cron round. Which is the half of the wall
-anybody looks at, sorted newest first. So it no longer waits on anybody
-finishing anything; it asks the database what is missing, and nearly always
+`config/initializers/good_job.rb`). It is also the tail of a scrape, and that
+is where it kept going missing: a round that falls over anywhere -- a site
+down, a timeout, a bad page -- stops before it, and the newest cars sit as grey
+boxes until the next one. Which is the half of the wall anybody looks at,
+sorted newest first. So it no longer waits on anybody finishing anything; it
+asks the database what is missing, and nearly always
 that is nothing and it asks the picture servers for nothing at all.
 
 The queue is newest first, for the same reason.
@@ -1121,8 +1128,8 @@ container writes, the web container serves.
 
 Nothing about the name in the database is trusted on its own, either. A car
 counts as having its own copy only when the file is actually there, so a
-database that has been restored somewhere else -- this laptop, holding a dump
-of the droplet -- says "no photo" rather than showing six hundred broken ones,
+database that has been restored somewhere else -- a development copy of the
+server's, say -- says "no photo" rather than showing six hundred broken ones,
 and the next scrape fetches what is missing. It costs one stat per car, about a
 millisecond over a whole page.
 
@@ -1142,8 +1149,8 @@ again for something it already told us. Left out: the fifteen kilobytes of loan
 offers, the tracking parameters, and `vehicle.rawData`, which is the same facts
 again in the site's own shorthand.
 
-Only for pages read from now on, and only from a machine AutoScout24 answers,
-which is not the droplet.
+Only for pages read from now on, and only from a machine AutoScout24
+answers.
 
 The seller's own text is on the car's page, folded up under "What the seller
 wrote" unless it is short -- the median is 4700 characters of German equipment
@@ -1193,9 +1200,10 @@ for minutes. `MAX_SECONDS` is a hard ceiling of fifteen seconds on one car,
 redirects included, and a car that hits it is stamped like any other: asked
 once, not again for a month.
 
-## The droplet is blocked, and this is what that looks like
+## Where you run it
 
-Measured on the first scheduled round, 17 September 2026:
+Two of the four sites answer some addresses with 403 rather than a page.
+Measured on one round, from a rented server in a data centre:
 
 | | requests | |
 | --- | --- | --- |
@@ -1204,77 +1212,37 @@ Measured on the first scheduled round, 17 September 2026:
 | gaspedaal | 2 | fine |
 | AutoTrack | 1 | **HTTP 403** |
 
-So two of the four turn a data centre address away at the door, and between
-them they carry half the cars. The guard held -- "left 792 autoscout24.nl
-listings that look gone alone" -- and the pictures still came down fine, which
-says the block is on the listing pages and not on their image servers.
+The same code from an ordinary home connection got 200 from all four. So it is
+the address that is being judged, not the requests: the pacing, the headers and
+the robots-ish manners are the same either way.
 
-What keeps those two fresh is a round from this machine, which is not blocked:
+Nothing here works around that, and nothing here should. What it does instead
+is notice and stop:
 
-```
-mise run scrape:production
-```
+- `Scrape::MOST_OF_THEM` refuses to write off a source's cars when this round
+  saw less than half of what that source already had, per source. A site that
+  answers nothing leaves its listings alone rather than emptying the graph.
+- `Details::REFUSALS_BEFORE_GIVING_UP` and the same constant in `StillThere`
+  end the round after five refusals in a row. One 403 among answers is a
+  listing that has been taken down; five in a row is the door, and there is no
+  sense in knocking three hundred times.
 
-```
-mise run scrape:production
-```
+Which leaves you with a choice of where to run it, and both answers are fine:
 
-Whether it is open already is decided by asking postgres, not by asking the
-socket: an ssh whose far end has died still holds port 5433 here, and `nc -z`
-is satisfied by that. A round once sailed past the check on a tunnel like
-that and fell over on "connection refused" a moment later, looking for all the
-world like the database was down. If the tunnel cannot be opened because an
-older one still has the port, `pkill -f 'ssh -fN -L 5433'` and go again.
+- **On the server**, and accept that AutoScout24 and AutoTrack may be blank.
+  The other two carry plenty, and the guard above means a blocked source costs
+  you nothing but its own cars.
+- **On a machine at home**, with the database next to it. `bin/rails
+  cars:scrape` is the whole thing; point a browser at `bin/rails server` and
+  that is the site. One machine, no deployment at all.
 
-That opens the tunnel if it is not open already and runs the same scrape
-against the droplet's database, from this machine. Run it by hand at
-least every three days, or AutoScout24's 582 cars and AutoTrack's 30 drop off
-the pages: `Car::SEEN_WINDOW` is three days. They stay in the database -- the
-per-source guard sees to that -- but nobody sees them. It is the code in this
-directory doing the work, so it stops first if a migration here has not been
-deployed there -- otherwise the crash arrives halfway through a scrape,
-"undefined method 'seats='", with a few hundred listings already written. The twice-daily round on the
-droplet still does the other two, so between them nothing goes stale for longer
-than you leave it.
-
-`bin/kamal scrape` runs it on the droplet instead, which works but is asking
-for a block.
-
-The pictures are the one part of that round that does **not** happen here. A
-scrape from this machine ends with `PHOTOS=elsewhere`, and then tells the
-droplet to fetch its own:
-
-```
-bin/kamal app exec --roles=job --reuse "bin/rails cars:photos"
-```
-
-`Photos` decides what is missing by looking at a disk (`Car#photo_stored?`),
-and writes what it fetches to that same disk. Run from here against the
-droplet's database, those are two different machines: of the 1050 pictures the
-droplet holds, this laptop has 148, so every round it saw nine hundred as
-missing, downloaded two hundred of them (`MOST_PER_ROUND`) from the picture
-servers, and filed them where no website reads them -- and then its sweep
-deleted the development copies, which the droplet's database does not point at.
-Two hundred pointless requests to the picture servers, twice over, every run.
-
-So the data comes over the tunnel and the pictures are fetched at the far end.
-`bin/rails cars:photos` is that step on its own: it asks the picture servers and
-nothing else -- no search page, no listing page -- so it is cheap to run by hand
-whenever something is missing a photograph. The droplet's own twice-daily round
-still fetches its pictures inline, because there the database and the disk are
-the same machine.
-
-Which also means the droplet's database is the real one -- it is where your
-clicks land when you are looking at the site -- and the one here is a
-development copy. To catch this one up rather than the other way round, dump in
-the other direction:
-
-```
-ssh -fN -L 5433:127.0.0.1:5433 deployer@"$DROPLET"
-PGPASSWORD=$(.kamal/read-secret database.password) \
-  pg_dump --clean --if-exists --no-owner --no-privileges \
-  -h localhost -p 5433 -U carscraper carscraper_production | psql carscrape
-```
+What does not work is splitting it: a scrape writing into a database on one
+machine while the pictures are fetched onto another. `Photos` decides what is
+missing by looking at a disk and writes what it fetches to that same disk, so
+run against somebody else's database it downloads hundreds of files that
+machine already has, files them where no website reads them, and then sweeps
+away the local copies. The database and the pictures belong on one machine, and
+so does the scrape that fills them.
 
 ## The hooks
 

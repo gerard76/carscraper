@@ -3,12 +3,7 @@ namespace :cars do
   task scrape: :environment do
     # Scrape itself is autoloaded, so it cannot be named at the top of this
     # file: rake reads its task files before Rails is loaded.
-    #
-    # PHOTOS=elsewhere scrapes everything but the pictures. That is for the one
-    # caller whose database and whose picture directory are on different
-    # machines -- this laptop scraping into the droplet -- and it fetches them
-    # over there afterwards instead. See mise.toml.
-    Scrape.call(report: method(:puts), photos: ENV["PHOTOS"] != "elsewhere")
+    Scrape.call(report: method(:puts))
   end
 
   desc "Find the duplicates and the trims you do not want, without scraping"

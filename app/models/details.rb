@@ -33,10 +33,10 @@ class Details
   MOST_PER_ROUND = 300
   DELAY = 1.0
 
-  # When to stop knocking. From the droplet AutoScout24 answers 403 to every
-  # listing page -- see "The droplet is blocked" in the README -- so the
-  # twice-daily round there would work through three hundred refusals and fill
-  # in nothing, which is pointless on our side and rude on theirs.
+  # When to stop knocking. AutoScout24 answers 403 to every listing page from
+  # some addresses -- see "Where you run it" in the README -- and a round that
+  # met one would otherwise work through three hundred refusals and fill in
+  # nothing, which is pointless on our side and rude on theirs.
   #
   # This many in a row with nothing in between ends the round. One 403 among
   # answers is a listing that has been taken down; five in a row is the door.

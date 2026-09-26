@@ -48,6 +48,3 @@
 /node_modules
 vendor/javascript
 .DS_Store
-# Filled-in secrets for the Odroid box, never the example.
-odroid/.env
-odroid/ssh/

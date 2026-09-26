@@ -9,10 +9,10 @@ class Scrape
   # So a source's listings are only removed when this round saw most of what
   # that source already had.
   #
-  # Per source, because the sources fail one at a time: from the droplet
-  # AutoScout24 and AutoTrack answer 403 while 12gebrauchtwagen hands over
-  # fifty pages, and a count over the whole database would let 12gebrauchtwagen
-  # vouch for a site nobody could reach.
+  # Per source, because the sources fail one at a time: AutoScout24 and
+  # AutoTrack can be answering 403 while 12gebrauchtwagen hands over fifty
+  # pages, and a count over the whole database would let 12gebrauchtwagen vouch
+  # for a site nobody could reach.
   MOST_OF_THEM = 0.5
 
   def self.call(...)
@@ -20,15 +20,8 @@ class Scrape
   end
 
   # Somewhere to write to: the rake task passes `puts`, the job passes the log.
-  #
-  # `photos: false` leaves the pictures for somebody else to fetch. Photos
-  # writes files, and files live on one machine: it has to run where they are.
-  # When this laptop scrapes into the droplet's database that is not here --
-  # see the `scrape:production` task in mise.toml, which turns this off and
-  # then tells the droplet to go and get them.
-  def initialize(report: Rails.logger.method(:info), photos: true)
+  def initialize(report: Rails.logger.method(:info))
     @report = report
-    @photos = photos
   end
 
   def call
@@ -51,11 +44,7 @@ class Scrape
     # the next round, which is a round's patience against a few hundred
     # requests spent on cars we were about to drop.
     Details.call(report: report)
-    if photos
-      Photos.call(report: report)
-    else
-      report.call "leaving the photographs to the machine that keeps them"
-    end
+    Photos.call(report: report)
 
     fit
   end
@@ -99,7 +88,7 @@ class Scrape
 
   private
 
-  attr_reader :report, :photos
+  attr_reader :report
 
   # Left out on purpose: finn.no. Norway is too far to drive to.
   def scrapers

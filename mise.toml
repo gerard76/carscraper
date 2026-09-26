@@ -23,69 +23,10 @@ run = 'EDITOR="${EDITOR:-vi}" bundle exec rails credentials:edit'
 
 ## SCRAPING
 
-[tasks."scrape:production"]
-description = "Scrape from here into the database on the droplet"
-shell = "bash -euo pipefail -c"
-# The scraping stays on this machine on purpose: the sites are friendlier to a
-# home address than to a data centre. Only the result travels, through an ssh
-# tunnel to the accessory, which listens on 5433 there because 5432 is
-# trading-bot's.
-#
-# Without this, the site empties itself out: Car.on_offer only counts a car
-# that has been seen in the last three days.
-run = """
-# Asking postgres rather than the socket. `nc -z` only proves something has
-# 5433 open here, and an ssh whose far end has died still holds it -- which is
-# how a run once sailed past this check and got "connection refused" from
-# postgres a moment later, with nothing in the output to say the tunnel had
-# never been opened.
-if ! pg_isready -h localhost -p 5433 -q 2>/dev/null; then
-  echo "Opening the tunnel to the droplet..."
+[tasks.scrape]
+description = "Scrape every source for every model, then tidy up after it"
+run = 'bundle exec rails cars:scrape'
 
-  # ExitOnForwardFailure, or ssh goes to the background perfectly happily when
-  # a stale tunnel still holds the port, returns 0, and the scrape falls over
-  # later for a reason that looks like the database is down.
-  if ! ssh -o ExitOnForwardFailure=yes -fN -L 5433:127.0.0.1:5433 deployer@146.185.130.81; then
-    echo "✗ The tunnel would not open. If that says 'Address already in use', an older" >&2
-    echo "  one is still holding the port: pkill -f 'ssh -fN -L 5433' and try again." >&2
-    exit 1
-  fi
-fi
-
-export DATABASE_URL="postgres://carscraper:$(.kamal/read-secret database.password)@localhost:5433/carscraper_production"
-export RAILS_ENV=production
-
-# This runs the code in THIS directory against the droplet's database, so a
-# migration that has not been deployed yet is a crash halfway through a scrape
-# -- "undefined method 'seats='", with a few hundred listings already written.
-# Better to hear it before the first request.
-bundle exec rails runner '
-  context = ActiveRecord::Base.connection_pool.migration_context
-  if context.needs_migration?
-    ran = context.get_all_versions
-    behind = context.migrations.reject { |m| ran.include?(m.version) }.map(&:name).join(", ")
-    abort("The droplet is behind this checkout: #{behind} is not deployed there. bin/kamal deploy first.")
-  end
-'
-
-# PHOTOS=elsewhere, because the pictures must not be fetched onto this laptop.
-# Photos decides what is missing by what is on the disk it can see and writes
-# what it fetches there too -- so run from here it looks at the droplet's
-# database, sees the nine hundred files it has never heard of, downloads two
-# hundred of them (MOST_PER_ROUND) from the picture servers, and puts them in
-# a directory no website reads. Every run. Then its sweep deletes whatever in
-# there the droplet's database does not point at, which is the development
-# copies.
-#
-# So the data comes over the tunnel and the pictures are fetched at the far
-# end, by the machine that keeps them.
-PHOTOS=elsewhere bundle exec rails cars:scrape
-
-echo
-echo "Telling the droplet to fetch its own photographs..."
-
-# Not over the tunnel: this one has to run *on* the droplet, in a container
-# with the volume mounted. The job role, because that is the one deploy.yml
-# gives write access to it.
-bin/kamal app exec --roles=job --reuse "bin/rails cars:photos"
-"""
+[tasks.tidy]
+description = "Find the duplicates and the trims you do not want, without scraping"
+run = 'bundle exec rails cars:tidy'

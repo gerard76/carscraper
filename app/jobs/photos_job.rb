@@ -1,12 +1,9 @@
 # Fetching our own copies of the photographs, on a clock of its own.
 #
-# It used to be the tail of a scrape, and that is where it kept going missing.
-# A scrape from the laptop writes into the droplet's database but cannot write
-# to the droplet's disk, so it hands the fetching over -- `mise run
-# scrape:production` ends by telling the droplet to go and get them -- and
-# anything that stops before that last line leaves the newest cars on the wall
-# as grey boxes until the next cron round. Which is the half of the wall you
-# look at, sorted newest first.
+# It is also the tail of a scrape, and that is where it kept going missing: a
+# round that falls over anywhere -- a site down, a timeout, a bad page -- stops
+# before it, and the newest cars sit on the wall as grey boxes until the next
+# one. Which is the half of the wall you look at, sorted newest first.
 #
 # So this does not depend on anybody finishing anything. Every quarter of an
 # hour it asks what is missing; nearly always that is nothing and it makes no

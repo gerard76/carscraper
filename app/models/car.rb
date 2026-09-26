@@ -1039,10 +1039,10 @@ class Car < ApplicationRecord
   #
   # Our copy of *a* picture of this car, note, not of the picture the advert
   # happens to show this morning. Those are different questions and they were
-  # one question for a day: a scrape from the laptop refreshed image_url on 94
-  # AutoScout24 cars, the digest in the file name stopped matching the new url,
-  # and the wall went blank for all of them -- with the old photographs sitting
-  # on the disk, of the same cars, perfectly good. photo_stored? is the
+  # one question for a day: a scrape refreshed image_url on 94 AutoScout24
+  # cars, the digest in the file name stopped matching the new url, and the
+  # wall went blank for all of them -- with the old photographs sitting on the
+  # disk, of the same cars, perfectly good. photo_stored? is the
   # question Photos asks (is this still the advert's picture, should it be
   # fetched again); this is the question a page asks.
   #
@@ -1091,10 +1091,10 @@ class Car < ApplicationRecord
   end
 
   # On the disk, under that name. The name in the column is only half of it: a
-  # database restored onto a machine without the pictures -- this laptop,
-  # carrying a dump of the droplet -- would otherwise show six hundred broken
-  # images and never fetch them, because the column says they are already here.
-  # One stat per car, about a millisecond over a page.
+  # database restored onto a machine that has none of the pictures -- a
+  # development copy of the server's, say -- would otherwise show six hundred
+  # broken images and never fetch them, because the column says they are
+  # already here. One stat per car, about a millisecond over a page.
   def held?(name)
     name.present? && File.exist?(Photos::DIRECTORY.join(name))
   end
