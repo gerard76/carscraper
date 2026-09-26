@@ -30,10 +30,13 @@ if [ "$head" != "$expected" ]; then
   echo "⚠️  Local HEAD ($head) is not the deployed version: a commit landed during the deploy, or --version was given."
 fi
 
-# End to end, the way Mila will meet it: through DNS, through the certificate,
-# through kamal-proxy, into the container. /up is Rails' own health endpoint
-# and needs no password.
-host=$(ruby -ryaml -e 'puts YAML.load_file("config/deploy.yml").dig("proxy", "host").to_s' 2>/dev/null || true)
+# End to end, the way a visitor will meet it: through DNS, through the
+# certificate, through kamal-proxy, into the container. /up is Rails' own
+# health endpoint and needs no password.
+#
+# Through ERB, because config/deploy.yml takes the domain from the environment
+# -- YAML.load_file on its own would hand back the unrendered tag.
+host=$(ruby -rerb -ryaml -e 'puts YAML.load(ERB.new(File.read("config/deploy.yml"), trim_mode: "-").result).dig("proxy", "host").to_s' 2>/dev/null || true)
 
 if [ -z "$host" ] || ! command -v curl >/dev/null; then
   echo "⚠️  Skipped the check from outside (no host in config/deploy.yml, or no curl here)."

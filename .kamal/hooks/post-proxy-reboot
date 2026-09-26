@@ -7,8 +7,12 @@ echo "Rebooted kamal-proxy on $KAMAL_HOSTS"
 
 command -v curl >/dev/null || { echo "⚠️  No curl here, so nothing was checked."; exit 0; }
 
-hosts=$(ruby -ryaml -e 'puts YAML.load_file("config/deploy.yml").dig("proxy", "host").to_s' 2>/dev/null || true)
-hosts="$hosts trade.diamondbay.nl"
+# Through ERB, because config/deploy.yml takes the domain from the
+# environment. PROXY_NEIGHBOURS is a space separated list of the other sites
+# behind this proxy, if there are any, so a reboot is not called a success
+# while one of them is still down.
+hosts=$(ruby -rerb -ryaml -e 'puts YAML.load(ERB.new(File.read("config/deploy.yml"), trim_mode: "-").result).dig("proxy", "host").to_s' 2>/dev/null || true)
+hosts="$hosts ${PROXY_NEIGHBOURS:-}"
 failed=()
 
 for host in $hosts; do

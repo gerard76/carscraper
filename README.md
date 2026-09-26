@@ -891,10 +891,13 @@ already have. `bilweb.se` (Sweden, prices in kroner, mileage in *mil* of
 10 km) is scrapeable but had no ID. Buzz at all.
 # On the server
 
-Deployed with kamal to the same droplet as the other projects, at
-https://carscraper.diamondbay.nl. Anyone with the link can look; every click
-that changes something -- crossing a car away, putting one back, a note, the
-models scaffold -- asks for one shared password.
+One machine does all of it: serves the site, runs the scrape twice a day, and
+keeps the pictures. There is no second machine anywhere in this, and nothing
+here needs one.
+
+Deployed with kamal. Anyone with the link can look; every click that changes
+something -- crossing a car away, putting one back, a note, the models
+scaffold -- asks for one shared password.
 
 ```
 bin/kamal setup     first time: installs docker, boots postgres, deploys
@@ -903,32 +906,44 @@ bin/kamal rollback  back to the previous version
 bin/kamal logs      follow them
 bin/kamal console   a rails console in the running container
 bin/kamal psql      a psql in the accessory
+bin/kamal scrape    one round by hand, between the scheduled two
 ```
 
-The droplet is 2 GB with no swap and it is shared with trading-bot, lidlcoupons
-and ahbonus -- nine containers between them, and around 130 MB free. That is
-enough to run on and thin to deploy on, because a deploy is the one moment two
-copies of this app are up at once: kamal boots the new web container beside the
-old one and only retires the old one when the new one answers.
+`config/deploy.yml` names no server and no domain. The four things that are
+yours come out of the environment, so the file in git is the same for
+everybody:
 
-Under that pressure the new one boots slowly. Three deploys in a row took 10,
-17, and more than 30 seconds to answer, and the third went over kamal's default
-timeout and failed -- Puma reached "Listening on 0.0.0.0:3000" a few seconds
-after the proxy had stopped asking. Nothing broke: the old container kept
-serving and kamal will not send traffic to one that never answered. But the
-deploy fails, and it fails more often as the box fills.
+| | |
+| --- | --- |
+| `DEPLOY_HOST` | the server, by address or hostname |
+| `DEPLOY_DOMAIN` | what the site answers to, for the TLS certificate |
+| `DEPLOY_REGISTRY` | where the built image is pushed, e.g. `ghcr.io/your-name` |
+| `DEPLOY_DB_PORT` | which localhost port postgres is published on, if 5432 is taken |
 
-`proxy.deploy_timeout` is 90 seconds for that reason. It buys room, it does not
-make room: when a deploy fails again, `free -m` on the droplet is the thing to
-look at, and `docker stats --no-stream` says who is holding it.
+Export them, or put them in `.kamal/secrets.local`, which is not in git.
+`pre-connect` refuses to deploy while `DEPLOY_HOST` is still the example.
+
+It is a small app and it will run on a small box, but a deploy is the one
+moment two copies of it are up at once: kamal boots the new web container
+beside the old one and only retires the old one when the new one answers. On a
+2 GB machine with no swap and a few other things on it, three deploys in a row
+took 10, 17 and more than 30 seconds to answer, and the third went over kamal's
+default timeout and failed -- Puma reached "Listening on 0.0.0.0:3000" a few
+seconds after the proxy had stopped asking. Nothing broke: the old container
+kept serving and kamal will not send traffic to one that never answered. But
+the deploy fails, and it fails more often as the box fills.
+
+`deploy_timeout` is 90 seconds for that reason. It buys room, it does not make
+room: when a deploy fails again, `free -m` on the server is the thing to look
+at, and `docker stats --no-stream` says who is holding it.
 
 ## What it needs once
 
-**An A record** for the site's hostname pointing at the droplet -- here
-`carscraper.diamondbay.nl`. The domain has a wildcard that goes somewhere else, so the
-name resolves today and resolves *wrong*: `pre-connect` refuses to deploy until
-it points at the right machine, because kamal-proxy would otherwise ask Let's
-Encrypt for a certificate it cannot be given and the site would sit on 502.
+**An A record** for `DEPLOY_DOMAIN` pointing at `DEPLOY_HOST`. Without it
+kamal-proxy asks Let's Encrypt for a certificate it cannot be given and the
+site sits on 502. `pre-connect` refuses to deploy until the name resolves to
+the machine being deployed to -- which is worth having if the domain carries a
+wildcard, because then the name resolves today and resolves *wrong*.
 
 **The secrets**, all of which live in the credentials and nowhere else:
 
@@ -939,22 +954,20 @@ bin/rails credentials:edit     # or: mise run edcred
 ```yaml
 secret_key_base: ...          # signs the cookies
 kamal:
-  registry_user: ...          # a DigitalOcean registry token with read+write;
-  registry_password: ...      # for a personal token, the same value twice
+  registry_user: ...          # a registry token with read and write. Some
+  registry_password: ...      # registries want the token as both values
 database:
   password: ...               # postgres is created with it, the app connects with it
 auth:
-  password: ...               # what you and Mila type before a click that changes something
+  password: ...               # typed before any click that changes something
 home:
   latitude: ...               # where the distances are measured from
   longitude: ...
 ```
 
-`secret_key_base`, the database password, the click password and the
-coordinates are filled in already; the two registry values are not.
 `pre-connect` names anything still empty before the deploy touches the server.
 
-`.kamal/secrets` holds no values -- this repository is public -- only the names,
+`.kamal/secrets` holds no values -- a repository is a public place -- only the names,
 each one read out of those credentials by `.kamal/read-secret` at deploy time
 and handed to the container as an environment variable. So the app on the
 server reads none of that file itself and is never given the key.
@@ -962,20 +975,43 @@ server reads none of that file itself and is never given the key.
 The key is `config/master.key`, sitting next to them and not in git. Without it
 the credentials cannot be opened and nothing can be deployed, so it wants to be
 in a backup somewhere -- and `pre-build` refuses to build if it ever turns up
-in git, because this repository is public.
+in git.
 
-**The data**, because the database starts empty and the graph needs cars:
+**Something to look for**, because the database starts empty and a scrape with
+no models in it finds nothing:
+
+```
+bin/kamal console
+Model.create(make: "Volkswagen", model: "ID-Buzz")
+```
+
+Then `bin/kamal scrape`, or wait for the next scheduled round. The first one
+also imports nothing by itself: run `bin/rails postcodes:import` in the console
+container once, or the distances stay blank.
+
+### Moving a database you already have
+
+The accessory publishes postgres on localhost only, so an ssh tunnel to the
+server is the way in. `DEPLOY_DB_PORT` is the port it is published on:
 
 ```
 bin/kamal accessory boot postgres
-# 5433 at both ends: the accessory publishes 5433 on the droplet, because
-# 5432 there is trading-bot's database and would take the password badly.
-ssh -fN -L 5433:127.0.0.1:5433 deployer@"$DROPLET"
-pg_dump --no-owner --no-privileges carscrape | psql -h localhost -p 5433 -U carscraper carscraper_production
+ssh -fN -L 5433:127.0.0.1:"$DEPLOY_DB_PORT" "$DEPLOY_SSH_USER@$DEPLOY_HOST"
+pg_dump --no-owner --no-privileges carscrape \
+  | psql -h localhost -p 5433 -U carscraper carscraper_production
 ```
 
 That carries the postcodes over too, which is the slow part of a fresh start
 (`Postcode.import!` downloads 20375 rows and only needs doing once).
+
+To go the other way -- catch a development copy up with what the server has --
+dump in the other direction:
+
+```
+PGPASSWORD=$(.kamal/read-secret database.password) \
+  pg_dump --clean --if-exists --no-owner --no-privileges \
+  -h localhost -p 5433 -U carscraper carscraper_production | psql carscrape
+```
 
 ## Scraping on its own
 
@@ -992,7 +1028,7 @@ else -- so the web container cannot enqueue a scrape of its own.
 `Scrape` is the whole of it, and `bin/rails cars:scrape` is the same class from
 the command line. `bin/rails cars:tidy` is the tidying up on its own, for when
 a duplicate has to be found again without asking the sites anything --
-`bin/kamal tidy` runs it on the droplet. It removes nothing: what looks gone
+`bin/kamal tidy` runs it on the server. It removes nothing: what looks gone
 can only be judged by a round that has just been past the sites. It has one guard worth knowing about: a source that is
 blocked or has changed its markup returns nothing, and the listings it had
 would then all look gone. So a source's cars are only removed when this round
@@ -1253,14 +1289,14 @@ answers "flag needs an argument: 'p' in -p"), a DNS record pointing at the
 wrong server, a dirty checkout shipping code that matches no commit, the
 credentials key creeping into a public repository, a migration running against the image
 the server already had rather than the one being deployed, a deploy that exits
-0 having changed nothing, and a proxy reboot taking every other site on the
-droplet down with it.
+0 having changed nothing, and a proxy reboot taking every other site behind
+that proxy down with it.
 
 Two of them can be argued with:
 
 ```
 ALLOW_DIRTY_TREE=1 bin/kamal deploy           ship uncommitted changes anyway
-CONFIRM_PROXY_REBOOT=1 bin/kamal proxy reboot  yes, take the whole droplet down
+CONFIRM_PROXY_REBOOT=1 bin/kamal proxy reboot  yes, take every site on it down
 ```
 
 ---

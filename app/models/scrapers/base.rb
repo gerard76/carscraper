@@ -1,15 +1,15 @@
 # Shared plumbing for the scrapers: fetching pages, pacing the requests,
 # cleaning up the text the sites hand us and turning a listing into a Car.
 class Scrapers::Base
-  # What a browser of Gerard's sends, because that is who this is browsing for.
-  # Looking at these pages by hand is the same act as looking at them from
-  # here, and it went out under one lonely header claiming to be a Chrome from
-  # November 2024 while sending none of the fifteen a Chrome actually sends.
+  # What a real browser sends, because opening these pages by hand and opening
+  # them from here are the same act. It used to go out under one lonely header
+  # claiming to be a Chrome from November 2024 while sending none of the
+  # fifteen a Chrome actually sends.
   #
-  # Captured on 21 September 2026 from his own Chrome, by pointing it at a
-  # listener on localhost and writing down what arrived -- not invented, and
-  # not lifted out of anyone's session either: no cookies, and no Referer we
-  # did not actually come from.
+  # Captured on 21 September 2026 by pointing a Chrome at a listener on
+  # localhost and writing down what arrived -- not invented, and not lifted out
+  # of anybody's session either: no cookies, and no Referer we did not actually
+  # come from.
   #
   # This ages. Chrome ships about ten versions a year, so a number left here
   # long enough starts saying "old browser" out loud. Recapture it now and
@@ -57,9 +57,9 @@ class Scrapers::Base
   #
   # Storing avif would have been the other repair, and the smaller file: 37 kB
   # against the 60 kB webp and the 90 kB jpeg. Left for another day on purpose
-  # -- this header set exists to be Gerard's browser and nothing else, and the
-  # narrower change is the one that puts the pictures back. Second in the list
-  # is webp, which is what AutoScout24 serves anyway.
+  # -- this header set exists to be an ordinary browser and nothing else, and
+  # the narrower change is the one that puts the pictures back. Second in the
+  # list is webp, which is what AutoScout24 serves anyway.
   IMAGE_HEADERS = BROWSER_HEADERS.merge(
     "Accept"         => "image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
     "Sec-Fetch-Site" => "cross-site",

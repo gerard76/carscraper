@@ -32,12 +32,24 @@ if [ ${#missing[@]} -gt 0 ]; then
   exit 1
 fi
 
+# The deployment settings config/deploy.yml takes from the environment. Left
+# unset, they are still the example values in that file and the deploy goes to
+# somebody else's hostname.
+case "$KAMAL_HOSTS" in
+  *your.server.example.com*)
+    echo "✗ DEPLOY_HOST is not set, so this would deploy to the example server." >&2
+    echo "  config/deploy.yml lists the four DEPLOY_* settings and what they are." >&2
+    exit 1 ;;
+esac
+
 # Allowed to be empty, but then the site is a free-for-all, so say so out loud.
 if [ -z "$(.kamal/read-secret auth.password)" ]; then
   echo "⚠️  auth.password is empty: anyone who finds the site can cross cars away."
 fi
 
-host=$(ruby -ryaml -e 'puts YAML.load_file("config/deploy.yml").dig("proxy", "host").to_s' 2>/dev/null || true)
+# Through ERB, because config/deploy.yml takes the domain from the
+# environment -- YAML.load_file alone would hand back the unrendered tag.
+host=$(ruby -rerb -ryaml -e 'puts YAML.load(ERB.new(File.read("config/deploy.yml"), trim_mode: "-").result).dig("proxy", "host").to_s' 2>/dev/null || true)
 
 if [ -z "$host" ]; then
   echo "⚠️  Could not read proxy/host out of config/deploy.yml, so the DNS check was skipped."

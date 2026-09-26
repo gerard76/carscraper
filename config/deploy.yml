@@ -1,20 +1,33 @@
-# Deployed with kamal to the same droplet as the other projects:
+# Deployed with kamal to a single server, which does everything: serves the
+# site, runs the scrape, and keeps the pictures.
 #
 #   bin/kamal setup     first time -- installs docker, boots postgres, deploys
 #   bin/kamal deploy    every time after that
 #   bin/kamal rollback  back to the previous version
 #
-# The hooks in .kamal/hooks check what tends to go wrong; README.md has the
-# one-time steps (the DNS record, the secrets file, loading the data).
+# Nothing personal is written down here. The four things that are yours come
+# out of the environment, so this file is the same for everybody:
+#
+#   DEPLOY_HOST        the server, by address or hostname
+#   DEPLOY_DOMAIN      what the site answers to, for the TLS certificate
+#   DEPLOY_REGISTRY    where the built image is pushed (Docker Hub, ghcr.io,
+#                      a cloud provider's registry -- anything kamal can log
+#                      into), e.g. ghcr.io/your-name
+#   DEPLOY_DB_PORT     which port on the server postgres is published on,
+#                      bound to localhost. 5433 if 5432 is already taken.
+#
+# Export them, or put them in .kamal/secrets.local, which is not in git. The
+# hooks in .kamal/hooks check what tends to go wrong; README.md has the
+# one-time steps (the DNS record, the secrets, loading the data).
 service: carscraper
 image: carscraper
 
 ssh:
-  user: deployer
+  user: <%= ENV.fetch("DEPLOY_SSH_USER", "deployer") %>
 
 servers:
   web:
-    - 146.185.130.81
+    - <%= ENV.fetch("DEPLOY_HOST", "your.server.example.com") %>
 
   # The worker that runs the scrape, twice a day. GOOD_JOB_ENABLE_CRON is set
   # here and nowhere else, so this is the only container that schedules
@@ -22,42 +35,41 @@ servers:
   job:
     cmd: bundle exec good_job start
     hosts:
-      - 146.185.130.81
+      - <%= ENV.fetch("DEPLOY_HOST", "your.server.example.com") %>
     env:
       clear:
         GOOD_JOB_ENABLE_CRON: 1
 
 # How long kamal waits for a new container to answer. Its own default is 30s
-# and a deploy went over it: the droplet has 2 GB and no swap, and a deploy is
-# the one moment two copies of this app are up at once -- the new one booting
-# beside the old one still serving. With ~130 MB to spare that boot crawls,
-# and Puma reached "Listening on 0.0.0.0:3000" a few seconds after the proxy
-# had given up on it.
+# and that is not always enough: a deploy is the one moment two copies of this
+# app are up at once -- the new one booting beside the old one still serving --
+# and on a small server with no swap that boot crawls. Puma reached "Listening
+# on 0.0.0.0:3000" a few seconds after the proxy had given up on it.
 #
-# Nothing was broken by that: the old container kept the site, and kamal
-# refused to send traffic to one that never answered. But the deploy fails,
-# and it fails more often the fuller the box gets. More patience here is the
-# cheap half of the fix; the other half is `free -m` on the droplet.
+# Nothing is broken when that happens: the old container keeps the site, and
+# kamal refuses to send traffic to one that never answered. But the deploy
+# fails, and it fails more often the fuller the box gets. More patience here is
+# the cheap half of the fix; the other half is `free -m` on the server.
 deploy_timeout: 90
 
 # kamal-proxy terminates TLS with a Let's Encrypt certificate, which it can
-# only get once carscraper.diamondbay.nl resolves to the server above.
-# Thruster listens on 80 inside the container.
+# only get once DEPLOY_DOMAIN resolves to the server above. Thruster listens
+# on 80 inside the container.
 proxy:
   ssl: true
-  host: carscraper.diamondbay.nl
+  host: <%= ENV.fetch("DEPLOY_DOMAIN", "carscraper.example.com") %>
   app_port: 80
 
 registry:
-  server: registry.digitalocean.com/eet-nu
+  server: <%= ENV.fetch("DEPLOY_REGISTRY", "ghcr.io/your-name") %>
   username: KAMAL_REGISTRY_USER
   password:
     - KAMAL_REGISTRY_PASSWORD
 
-# The droplet is x86, this laptop is not, so the build is emulated and slow.
-# If that starts to hurt, build on the droplet instead:
+# Most rented servers are x86 and most laptops are no longer, so the build is
+# emulated and slow. If that starts to hurt, build on the server instead:
 #   builder:
-#     remote: ssh://deployer@146.185.130.81
+#     remote: ssh://deployer@your.server.example.com
 builder:
   arch: amd64
 
@@ -77,9 +89,9 @@ env:
     # Unset, nothing is locked. Set, every click needs it -- see
     # ApplicationController.
     - CARSCRAPER_PASSWORD
-    # Not a secret in any real sense: it is the middle of a village. It is
-    # here rather than in env/clear because this repository is public and
-    # where you live is nobody's business.
+    # Not a secret in any real sense: it is a point on a map. It is here rather
+    # than in env/clear because a repository is a public place and where you
+    # live is nobody's business.
     - HOME_LATITUDE
     - HOME_LONGITUDE
 
@@ -89,10 +101,8 @@ aliases:
   logs: app logs -f
   worker: app logs -f --roles=job
   psql: accessory exec postgres --interactive --reuse "psql -U carscraper carscraper_production"
-  # A scrape from the droplet. Prefer scraping from your own machine over the
-  # tunnel (README.md): the sites are friendlier to a home address than to a
-  # data centre.
-  scrape: app exec "bin/rails cars:scrape"
+  # One round by hand, on the server, in between the scheduled two.
+  scrape: app exec --roles=job "bin/rails cars:scrape"
   # Find the duplicates again without asking the sites anything.
   tidy: app exec --roles=job "bin/rails cars:tidy"
 
@@ -111,10 +121,11 @@ volumes:
 accessories:
   postgres:
     image: postgres:18-alpine
-    host: 146.185.130.81
-    # 5432 on the droplet is taken by the trading-bot database, and this one
-    # only has to be reachable through an ssh tunnel anyway.
-    port: "127.0.0.1:5433:5432"
+    host: <%= ENV.fetch("DEPLOY_HOST", "your.server.example.com") %>
+    # Bound to localhost, so the database is reachable from the server itself
+    # and through an ssh tunnel, and from nowhere else. Set DEPLOY_DB_PORT if
+    # 5432 on that machine already belongs to something.
+    port: "127.0.0.1:<%= ENV.fetch("DEPLOY_DB_PORT", "5432") %>:5432"
     env:
       clear:
         POSTGRES_USER: carscraper
