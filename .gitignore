@@ -41,8 +41,13 @@
 # .kamal/read-secret.
 /config/master.key
 
-# Where you live, used for Car#distance_km. Not in git: this remote is public.
+# Where you live, used for Car#distance_km. Not in git: a remote is a public
+# place.
 /config/home.yml
+
+# Which server this copy deploys to -- DEPLOY_HOST and the rest, read by
+# config/deploy.yml. Yours, not the project's.
+/.kamal/secrets.local
 
 
 /node_modules
