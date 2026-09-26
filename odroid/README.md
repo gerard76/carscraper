@@ -1,12 +1,18 @@
-# The scrape, on the Odroid
+# The scrape, on a box at home
+
+> This is not running any more -- the search it was keeping fresh is over and
+> the containers have been taken off the box. It is kept here because the
+> problem it solves is the ordinary one for a scraper on a rented server, and
+> the answer took some working out. Read it as a recipe, not as a description
+> of something switched on.
 
 AutoScout24 and AutoTrack answer a data centre address with 403 and a home
-address with 200. Measured both ways, today:
+address with 200. Measured both ways, on the day this was written:
 
 | from | autoscout24.nl | autotrack.nl |
 | --- | --- | --- |
-| the droplet (146.185.130.81) | **403** | **403** |
-| the Odroid (85.223.85.130, home) | 200 | 200 |
+| the droplet | **403** | **403** |
+| a home connection | 200 | 200 |
 
 Between them those two carry half the cars, so the round that keeps them fresh
 has to run from home. Until now that was `mise run scrape:production`, by hand,
@@ -29,12 +35,13 @@ Two designs were considered and dropped for failing exactly that test:
 - **Tailscale.** The Odroid is already on the tailnet and already offers an
   exit node, so adding the droplet would have been two commands. But then a
   public-facing machine is a member of the network your house is on, and the
-  only thing between it and Home Assistant is an ACL in a web console that
-  fails silently when it is wrong.
+  only thing between it and the rest of the house is an ACL in a web console
+  that fails silently when it is wrong.
 - **A reverse tunnel with an HTTP proxy here** (`ssh -R`, tinyproxy). That
-  leaves a socket *on the droplet* that ends at a container in this house.
+  leaves a socket *on the droplet* that ends at a container in the house.
   Filter it as hard as you like; a proxy is a thing whose job is to connect to
-  what it is asked for, and `CONNECT 192.168.68.177:8123` is Home Assistant.
+  what it is asked for, and `CONNECT 192.168.1.10:8123` is whatever else is
+  on the network the box is standing on.
   The requirement would then rest on the filter being right rather than on
   there being nothing to filter.
 
@@ -65,11 +72,12 @@ listing pages that are blocked. See `app/models/scrape.rb` and the
 ## Setting it up
 
 The image is built on the laptop, which is arm64 too, so it is a native build
-rather than the emulated amd64 one the droplet gets:
+rather than the emulated amd64 one the droplet gets. `$REGISTRY` is whatever
+`config/deploy.yml` names:
 
 ```
 docker buildx build --platform linux/arm64 \
-  -t registry.digitalocean.com/eet-nu/carscraper:arm64 --push .
+  -t "$REGISTRY"/carscraper:arm64 --push .
 ```
 
 The key lives here and only here — generated on this box so its private half
@@ -77,7 +85,7 @@ never crosses a wire:
 
 ```
 ssh-keygen -t ed25519 -N "" -C "carscraper-odroid" -f /opt/carscraper/ssh/id_scraper
-ssh-keyscan -t ed25519 146.185.130.81 > /opt/carscraper/ssh/known_hosts
+ssh-keyscan -t ed25519 "$DROPLET" > /opt/carscraper/ssh/known_hosts
 ```
 
 Then the account it connects to, **on the droplet**. A system user with no
@@ -99,10 +107,12 @@ sudo chmod 600 /home/scraper/.ssh/authorized_keys
 `permitopen` is what makes the key uninteresting if this box is ever taken:
 it buys a Postgres connection and not a shell.
 
-Secrets go in `/opt/carscraper/.env`, mode 600, four lines — the same values
-`.kamal/secrets` names:
+Secrets go in `/opt/carscraper/.env`, mode 600 — the same values
+`.kamal/secrets` names, plus the address to dial, which is the one thing the
+compose file will not carry in git:
 
 ```
+DROPLET_HOST=
 CARSCRAPER_DATABASE_PASSWORD=
 SECRET_KEY_BASE=
 HOME_LATITUDE=
@@ -141,10 +151,10 @@ The key's restrictions are worth checking too, since they are what makes
 losing this box survivable. Both of these must fail:
 
 ```
-ssh -i ssh/id_scraper scraper@146.185.130.81 id
+ssh -i ssh/id_scraper scraper@"$DROPLET" id
   -> This account is currently not available.
 
-ssh -i ssh/id_scraper -N -L 15432:127.0.0.1:22 scraper@146.185.130.81
+ssh -i ssh/id_scraper -N -L 15432:127.0.0.1:22 scraper@"$DROPLET"
   -> channel 2: open failed: administratively prohibited
 ```
 

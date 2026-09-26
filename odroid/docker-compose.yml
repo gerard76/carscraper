@@ -1,5 +1,7 @@
 # The scrape, on a box at home that does not close its lid.
 #
+# Not running any more -- see README.md in this directory. Kept as a recipe.
+#
 # Why here and not on the droplet: AutoScout24 and AutoTrack answer a data
 # centre address with 403 and a home address with 200 (measured both ways --
 # see README.md, "The droplet is blocked"). Between them they carry half the
@@ -25,7 +27,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.tunnel
-    command: ["-L", "0.0.0.0:5433:127.0.0.1:5433", "scraper@146.185.130.81"]
+    # The address comes out of .env, not out of git: this repository is public
+    # and the box it names is somebody's.
+    command: ["-L", "0.0.0.0:5433:127.0.0.1:5433", "scraper@${DROPLET_HOST}"]
     networks: [scraper]
     restart: unless-stopped
     volumes:
