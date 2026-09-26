@@ -32,6 +32,10 @@ class Car < ApplicationRecord
   VAT = 1.21
   VAT_SPREAD = 0.015
 
+  # How a Dutch seller says the price is the trade one: "ex btw", "excl. BTW",
+  # "ex vat". Read off the title, which is the only place it reaches us.
+  EX_VAT = /ex.*(btw|vat)/i
+
   # A seller who re-advertises a car writes the same title and asks the same
   # money, but the odometer has moved on: the one you spotted was the same
   # taxi at 10800 and 11500 km. How far apart two of those may be.
@@ -1247,14 +1251,19 @@ class Car < ApplicationRecord
     response.code == 200
   end
 
+  # Digits only, because every site writes the number its own way: "€ 45.000",
+  # "45 000 kr", "45.950,-". A scraper hands this a string; setting it by hand
+  # in a console hands it a number, and both come out the same.
+  #
+  # It used to try to mark a price quoted without VAT here too, by appending
+  # "ex btw" to the version -- and it never did. `version ||= ""` makes a local
+  # variable rather than touching the attribute, so what it wrote went nowhere.
+  # Removed rather than repaired: no scraper passes the wording to this setter,
+  # they all read the number out of the site's own structured data. Where the
+  # wording does arrive is the seller's own title, which is where set_eur
+  # looks for it.
   def price=(value)
-    version ||= ""
-    # `value` arrives as a string from the scraper, but can be a number when set
-    # by hand. Ruby 4 removed Object#=~, so cast before matching.
-    version += " ex btw" if value.to_s =~ /ex.*(btw|vat)/i
-    price = value.to_s.gsub(/[^0-9]/, '').to_i
-
-    self.write_attribute(:price, price)
+    write_attribute(:price, value.to_s.gsub(/[^0-9]/, "").to_i)
   end
 
   def km=(value)
@@ -1310,11 +1319,10 @@ class Car < ApplicationRecord
     when 'SEK'
       self.eur = price / SEK_PER_EUR
     when 'EUR'
-      self.eur = price
-
-      if country == 'NL' && (version =~ /ex.*(btw|vat)/i)
-        self.eur = price * 1.21
-      end
+      # A Dutch seller who quotes the trade price says so in the title. What
+      # you would pay is that plus the VAT, and that is the figure the graph
+      # has to plot, or the car sits a fifth below every other one on it.
+      self.eur = country == 'NL' && version.to_s.match?(EX_VAT) ? price * VAT : price
     end
   end
 end
