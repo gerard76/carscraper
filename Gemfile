@@ -41,9 +41,6 @@ gem "rubyzip", require: false
 # Search/filter forms on top of Active Record
 gem "ransack"
 
-# Group records by day/week/month in the database
-gem "groupdate"
-
 # Serves the assets, compresses what it serves and terminates the connection in
 # front of Puma, so kamal-proxy can talk to one port [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
