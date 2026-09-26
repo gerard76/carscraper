@@ -94,7 +94,12 @@ class Scatter
     low, high = wear_range
     return WEAR_COLORS.first if high <= low
 
-    step  = (high - low) / WEAR_COLORS.size
+    # Divided as a float, not as two integers. Mileage per year is a whole
+    # number, so on a set whose whole spread is narrower than there are colours
+    # -- filter hard enough and two cars are left, 4000 and 4003 km a year --
+    # an integer step came out as 0 and the graph died with ZeroDivisionError
+    # rather than drawing two points.
+    step  = (high - low) / WEAR_COLORS.size.to_f
     index = ((per_year - low) / step).floor.clamp(0, WEAR_COLORS.size - 1)
     WEAR_COLORS[index]
   end
