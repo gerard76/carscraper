@@ -1,12 +1,48 @@
-New version from https://github.com/gerard76/carcrawler
+# Carscraper
 
-It fetches the car model you are interested in and plots the result in a scatterplot
-so it is easier to see which cars are bargains.
+A used car is worth what the market says it is worth, and the market says so a
+few thousand times a day across half a dozen sites. Carscraper fetches every
+listing for one model, in as many countries as you are willing to drive to, and
+draws all of them on one graph: build date along the bottom, what the car would
+cost you on your own driveway up the side.
 
-The plot puts build year and price on the axes, so a car under the trend line
+![The graph](app/assets/images/example_graph.png)
+
+A line is drawn through the lot, so a car sitting under it asks less than its
+age says it should. Colour is how hard it has been driven for its age -- green
+gently, red hard. Under the line and green is the find; under the line and red
+is cheap for a reason.
+
+It is one person's tool, written while looking for one van. The van has been
+bought, so nothing here is being developed any more. It is kept public because
+the awkward parts are all written down: what a listing page will actually tell
+you, how to tell one car advertised twice from two cars advertised once, and
+what to do about a seller who quotes the gross battery when the one next to
+him quotes the net.
+
+- [What you get](#what-you-get)
+- [Running it yourself](#running-it-yourself)
+- [Telling it what to look for](#telling-it-what-to-look-for)
+- [The commands](#the-commands)
+- [How it is put together](#how-it-is-put-together)
+- [Scrapers](#scrapers) -- and everything below it: how each piece decides what it decides
+- [On the server](#on-the-server) -- how the deployed copy is put together
+
+## What you get
+
+Four pages over the same cars, sharing one filter and one sort, with a menu at
+the top of each:
+
+| | |
+| --- | --- |
+| `/cars` | the graph |
+| `/cars/table` | the same cars as a sortable table |
+| `/cars/photos` | the same cars as a wall of photographs |
+| `/cars/bin` | the ones you have clicked away |
+
+The graph puts build year and price on the axes, so a car under the trend line
 asks less than its year suggests. Colour is mileage per year: green is gently
-used for its age, red is driven hard. Under the line and green is the find;
-under the line and red is cheap for a reason.
+used for its age, red is driven hard.
 
 Mileage itself is deliberately not what is coloured. Over 2000 ID. Buzz
 listings it correlates -0.68 with the build year, so it would mostly repeat
@@ -55,14 +91,109 @@ car, not the advert. Rules about the car itself do leave a starred one alone --
 a battery that is too small, a Pure -- because marking one is a decision and a
 rule does not overrule a decision.
 
-# Get started
+## Running it yourself
 
-Create you first model: `Model.create(make: 'Fiat', model: 'Ducato')`
+You need **Ruby 4.0.2** and **PostgreSQL**. Versions are pinned in `mise.toml`,
+so with [mise](https://mise.jdx.dev) installed, `mise install` gets the right
+ruby. Node and yarn are in there too, but only to rebuild the echarts file
+checked into `app/assets/builds`; the app itself has no JavaScript toolchain
+and needs neither to run.
 
-Fetch matching cars: `Scrapers::Autoscout24.new(Model.first).scrape`
-See the graph on http://localhost:3000/cars
+```
+bin/setup                     # bundle install, create the database, start the server
+```
 
-![Example graph](/app/assets/images/example_graph.png)
+That leaves you on http://localhost:3000 with an empty database. The three
+things worth doing next:
+
+**Say where you live**, or every distance is blank. `config/home.yml` is not in
+git and is read by `Home`:
+
+```yaml
+latitude: 52.379
+longitude: 4.900
+country: NL
+```
+
+A postcode works instead of coordinates, and either can come from the
+environment (`HOME_LATITUDE`, `HOME_POSTCODE`, ...) rather than the file, which
+is how the deployed copy is told. Pick a station or a town square rather than
+your doorstep: every distance on these pages is a drive of hundreds of
+kilometres, so a few kilometres of vagueness changes nothing and keeps your
+address to yourself.
+
+**Import the postcodes**, which is what turns "90574 Roßtal" into a distance:
+
+```
+bin/rails postcodes:import    # 20,375 rows from GeoNames; once, and slow
+```
+
+**Say what to look for**, and fetch it:
+
+```ruby
+Model.create(make: "Volkswagen", model: "ID-Buzz", min_seats: 4, min_kwh: 77)
+```
+
+```
+bin/rails cars:scrape
+```
+
+The scrape asks four sites, waits three seconds between pages, and takes a few
+minutes. Then http://localhost:3000/cars has a graph on it.
+
+## Telling it what to look for
+
+One row of `models` is one search. There is a scaffold at `/models` for it, or
+the console:
+
+| Column | What it does |
+| --- | --- |
+| `make`, `model` | what to search for. Spelling is loose: "ID-Buzz" finds "ID.Buzz", "ID. Buzz" and "id buzz" |
+| `min_seats` | bin a listing that advertises fewer seats than this. A listing that names no seat count is kept |
+| `min_kwh` | the same for the battery, in kWh, net |
+| `exclude_versions` | comma separated words that mean this is not the car: `"ID.3, ID.4, Cargo"` |
+
+`min_seats` and `min_kwh` never judge a car that says nothing -- silence is not
+a small battery. Both are applied again after every scrape, so raising one puts
+cars in the bin without a re-scrape.
+
+## The commands
+
+```
+bin/rails cars:scrape         # every source for every model, then the tidying up
+bin/rails cars:tidy           # the tidying up on its own, asking the sites nothing
+bin/rails cars:details        # fill in seats and battery from the listing pages
+bin/rails cars:photos         # fetch our own copy of any photograph we are missing
+bin/rails postcodes:import    # the GeoNames tables, for distances
+```
+
+And in a console, for the things that only matter when you have changed
+something:
+
+```ruby
+Car.recalculate_bargains!     # after anything that moves the trend line
+Car.recalculate_distances!    # after moving house, or importing more postcodes
+Car.recalculate_eur!          # after changing NOK_PER_EUR or SEK_PER_EUR
+Car.renormalise_kwh!          # after changing Car::BATTERY_PACKS
+```
+
+## How it is put together
+
+Small classes, each one a step of a round, all in `app/models`:
+
+| | |
+| --- | --- |
+| `Scrape` | one round: every scraper, then the tidying up, then `Details` and `Photos` |
+| `Scrapers::*` | one per site, over `Scrapers::Base`, which holds the fetching and the pacing |
+| `Car` | the row, and every rule about what is a duplicate and what belongs in the bin |
+| `Details` | what the search cards leave out, read off the listing's own page |
+| `Photos` | our own copy of each picture, so no page of ours asks a seller's server for a file |
+| `StillThere` | asks a listing we did not see this round whether it is gone |
+| `PriceFit` | the plane through price, year and mileage that `bargain_eur` measures from |
+| `Scatter` | the graph: points, trend line, and the colour scale |
+| `Postcode`, `Home` | where a car is, where you are, and how far that is |
+
+There are no tests. That is not a recommendation.
 
 # Scrapers
 
@@ -118,13 +249,20 @@ A car is on the pages when two things hold: you have not clicked it away
 `Car::SEEN_WINDOW`). The two are kept apart on purpose -- one is your decision,
 the other is the market's.
 
-A listing nobody has seen for that long is sold or withdrawn, and
-`Car.remove_vanished!` takes the row out at the end of a scrape. That is worth
-knowing about: the first sweep removed 1121 of 2788 rows, 599 of which were
-still on the graph -- 12gebrauchtwagen's links answer 410 Gone within days. The
-window is the safety margin, so a source that falls over does not cost you its
-cars on a single miss. A car that comes back comes back as a new row, and any
-note on it is gone with it.
+A listing nobody has seen for that long is sold or withdrawn, and the end of a
+scrape takes it off the pages -- `hidden_by` becomes `Car::GONE`. That is worth
+knowing about: the first sweep caught 1121 of 2788 rows, 599 of which were
+still on the graph, because 12gebrauchtwagen's links answer 410 Gone within
+days. The window is the safety margin, so a source that falls over does not
+cost you its cars on a single miss, and `Scrape::MOST_OF_THEM` refuses to write
+off a source this round barely saw at all.
+
+Off the pages, not out of the database. It used to be a `destroy`, and then a
+car that came back came back as a fresh row with your star, your note and your
+corrections missing. Now the row keeps all of it and a scrape that sees the car
+again lifts the reason (`Scrapers::Base#refresh`). Only when it has been gone
+for `Car::FORGET_AFTER` -- sixty days -- and you have said nothing about it does
+`Car.forget_long_gone!` actually remove it.
 
 Running a scraper again only adds what is new. A listing is recognised by its
 fingerprint -- `Car#identity`: the site it came from, its build month, its
@@ -649,7 +787,8 @@ ACC |" against "86 kWh 210 kW ENERGY LR 5 Türen", both 49370 euro at 16174 km
 in Plattling. The copy that still has a picture stays.
 
 The old rows clean themselves up: their titles are gone from the site, so
-nothing stamps them again and `remove_vanished!` takes them after three days.
+nothing stamps them again and the sweep at the end of a scrape takes them off
+the pages after three days.
 Leaving the title out of `identity` altogether would stop the churn at the
 source, but the title is the only thing that tells two alike cars at one dealer
 apart -- the price and the mileage both move -- so the row is the cheaper
@@ -776,8 +915,8 @@ look at, and `docker stats --no-stream` says who is holding it.
 
 ## What it needs once
 
-**An A record** for `carscraper.diamondbay.nl` pointing at the droplet
-(146.185.130.81). The domain has a wildcard that goes somewhere else, so the
+**An A record** for the site's hostname pointing at the droplet -- here
+`carscraper.diamondbay.nl`. The domain has a wildcard that goes somewhere else, so the
 name resolves today and resolves *wrong*: `pre-connect` refuses to deploy until
 it points at the right machine, because kamal-proxy would otherwise ask Let's
 Encrypt for a certificate it cannot be given and the site would sit on 502.
@@ -822,7 +961,7 @@ in git, because this repository is public.
 bin/kamal accessory boot postgres
 # 5433 at both ends: the accessory publishes 5433 on the droplet, because
 # 5432 there is trading-bot's database and would take the password badly.
-ssh -fN -L 5433:127.0.0.1:5433 deployer@146.185.130.81
+ssh -fN -L 5433:127.0.0.1:5433 deployer@"$DROPLET"
 pg_dump --no-owner --no-privileges carscrape | psql -h localhost -p 5433 -U carscraper carscraper_production
 ```
 
@@ -1131,7 +1270,7 @@ development copy. To catch this one up rather than the other way round, dump in
 the other direction:
 
 ```
-ssh -fN -L 5433:127.0.0.1:5433 deployer@146.185.130.81
+ssh -fN -L 5433:127.0.0.1:5433 deployer@"$DROPLET"
 PGPASSWORD=$(.kamal/read-secret database.password) \
   pg_dump --clean --if-exists --no-owner --no-privileges \
   -h localhost -p 5433 -U carscraper carscraper_production | psql carscrape
@@ -1155,3 +1294,7 @@ Two of them can be argued with:
 ALLOW_DIRTY_TREE=1 bin/kamal deploy           ship uncommitted changes anyway
 CONFIRM_PROXY_REBOOT=1 bin/kamal proxy reboot  yes, take the whole droplet down
 ```
+
+---
+
+The first version of this lived at https://github.com/gerard76/carcrawler.
