@@ -2,17 +2,21 @@
 #
 # It lives in config/home.yml, which is deliberately not in git, and every
 # setting can come from the environment instead -- which is how the deployed
-# copy is told, without the file ever leaving this machine:
+# copy is told, without the file ever leaving this machine. The numbers below
+# are Amsterdam Centraal, and are here to show the shape of the file and
+# nothing else:
 #
 #   postcode: "1234"          HOME_POSTCODE=1234
 #   country: NL               HOME_COUNTRY=NL
-#   latitude: 50.941          HOME_LATITUDE=50.941
-#   longitude: 5.801          HOME_LONGITUDE=5.801
+#   latitude: 52.379          HOME_LATITUDE=52.379
+#   longitude: 4.900          HOME_LONGITUDE=4.900
 #
-# Give it coordinates or a postcode. Coordinates win, and they are the better
-# thing to hand to a server: a point you picked yourself says exactly as much
-# as you want it to, where a postcode is a fact about you. A town name is not
-# offered on purpose -- there are three Beeks in the Netherlands and their
+# Pick a station, a town square, anywhere within a few kilometres: every
+# distance on the pages is a road trip of hundreds, so the odd kilometre
+# changes no decision, and the point is then yours to give away rather than
+# your address. Coordinates or a postcode, and coordinates win -- a postcode
+# is a fact about you where a point you chose is not. A town name is not
+# offered on purpose: there are three Beeks in the Netherlands and their
 # average is 70 km from any of them.
 #
 # Without any of it there are simply no distances.
