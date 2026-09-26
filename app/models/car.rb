@@ -151,22 +151,6 @@ class Car < ApplicationRecord
     %w[model]
   end
 
-  # A car keeps the eur it was given when it was scraped, so changing
-  # NOK_PER_EUR or SEK_PER_EUR leaves everything already stored on the old
-  # rate. This works those out again. Returns the number of cars it changed.
-  # The same car is often for sale on two sites at once -- 12gebrauchtwagen
-  # carries a lot of what AutoScout24 has -- and two listings for one car
-  # count twice in the graph and twice in the trend line.
-  #
-  # Two listings are taken to be one car when they agree on build month,
-  # odometer reading and location, sit within PRICE_SPREAD of each other, and
-  # come from different sites. That last one matters: a dealer with several
-  # similar cars on one site is not a duplicate, and there are such dealers.
-  #
-  # The cheapest of the set stays and the rest are binned, so they
-  # stay hidden through the next scrape -- except where the difference is the
-  # VAT, and then the price you would actually pay stays. Returns the number
-  # hidden.
   # A reason from last round is not a reason. "Listed on two sites" is true of
   # a pair, and when the other half is sold the survivor stays in the bin
   # saying it about nobody -- nothing ever lifted one of these, and after
@@ -180,6 +164,18 @@ class Car < ApplicationRecord
     where(hidden_by: DUPLICATE_REASONS).update_all(hidden_by: nil)
   end
 
+  # The same car is often for sale on two sites at once -- 12gebrauchtwagen
+  # carries a lot of what AutoScout24 has -- and two listings for one car
+  # count twice in the graph and twice in the trend line.
+  #
+  # Two listings are taken to be one car when they agree on build month,
+  # odometer reading and location, sit within PRICE_SPREAD of each other, and
+  # come from different sites. That last one matters: a dealer with several
+  # similar cars on one site is not a duplicate, and there are such dealers.
+  #
+  # The cheapest of the set stays and the rest are binned, so they stay hidden
+  # through the next scrape -- except where the difference is the VAT, and then
+  # the price you would actually pay stays. Returns the number hidden.
   def self.hide_duplicates!
     hidden = 0
 
@@ -396,6 +392,16 @@ class Car < ApplicationRecord
     candidates.first if candidates.one?
   end
 
+  # Every reason a duplicate rule gives, and nothing else: these are the ones
+  # worked out again from scratch each round.
+  DUPLICATE_REASONS = ["listed on two sites", "advertised twice", "same photograph"].freeze
+
+  # Rounds, because merging changes what is grouped: a row that stays takes
+  # over the freshest advert, and that can bring it alongside a third row that
+  # was in nobody's group before. Two passes settled production; the cap is
+  # there so a bug cannot spin here.
+  MERGE_PASSES = 5
+
   # What the rows already here need, since they were made before the scrapers
   # knew to ask. One car, several rows, one per title it has worn: four of them
   # for a Mulheim bus, on four different days.
@@ -408,14 +414,6 @@ class Car < ApplicationRecord
   # The reason a rule gave for hiding it goes too: it was about a row that no
   # longer exists, and nothing ever lifts one of those. The rules run again
   # directly after this, on what is left.
-  DUPLICATE_REASONS = ["listed on two sites", "advertised twice", "same photograph"].freeze
-
-  # Rounds, because merging changes what is grouped: a row that stays takes
-  # over the freshest advert, and that can bring it alongside a third row that
-  # was in nobody's group before. Two passes settled production; the cap is
-  # there so a bug cannot spin here.
-  MERGE_PASSES = 5
-
   def self.merge_retitled!
     merged = 0
 
@@ -797,6 +795,9 @@ class Car < ApplicationRecord
     find_each { |car| car.update_columns(distance_km: car.distance_from_home) }
   end
 
+  # A car keeps the eur it was given when it was scraped, so changing
+  # NOK_PER_EUR or SEK_PER_EUR leaves everything already stored on the old
+  # rate. This works those out again. Returns the number of cars it changed.
   def self.recalculate_eur!
     changed = 0
 
@@ -825,9 +826,6 @@ class Car < ApplicationRecord
     (costs.fetch(:fixed) + costs.fetch(:share, 0) * eur.to_i).round
   end
 
-  # What two listings for one car have to agree on. Build month is out: some
-  # sites only know the year. So is the wording of the location: one names a
-  # postcode and the next the town, so both are resolved to the same place.
   # A car registered this month would divide by nearly nothing.
   MIN_AGE_IN_YEARS = 0.25
 
@@ -866,8 +864,6 @@ class Car < ApplicationRecord
     image_url[%r{/v7/(.+?)(?:\?|\z)}, 1].then { |inner| inner ? CGI.unescape(inner) : image_url }
   end
 
-  # The picture the pages show: our own copy when we have one, and the site's
-  # own until then, so a car that arrived a minute ago still has a photograph.
   # What the range itself makes certain, for the adverts that do not say.
   #
   # Two rules, because these are the only two the stock bears out without a
@@ -1078,12 +1074,6 @@ class Car < ApplicationRecord
     Digest::SHA256.hexdigest(large_image_url)[0, 16]
   end
 
-  # The name in the column is only half of it: the file has to be there too.
-  # A database restored onto a machine without the pictures -- this laptop,
-  # carrying a dump of the droplet -- would otherwise show six hundred broken
-  # images and never fetch them, because the column says they are already
-  # here. Checking costs one stat per car, and it means a wiped volume heals
-  # itself on the next scrape.
   # What Photos asks: is the file here, and is it still the picture the advert
   # shows? A listing that swaps its photograph fails the second half and is
   # fetched again -- the name is a digest of the url it came from, so a new url
@@ -1186,6 +1176,9 @@ class Car < ApplicationRecord
     Digest::SHA256.hexdigest(identity.join("|"))[0, 32]
   end
 
+  # What two listings for one car have to agree on. Build month is out: some
+  # sites only know the year. So is the wording of the location: one names a
+  # postcode and the next the town, so both are resolved to the same place.
   def duplicate_key
     [year&.year, km, place_key]
   end

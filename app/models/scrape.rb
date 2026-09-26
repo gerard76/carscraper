@@ -81,12 +81,12 @@ class Scrape
 
     remove_vanished(since) if since
 
-    # Twice around: the Pure is spotted by how far under the line it sits, and
-    # taking a couple of dozen of them out moves the line the rest are judged
-    # against.
     forgotten = Car.forget_long_gone!
     report.call "forgot #{forgotten} listings gone for #{Car::FORGET_AFTER.inspect} with nothing of yours on them" if forgotten.positive?
 
+    # Twice around: the Pure is spotted by how far under the line it sits, and
+    # taking a couple of dozen of them out moves the line the rest are judged
+    # against.
     Car.recalculate_bargains!
     report.call "hid #{Car.hide_pures!} listings that are the cheap Pure model"
 
