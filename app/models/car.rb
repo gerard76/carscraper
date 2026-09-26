@@ -1246,11 +1246,6 @@ class Car < ApplicationRecord
     version.to_s.match?(/[[:alnum:]]/) ? version : type
   end
 
-  def available?
-    response = HTTParty.head(url)
-    response.code == 200
-  end
-
   # Digits only, because every site writes the number its own way: "€ 45.000",
   # "45 000 kr", "45.950,-". A scraper hands this a string; setting it by hand
   # in a console hands it a number, and both come out the same.
